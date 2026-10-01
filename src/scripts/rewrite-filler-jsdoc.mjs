@@ -180,5 +180,5 @@ console.log(
   `\nexamined ${examined}, ${dryRun ? "would rewrite" : "rewrote"} ${rewritten}, rejected ${rejected}`,
 );
 console.log(
-  "Run pnpm typecheck and pnpm verify before committing: nothing here is trusted unverified.",
+  "Run bun run typecheck and bun run verify before committing: nothing here is trusted unverified.",
 );

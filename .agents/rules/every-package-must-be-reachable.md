@@ -10,7 +10,7 @@ the generated bundle patch, shipping a browser half through `dsh.client`,
 imported by another package's source, or exposed as a CLI through `bin`. An
 extension additionally qualifies by being composed into a pack.
 
-`pnpm verify` enforces this. Anything else is dead code that looks canonical.
+`bun run verify` enforces this. Anything else is dead code that looks canonical.
 
 ## Why
 

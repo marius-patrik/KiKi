@@ -5,7 +5,7 @@
  * entry.
  *
  * The bundle generator (`generate-stack-bundle-patch.mjs`) silently drops
- * pack dependencies that have no cordis loader shape, and `pnpm build` prints
+ * pack dependencies that have no cordis loader shape, and `bun run build` prints
  * the exclusion only as a log line nobody gates on. That is exactly how
  * `@dsh-stack/workspace-tabs` (typed tab reducer, tests, its own package) sat
  * in the tree for releases while the live UI ran a different implementation
@@ -18,7 +18,7 @@
  * The gate delegates the mount/skip computation to the generator itself
  * (`list` mode) rather than re-deriving the loader-shape probe, so the two
  * cannot drift apart. It requires every package's `lib/` to already be built
- * (`pnpm build` upstream), the same precondition the generator's `write` and
+ * (`bun run build` upstream), the same precondition the generator's `write` and
  * `check` modes document -- an unbuilt tree produces false exclusions, which
  * fail loud here rather than pass silently.
  *

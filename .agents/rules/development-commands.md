@@ -6,9 +6,9 @@ status: active
 # Development commands
 
 ```bash
-pnpm install
-pnpm typecheck
-pnpm build
-pnpm verify
-pnpm test
+bun install
+bun run typecheck
+bun run build
+bun run verify
+bun run test
 ```

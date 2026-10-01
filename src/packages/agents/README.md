@@ -63,6 +63,6 @@ materialization degrades to a bare persona row.
 ## Build
 
 ```sh
-pnpm build       # tsc -> lib/
-pnpm test        # node check-plugin.mjs (real standard-composition splice round-trips)
+bun run build       # tsc -> lib/
+bun run test        # node check-plugin.mjs (real standard-composition splice round-trips)
 ```

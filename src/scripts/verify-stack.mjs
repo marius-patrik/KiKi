@@ -13,7 +13,12 @@ const packsDir = join(root, "publish/packs");
 const pluginsDir = join(root, "publish/plugins");
 const codeExts = new Set([".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"]);
 const ignoredDirs = new Set(["node_modules", ".git", "dist", "coverage", "lib"]);
-const generatedFileNames = new Set(["package-lock.json", "pnpm-lock.yaml", "yarn.lock"]);
+const generatedFileNames = new Set([
+  "package-lock.json",
+  "bun.lock",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+]);
 const errors = [];
 const packageNames = new Map();
 const stackIds = new Map();

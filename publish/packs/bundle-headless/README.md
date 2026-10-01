@@ -53,13 +53,13 @@ than trying to hand-curate a minimal headless set.
 ```
 <!-- jscpd:ignore-end -->
 
-`pnpm install` in the profile directory then resolves
+`bun install` in the profile directory then resolves
 `@dsh-stack/pack-bundle-headless` and its full dependency closure into the
 profile's own `node_modules`. This step is currently manual -- there is no
 automatic "ensure a profile's `node_modules` has what its `dsh.profile.bundles`
 needs" mechanism in dsh-stack's own launcher yet (tracked separately, #169);
 until that lands, adding this package to a fresh headless profile needs the
-same manual `pnpm install`/symlink step `@dsh-stack/pack-bundle` already
+same manual `bun install`/symlink step `@dsh-stack/pack-bundle` already
 needs for a fresh `web` profile.
 
 ## Regenerating the patch
@@ -67,5 +67,5 @@ needs for a fresh `web` profile.
 `cordis.patch.yml` is generated, not hand-written -- see the header comment
 in the file itself. Regenerate `@dsh-stack/pack-bundle`'s own patch first
 (this generator reads its package list, not a second independent domain-pack
-scan), then this one. `pnpm --filter @dsh-stack/pack-bundle-headless run
+scan), then this one. `bun run --filter @dsh-stack/pack-bundle-headless run
 verify` fails loud if it drifts.

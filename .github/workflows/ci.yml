@@ -23,23 +23,21 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 11.7.0
+          bun-version: 1.4.2
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22.19.0
-          cache: pnpm
 
-      # setup-node's cache: pnpm above already restores the pnpm store from
-      # GitHub's cache service on hosted runners; a separate actions/cache step
-      # for the store would just duplicate it.
+      # setup-bun caches its own install cache, so no separate actions/cache
+      # step is needed for the bun store.
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       # TypeScript incremental state, restored so tsc can skip unchanged
       # projects instead of recompiling all 73 packages. A fresh checkout has no
@@ -56,9 +54,9 @@ jobs:
             publish/extensions/*/lib
             publish/packs/*/lib
             **/*.tsbuildinfo
-          key: ts-build-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          key: ts-build-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ github.sha }}
           restore-keys: |
-            ts-build-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            ts-build-${{ runner.os }}-${{ hashFiles('bun.lock') }}-
             ts-build-${{ runner.os }}-
 
       # The cache above is keyed by lockfile hash with loose restore-keys, so
@@ -99,13 +97,13 @@ jobs:
           done
 
       - name: Build Stack workspace
-        run: pnpm build
+        run: bun run build
 
       - name: Verify Stack workspace
-        run: pnpm verify
+        run: bun run verify
 
       - name: Test Stack workspace
-        run: pnpm test
+        run: bun run test
 
   typecheck:
     name: Typecheck Stack workspace
@@ -123,19 +121,18 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 11.7.0
+          bun-version: 1.4.2
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22.19.0
-          cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       # TypeScript incremental state, restored so tsc can skip unchanged
       # projects instead of recompiling all 73 packages. A fresh checkout has no
@@ -152,9 +149,9 @@ jobs:
             publish/extensions/*/lib
             publish/packs/*/lib
             **/*.tsbuildinfo
-          key: ts-build-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          key: ts-build-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ github.sha }}
           restore-keys: |
-            ts-build-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            ts-build-${{ runner.os }}-${{ hashFiles('bun.lock') }}-
             ts-build-${{ runner.os }}-
 
       # The cache above is keyed by lockfile hash with loose restore-keys, so
@@ -195,10 +192,10 @@ jobs:
           done
 
       - name: Build Stack workspace
-        run: pnpm build
+        run: bun run build
 
       - name: Typecheck Stack workspace
-        run: pnpm typecheck
+        run: bun run typecheck
 
   dependency-audit:
     name: Dependency audit
@@ -210,23 +207,21 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 11.7.0
+          bun-version: 1.4.2
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22.19.0
-          cache: pnpm
 
-      # setup-node's cache: pnpm above already restores the pnpm store from
-      # GitHub's cache service on hosted runners; a separate actions/cache step
-      # for the store would just duplicate it.
+      # setup-bun caches its own install cache, so no separate actions/cache
+      # step is needed for the bun store.
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Audit dependencies (high+ severity)
-        run: pnpm audit --audit-level=high
+        run: bun audit --audit-level=high

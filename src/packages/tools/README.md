@@ -42,6 +42,6 @@ Changes apply on the next boot.
 ## Build
 
 ```sh
-pnpm build       # tsc -> lib/
-pnpm test        # node check-plugin.mjs (real subprocess round-trips)
+bun run build       # tsc -> lib/
+bun run test        # node check-plugin.mjs (real subprocess round-trips)
 ```

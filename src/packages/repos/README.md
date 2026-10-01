@@ -41,6 +41,6 @@ The `repos` section of `settings.yaml`:
 ## Build
 
 ```sh
-pnpm build       # tsc -> lib/
-pnpm test        # node check-plugin.mjs (real git round-trips + local PR API stub)
+bun run build       # tsc -> lib/
+bun run test        # node check-plugin.mjs (real git round-trips + local PR API stub)
 ```

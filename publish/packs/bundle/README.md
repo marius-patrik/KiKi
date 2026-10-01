@@ -35,7 +35,7 @@ entire dsh-stack catalog with zero manual per-plugin wiring.
 }
 ```
 
-`pnpm install` in the profile directory then resolves `@dsh-stack/pack-bundle`
+`bun install` in the profile directory then resolves `@dsh-stack/pack-bundle`
 and its full plugin/extension dependency closure into the profile's own
 `node_modules`, where the bare package names in `cordis.patch.yml` resolve
 through Node's ordinary parent-directory walk.
@@ -43,7 +43,7 @@ through Node's ordinary parent-directory walk.
 ## Regenerating the patch
 
 `cordis.patch.yml` is generated, not hand-written -- see the header comment
-in the file itself. `pnpm --filter @dsh-stack/pack-bundle run verify` fails
+in the file itself. `bun run --filter @dsh-stack/pack-bundle verify` fails
 loud if it drifts from what the domain packs currently compose (a plugin
 added to `publish/packs/ux/package.json` without regenerating this file, for
 example).

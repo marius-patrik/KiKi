@@ -192,7 +192,7 @@ async function execute(plan, ctx) {
     process.stderr.write(
       "dsh: no built harness CLI found, and the dev fallback needs 'tsx' from this " +
         "checkout's node_modules, which isn't resolvable right now (mid-reinstall?). " +
-        "Run `pnpm install` in the checkout and try again.\n",
+        "Run `bun install` in the checkout and try again.\n",
     );
     process.exitCode = 1;
     return;

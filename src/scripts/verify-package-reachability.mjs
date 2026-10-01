@@ -194,7 +194,7 @@ const mounted = await readMountedNames();
 if (mounted === null) {
   console.error(
     "verify-package-reachability: publish/packs/bundle/cordis.patch.yml is missing.\n" +
-      "Run `pnpm build` first -- reachability cannot be judged without the generated bundle patch.",
+      "Run `bun run build` first -- reachability cannot be judged without the generated bundle patch.",
   );
   process.exit(1);
 }

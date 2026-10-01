@@ -60,8 +60,8 @@ decides what a run does — that stays with the extension.
 ## Scripts
 
 ```bash
-pnpm build      # tsc
-pnpm typecheck  # tsc --noEmit
-pnpm test       # node check-plugin.mjs
-pnpm verify     # node check-plugin.mjs
+bun run build      # tsc
+bun run typecheck  # tsc --noEmit
+bun run test       # node check-plugin.mjs
+bun run verify     # node check-plugin.mjs
 ```
