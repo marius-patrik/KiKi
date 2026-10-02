@@ -14,6 +14,8 @@ import z from "@deepseek-ai/schemastery";
 import type { Dialect, DialectId } from "./types.js";
 
 export type { Dialect, DialectAuth, DialectDefaults, DialectId, WireRequest } from "./types.js";
+export type { DialectRequestMessages, RequestTurn } from "./request-messages.js";
+export { splitRequestMessages } from "./request-messages.js";
 export type { SseEvent } from "./sse.js";
 export { DONE, parseSseData, parseSseEvents } from "./sse.js";
 export { parseNdjson } from "./ndjson.js";

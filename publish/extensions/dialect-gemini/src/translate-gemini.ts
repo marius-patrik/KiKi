@@ -10,7 +10,7 @@
  * @module dialects/translate-gemini
  */
 
-import { CallId, EMPTY_RESPONSE_CODE, LlmError } from "@deepseek-ai/dsh-llm";
+import { EMPTY_RESPONSE_CODE, LlmError, ToolCallId } from "@deepseek-ai/dsh-llm";
 import type { ContentBlock, FinishReason, StreamChunk, TokenUsage } from "@deepseek-ai/dsh-llm";
 
 /** A `functionCall` part; `args` is a complete object (Gemini never streams it incrementally). */
@@ -44,7 +44,7 @@ interface OpenBlock {
   index: number;
   kind: "text" | "tool-call";
   text: string;
-  callId: CallId;
+  callId: ToolCallId;
   name?: string;
 }
 
@@ -73,7 +73,7 @@ export function mapGeminiFinishReason(reason: string): FinishReason {
  * @param payloads - NDJSON payloads from {@link parseNdjson}.
  * @returns text deltas as cumulative parts grow and one complete tool-call block per `functionCall`
  *   part; `block-end`s, `usage`, and `finish` are deferred to EOF. A `stop` (or absent) finish with
- *   no opened blocks maps to an `EMPTY_RESPONSE` error finish. Synthesized `CallId`s are
+ *   no opened blocks maps to an `EMPTY_RESPONSE` error finish. Synthesized `ToolCallId`s are
  *   `gemini-<partIndex>`.
  */
 export async function* translateGemini(
@@ -123,7 +123,7 @@ export async function* translateGemini(
         yield {
           type: "tool-call-delta",
           index,
-          id: CallId(`gemini-${index}`),
+          id: ToolCallId(`gemini-${index}`),
           name: part.functionCall.name,
           argumentsDelta: args,
         };
@@ -146,7 +146,7 @@ export async function* translateGemini(
   for (const index of [...openIndexes].sort((a, b) => a - b)) {
     const text = textSent.get(index);
     if (text !== undefined) {
-      blocks.push({ index, kind: "text", text, callId: CallId(`gemini-${index}`) });
+      blocks.push({ index, kind: "text", text, callId: ToolCallId(`gemini-${index}`) });
     } else {
       const call = functionSent.get(index) ?? {};
       const args = call.args !== undefined ? JSON.stringify(call.args) : "{}";
@@ -154,7 +154,7 @@ export async function* translateGemini(
         index,
         kind: "tool-call",
         text: args,
-        callId: CallId(`gemini-${index}`),
+        callId: ToolCallId(`gemini-${index}`),
         name: call.name,
       });
     }

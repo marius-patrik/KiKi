@@ -22,8 +22,9 @@
  */
 
 import { LlmError } from "@deepseek-ai/dsh-llm";
-import type { GenerateOptions, StreamChunk, TokenUsage } from "@deepseek-ai/dsh-llm";
-import type { Dialect, DialectAuth, DialectDefaults, WireRequest } from "@dsh-stack/dialects";
+import type { ContentBlock, GenerateOptions, StreamChunk, TokenUsage } from "@deepseek-ai/dsh-llm";
+import type { Dialect, DialectAuth, DialectDefaults, RequestTurn, WireRequest } from "@dsh-stack/dialects";
+import { splitRequestMessages } from "@dsh-stack/dialects";
 
 /**
  * Header carrying the Cloud AI Companion project this account chats under.
@@ -55,16 +56,15 @@ interface WireChatChunk {
 }
 
 /**
- * Extracts the text content from a message or a collection of message parts.
+ * Extracts the text content from a message's content blocks.
  *
- * Guarantees that the input is either a string or an array of message parts.
- * Returns a string containing the text content if the input is an array of parts,
- * or the input string itself if it is a string. Returns an empty string if the
- * input is an array but contains no text parts.
+ * Guarantees that the result is the concatenation of the message's text blocks,
+ * with every other block contributing nothing.
  */
-function textOf(content: GenerateOptions["messages"][number]["content"]): string {
-  if (typeof content === "string") return content;
-  return content.map((part) => (part.type === "text" ? part.text : "")).join("");
+function textOf(content: readonly ContentBlock[]): string {
+  return content
+    .map((part) => (part.type === "text" ? part.text : ""))
+    .join("");
 }
 
 /**
@@ -83,27 +83,31 @@ function count(value: string | number | undefined): number | undefined {
 /**
  * Split the conversation into the turn being asked and everything before it.
  *
- * The wire takes one scalar `userMessage`, so the last user turn is the
- * request and the rest is history. A system prompt has no field of its own
- * here; it is folded into history so it still reaches the model rather than
- * being dropped.
- * @param options - the harness request.
+ * The wire takes one scalar `userMessage`, so the last user turn is the request
+ * and the rest is history. This wire has no system slot at all, so the request's
+ * system prompt leads the history instead, and still reaches the model rather
+ * than being dropped.
+ * @param turns - the conversation turns, in order.
+ * @param system - the request's system prompt, when it carries one.
  * @returns the scalar turn and the preceding entries.
  */
-function splitConversation(options: GenerateOptions): {
+function splitConversation(
+  turns: readonly RequestTurn[],
+  system: string | undefined,
+): {
   userMessage: string;
   history: WireHistoryEntry[];
 } {
   const history: WireHistoryEntry[] = [];
   let userMessage = "";
-  if (options.system !== undefined && options.system.length > 0) {
-    history.push({ content: options.system });
+  if (system !== undefined) {
+    history.push({ content: system });
   }
-  for (const [index, message] of options.messages.entries()) {
-    const text = textOf(message.content);
+  for (const [index, turn] of turns.entries()) {
+    const text = textOf(turn.content);
     if (text.length === 0) continue;
-    const isLast = index === options.messages.length - 1;
-    if (isLast && message.role === "user") {
+    const isLast = index === turns.length - 1;
+    if (isLast && turn.role === "user") {
       userMessage = text;
       continue;
     }
@@ -157,7 +161,8 @@ export const antigravityDialect: Dialect = {
         "MISSING_CREDENTIAL",
       );
     }
-    const { userMessage, history } = splitConversation(options);
+    const { turns, system } = splitRequestMessages("antigravity", options, options.messages);
+    const { userMessage, history } = splitConversation(turns, system);
     const body: WireChatRequest = {
       project,
       userMessage,
