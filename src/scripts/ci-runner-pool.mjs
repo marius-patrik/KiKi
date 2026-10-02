@@ -48,7 +48,7 @@ const TEMPLATE = process.env.CI_RUNNER_POOL_TEMPLATE ?? join(homedir(), "actions
 const SLOT_ROOT = process.env.CI_RUNNER_POOL_ROOT ?? join(homedir(), ".dsh-ci-runners");
 
 /**
- * Upper bound on concurrent slots. Each slot is a full build -- Node, pnpm, a
+ * Upper bound on concurrent slots. Each slot is a full build -- Node, bun, a
  * workspace install and a TypeScript build -- so this exists to keep the pool
  * from exhausting the host rather than as a throughput target.
  */
@@ -116,13 +116,13 @@ async function ensureSlotInstalled(dir, index) {
     `${dir}/`,
   ]);
   if (copy.code !== 0) throw new Error(`slot ${index}: copying runner binaries failed`);
-  // Each slot needs its own pnpm store: concurrent installs sharing one store
-  // race and fail with ENOTEMPTY, which is why the installed runners already
-  // key their store on the runner name.
-  const home = join(homedir(), ".local", "share", `pnpm-ci-slot-${index}`);
+  // Each slot needs its own bun install cache: concurrent installs sharing one
+  // cache race and fail with ENOTEMPTY, which is why the installed runners
+  // already key their store on the runner name.
+  const home = join(homedir(), ".local", "share", `bun-ci-slot-${index}`);
   await fs.writeFile(
     join(dir, ".env"),
-    `PNPM_HOME=${home}\nnpm_config_store_dir=${join(home, "store")}\n`,
+    `BUN_INSTALL_CACHE_DIR=${join(home, "cache")}\nBUN_INSTALL=${join(home, "bin")}\n`,
   );
 }
 

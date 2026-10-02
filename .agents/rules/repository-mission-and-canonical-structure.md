@@ -14,7 +14,7 @@ status: active
 - `src/packages/` is the canonical flat implementation layer. Every concrete implementation exists exactly once here. Packages may import from other packages; there is no restriction against packages depending on one another.
 - `src/scripts/` is verification and release tooling, plus the `dsh` launcher/service-manager script and its aliases.
 - `publish/plugins/` is the full composition/catalog tree. It imports canonical implementations from `src/packages/` and does not duplicate implementation source.
-- `publish/packs/` is a folder under `publish/`, sibling to `publish/plugins/`/`publish/extensions/`, holding pack aliases/compositions only; it is not a pnpm workspace member on its own right (packs are, however, real pnpm workspace packages under `publish/packs/*`).
+- `publish/packs/` is a folder under `publish/`, sibling to `publish/plugins/`/`publish/extensions/`, holding pack aliases/compositions only; it is not a workspace member on its own right (packs are, however, real workspace packages under `publish/packs/*`).
 - `publish/extensions/` is a folder under `publish/`, sibling to `publish/plugins/`/`publish/packs/`, holding extension implementations (see the plugin/extension/pack model below).
 - `.agents/notes/` is the canonical documentation root.
 - `README.md`, `AGENTS.md`, and `CLAUDE.md` at repository root are all symlinks to `.agents/AGENTS.md`.

@@ -6,6 +6,11 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 harness="$here/../../harness"
 
+# The harness is upstream and keeps its own pnpm workspace: pnpm-workspace.yaml
+# carries patchedDependencies, peerDependencyRules, minimumReleaseAgeExclude and
+# linkWorkspacePackages, none of which bun supports. Stack itself runs on bun;
+# the harness stays on pnpm, and this script is the boundary between the two.
+#
 # packages/boot/app-boot's compiled output imports "resolve.exports" without
 # declaring it in any package.json dependency list in the chain (upstream
 # harness bug, tracked at dsh-stack#181/#169 — harness/ is pinned and must

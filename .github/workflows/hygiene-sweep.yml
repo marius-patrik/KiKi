@@ -42,7 +42,7 @@ jobs:
           node-version: "22"
           # The sweep runs a plain Node script against the GitHub API; it needs
           # no workspace install, so the default package-manager cache would
-          # only fail looking for a pnpm that is never used here.
+          # only fail looking for a bun lockfile that is never used here.
           package-manager-cache: false
 
       - name: Reconcile board, branches, and labels

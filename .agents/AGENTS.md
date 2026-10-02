@@ -19,7 +19,7 @@ still-open decision (#60).
 - `src/packages/` is the canonical flat implementation layer. Every concrete implementation exists exactly once here. Packages may import from other packages; there is no restriction against packages depending on one another.
 - `src/scripts/` is verification and release tooling, plus the `dsh` launcher/service-manager script and its aliases.
 - `publish/plugins/` is the full composition/catalog tree. It imports canonical implementations from `src/packages/` and does not duplicate implementation source.
-- `publish/packs/` is a folder under `publish/`, sibling to `publish/plugins/`/`publish/extensions/`, holding pack aliases/compositions only; it is not a pnpm workspace member on its own right (packs are, however, real pnpm workspace packages under `publish/packs/*`).
+- `publish/packs/` is a folder under `publish/`, sibling to `publish/plugins/`/`publish/extensions/`, holding pack aliases/compositions only; it is not a workspace member on its own right (packs are, however, real workspace packages under `publish/packs/*`).
 - `publish/extensions/` is a folder under `publish/`, sibling to `publish/plugins/`/`publish/packs/`, holding extension implementations (see the plugin/extension/pack model below).
 - `.agents/notes/` is the canonical documentation root.
 - `README.md`, `AGENTS.md`, and `CLAUDE.md` at repository root are all symlinks to `.agents/AGENTS.md`.
@@ -69,11 +69,11 @@ Credentials support typed secrets such as API keys, passwords, TOTP/QR provision
 ## Development
 
 ```bash
-pnpm install
-pnpm typecheck
-pnpm build
-pnpm verify
-pnpm test
+bun install
+bun run typecheck
+bun run build
+bun run verify
+bun run test
 ```
 
 ## Web UI boundary
@@ -133,7 +133,7 @@ The Stack version increments on every merge to `main`. Releases contain the comp
 
 ## Duplication exemptions
 
-The duplicate gate runs at a zero threshold, so `jscpd:ignore-start` is the only way past it. Every exemption states why the repetition is structural, and every one is closed; `pnpm verify` enforces both. Exempt the smallest region that needs it, never a whole file — an unclosed marker silences the rest of the file rather than the block it was written for. If the honest reason is "this should be extracted", extract it.
+The duplicate gate runs at a zero threshold, so `jscpd:ignore-start` is the only way past it. Every exemption states why the repetition is structural, and every one is closed; `bun run verify` enforces both. Exempt the smallest region that needs it, never a whole file — an unclosed marker silences the rest of the file rather than the block it was written for. If the honest reason is "this should be extracted", extract it.
 
 ## Unified surface components
 
@@ -141,7 +141,7 @@ Every surface presenting the same concept uses the same components; only the top
 
 ## Reachability
 
-Every package must be reachable by the running system: mounted in the generated bundle patch, shipping a browser half through `dsh.client`, imported by another package's source, or exposed as a CLI. An extension additionally qualifies by being composed into a pack. `pnpm verify` enforces this. Before implementing, confirm the code you are about to change actually runs.
+Every package must be reachable by the running system: mounted in the generated bundle patch, shipping a browser half through `dsh.client`, imported by another package's source, or exposed as a CLI. An extension additionally qualifies by being composed into a pack. `bun run verify` enforces this. Before implementing, confirm the code you are about to change actually runs.
 
 ## Destructive actions
 

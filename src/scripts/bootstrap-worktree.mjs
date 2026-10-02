@@ -117,15 +117,20 @@ async function copyHarness(primaryRoot, targetRoot) {
 
 /** Install dependencies and build the launcher package. */
 async function installAndBuild(targetRoot) {
-  console.log("Running pnpm install...");
-  await runCommand("pnpm install", "pnpm", ["install"], {
+  console.log("Running bun install...");
+  await runCommand("bun install", "bun", ["install"], {
     cwd: targetRoot,
     env: { CI: "true" },
   });
   console.log("Building @dsh-stack/launcher...");
-  await runCommand("pnpm build launcher", "pnpm", ["--filter", "@dsh-stack/launcher", "build"], {
-    cwd: targetRoot,
-  });
+  await runCommand(
+    "bun build launcher",
+    "bun",
+    ["run", "--filter", "@dsh-stack/launcher", "build"],
+    {
+      cwd: targetRoot,
+    },
+  );
 }
 
 /** Create .data/ and seed it from the primary checkout, rewriting homeRoot. */

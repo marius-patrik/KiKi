@@ -21,7 +21,7 @@
  *
  * Run with `check` to verify the checked-in file is up to date instead of
  * rewriting it (used by the bundle-headless pack's `verify` script). Both
- * modes require every candidate package's `lib/` to already be built (`pnpm
+ * modes require every candidate package's `lib/` to already be built (`bun
  * build` upstream of this script), so the loader-shape probe reflects real
  * built output, not source guesswork.
  */
@@ -110,7 +110,7 @@ function renderPatch(packageNames) {
     "# from publish/packs/bundle/cordis.patch.yml's own package list, filtered to",
     "# packages whose built `inject` array names neither `webServer` nor `loader` --",
     "# the two services a headless boot never composes (dsh-stack#213). Regenerate",
-    "# after regenerating the full bundle; `pnpm --filter @dsh-stack/pack-bundle-headless",
+    "# after regenerating the full bundle; `bun run --filter @dsh-stack/pack-bundle-headless",
     "# run verify` fails loud on drift.",
     "#",
     "# Each row's `name` is a PACKAGE NAME resolved through the profile's own",

@@ -24,7 +24,7 @@
  *
  * Run with `check` to verify the checked-in file is up to date instead of
  * rewriting it (used by the bundle pack's `verify` script). Both modes
- * require every candidate package's `lib/` to already be built (`pnpm
+ * require every candidate package's `lib/` to already be built (`bun
  * build` upstream of this script), so the loader-shape probe reflects
  * real built output, not source guesswork.
  */
@@ -167,10 +167,10 @@ function renderPatch(packageNames) {
     "# union of every plugin/extension package the seven domain packs under",
     "# publish/packs/ (ai, core, ux, integrations, agents, trading, vcs) depend on --",
     "# i.e. the complete dsh-stack catalog. Regenerate after any pack dependency",
-    "# change; `pnpm --filter @dsh-stack/pack-bundle run verify` fails loud on drift.",
+    "# change; `bun run --filter @dsh-stack/pack-bundle verify` fails loud on drift.",
     "#",
     "# Each row's `name` is a PACKAGE NAME resolved through the profile's own",
-    "# node_modules (pnpm installs this bundle's full dependency closure there),",
+    "# node_modules (bun installs this bundle's full dependency closure there),",
     "# not a filesystem path. Row `id`s are derived from the package name so a",
     "# later `dsh plugin` inspection can trace a mounted row back to its source.",
     "",

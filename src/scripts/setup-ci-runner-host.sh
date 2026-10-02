@@ -9,7 +9,7 @@
 # CI is the part with somewhere else to go.
 #
 # Requires: an authenticated `gh` CLI with permission to create runner
-# registrations, plus node and pnpm.
+# registrations, plus node and bun.
 set -euo pipefail
 
 REPO="${CI_RUNNER_POOL_REPO:-marius-patrik/dsh-stack}"

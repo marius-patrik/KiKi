@@ -48,9 +48,9 @@ The first start of each slot copies the agent binaries out of the template
 (about 190 MB, excluding the installer tarball and any registration state).
 Subsequent starts reuse the slot directory.
 
-Each slot gets its own `PNPM_HOME` and pnpm store. Concurrent installs sharing
-one store race and fail with `ENOTEMPTY`, which is why the statically installed
-runners already key their store on the runner name.
+Each slot gets its own `BUN_INSTALL_CACHE_DIR` and bun install cache.
+Concurrent installs sharing one cache race and fail with `ENOTEMPTY`, which is
+why the statically installed runners already key their store on the runner name.
 
 ## Running it on another machine
 

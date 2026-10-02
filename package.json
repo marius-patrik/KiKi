@@ -3,21 +3,30 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.7.0",
+  "packageManager": "bun@1.4.2",
   "engines": {
-    "node": ">=22.19.0"
+    "node": ">=22.19.0",
+    "bun": ">=1.4.0"
   },
+  "workspaces": [
+    "src/packages/*",
+    "publish/extensions/*",
+    "publish/packs/*"
+  ],
+  "trustedDependencies": [
+    "koffi"
+  ],
   "scripts": {
-    "build": "pnpm -r --if-present --workspace-concurrency=16 build",
-    "typecheck": "pnpm -r --if-present --workspace-concurrency=16 typecheck",
-    "format": "npx --yes @biomejs/biome@2.2.0 format --write .",
-    "format:check": "npx --yes @biomejs/biome@2.2.0 format --write . && git diff --exit-code",
+    "build": "bun run --filter '*' --if-present build",
+    "typecheck": "bun run --filter '*' --if-present typecheck",
+    "format": "bunx @biomejs/biome@2.2.0 format --write .",
+    "format:check": "bunx @biomejs/biome@2.2.0 format --write . && git diff --exit-code",
     "verify:plugin-readmes": "node src/scripts/verify-plugin-readmes.mjs",
     "verify:jsdocs": "node src/scripts/verify-jsdocs.mjs",
     "verify:duplicates": "jscpd src/packages publish/extensions publish/packs publish/plugins src/scripts",
     "verify:dead-code": "knip --no-progress",
-    "verify": "pnpm run verify:plugin-readmes && pnpm run verify:jsdocs && pnpm run verify:duplicates && pnpm run verify:jscpd-exemptions && pnpm run verify:dead-code && pnpm run verify:reachability && pnpm run verify:non-cordis-exclusions && pnpm run verify:stateful-client-packages && node src/scripts/verify-stack.mjs && pnpm -r --if-present --workspace-concurrency=16 verify",
-    "test": "node --test 'src/scripts/**/*.test.mjs' && pnpm -r --if-present --workspace-concurrency=16 test",
+    "verify": "bun run verify:plugin-readmes && bun run verify:jsdocs && bun run verify:duplicates && bun run verify:jscpd-exemptions && bun run verify:dead-code && bun run verify:reachability && bun run verify:non-cordis-exclusions && bun run verify:stateful-client-packages && node src/scripts/verify-stack.mjs && bun run --filter '*' --if-present verify",
+    "test": "node --test 'src/scripts/**/*.test.mjs' && bun run --filter '*' --if-present test",
     "release:manifest": "node src/scripts/release.mjs manifest",
     "release:version": "node src/scripts/release.mjs version",
     "release:assets": "node src/scripts/release.mjs assets",

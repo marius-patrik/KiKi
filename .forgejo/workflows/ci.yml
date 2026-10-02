@@ -22,22 +22,22 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Enable pnpm via corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.7.0 --activate
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build Stack workspace
-        run: pnpm build
+        run: bun run build
 
       - name: Typecheck Stack workspace
-        run: pnpm typecheck
+        run: bun run typecheck
 
       - name: Verify Stack workspace
-        run: pnpm verify
+        run: bun run verify
 
       - name: Test Stack workspace
-        run: pnpm test
+        run: bun run test

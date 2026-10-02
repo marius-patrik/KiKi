@@ -20,16 +20,12 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      # Isolate the pnpm install per runner: pnpm/action-setup defaults to
-      # ~/setup-pnpm, which every self-hosted runner on this machine shares.
-      # Two jobs installing pnpm concurrently raced on that directory and
-      # failed with ENOTEMPTY / "Cannot find module .../pnpm/dist/worker.js".
-      # Keying on runner.name also lets the pool grow without new collisions.
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      # setup-bun honours BUN_INSTALL, so each self-hosted runner keeps its own
+      # bun install directory and its own cache; nothing shared to race on.
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 11.7.0
-          dest: ~/setup-pnpm-${{ runner.name }}
+          bun-version: 1.4.2
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -38,7 +34,7 @@ jobs:
           package-manager-cache: false
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Determine next SemVer version
         id: versioning

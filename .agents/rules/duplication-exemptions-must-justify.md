@@ -10,7 +10,7 @@ way past it — and therefore the one marker in the tree capable of silencing a
 verifier. Every exemption states why the repetition is structural, and every
 one is closed.
 
-`pnpm verify` enforces both.
+`bun run verify` enforces both.
 
 ## Why
 
