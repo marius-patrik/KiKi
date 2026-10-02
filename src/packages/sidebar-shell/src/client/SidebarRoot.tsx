@@ -1,17 +1,37 @@
 import { useEffect, useState } from "react";
 import {
   FishLogo,
-  IconNewChatOutline16,
-  IconPanelLeftOutline16,
+  IconNewChatOutlineMedium,
+  IconNewChatOutlineRegular,
+  IconPanelLeftOutlineRegular,
+  ShortcutKeys,
   Tooltip,
 } from "@deepseek-ai/dsh-client-ui-primitives";
 import type { SidebarRootComponentProps } from "@deepseek-ai/dsh-client-ui-sidebar/client";
-import type { ClientContext } from "@deepseek-ai/dsh-client-runtime/client";
+import type { ShortcutCommandId } from "@deepseek-ai/dsh-client-shortcuts/client";
+import type { Context as ClientContext } from "@deepseek-ai/cordis";
 import type {} from "@dsh-stack/sidebar-preferences/client";
 import { SidebarOptionsMenu } from "./SidebarOptionsMenu.js";
+import { SidebarPanelRow } from "./SidebarPanelRow.js";
 
 const railWidth = 56;
 const transition = "width 180ms ease, opacity 150ms ease";
+
+/** The layout-owned keyboard command that toggles the sidebar column. */
+const TOGGLE_SHORTCUT_ID = "sidebar.left.toggle" as ShortcutCommandId;
+
+/** The Workspace-UI-owned keyboard command that starts a new session. */
+const NEW_SESSION_SHORTCUT_ID = "session.new" as ShortcutCommandId;
+
+/**
+ * Accessible name of the global panel navigation landmark.
+ *
+ * The Stack's `sidebar` dictionary (owned by `@dsh-stack/tweaks`) carries the
+ * session and toggle keys but not the harness's `panels.label`, so this label
+ * sits beside the shell's other hardcoded rail-control labels rather than
+ * claiming a dictionary key nothing installs.
+ */
+const PANELS_LABEL = "Global panels";
 
 export type SidebarRootProps = SidebarRootComponentProps & {
   sidebarPreferences: ClientContext["sidebarPreferences"];
@@ -23,6 +43,10 @@ export function SidebarRoot({
   width,
   startSession,
   toggleSidebar,
+  selectPanel,
+  usePanels,
+  useShortcuts,
+  usePanelInfo,
   t,
   renderSlot,
   sidebarPreferences,
@@ -32,6 +56,12 @@ export function SidebarRoot({
   useEffect(
     () => sidebarPreferences.subscribe(() => setPreferences(sidebarPreferences.get())),
     [sidebarPreferences],
+  );
+
+  const panels = usePanels((snapshot) => snapshot);
+  const toggleShortcut = useShortcuts((rows) => rows.find((row) => row.id === TOGGLE_SHORTCUT_ID));
+  const newSessionShortcut = useShortcuts((rows) =>
+    rows.find((row) => row.id === NEW_SESSION_SHORTCUT_ID),
   );
 
   const wide = !collapsed;
@@ -104,10 +134,15 @@ export function SidebarRoot({
             />
           ) : null}
 
-          <Tooltip label={collapsed ? "Expand sidebar" : "Collapse sidebar"} delayMs={500}>
+          <Tooltip
+            label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            shortcutKeys={toggleShortcut?.keys}
+            delayMs={500}
+          >
             <button
               type="button"
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-keyshortcuts={toggleShortcut?.aria}
               onClick={toggleSidebar}
               style={{
                 width: 34,
@@ -121,7 +156,8 @@ export function SidebarRoot({
                 cursor: "pointer",
               }}
             >
-              <IconPanelLeftOutline16 size={wide ? 16 : 18} />
+              <IconPanelLeftOutlineRegular size={wide ? 16 : 18} />
+              {!wide ? renderSlot("sidebar.toggle.badge", {}) : null}
             </button>
           </Tooltip>
         </div>
@@ -133,6 +169,7 @@ export function SidebarRoot({
             <button
               type="button"
               aria-label={t("session.new.label")}
+              aria-keyshortcuts={newSessionShortcut?.aria}
               onClick={() => startSession()}
               style={{
                 width: "100%",
@@ -150,11 +187,39 @@ export function SidebarRoot({
                 font: "inherit",
               }}
             >
-              <IconNewChatOutline16 size={wide ? 15 : 18} />
+              {wide ? (
+                <IconNewChatOutlineMedium size={15} />
+              ) : (
+                <IconNewChatOutlineRegular size={18} />
+              )}
               {wide ? <span>{t("session.new")}</span> : null}
+              {wide && newSessionShortcut !== undefined && newSessionShortcut.keys.length > 0 ? (
+                <span aria-hidden="true" style={{ marginLeft: "auto" }}>
+                  <ShortcutKeys keys={newSessionShortcut.keys} />
+                </span>
+              ) : null}
             </button>
           </Tooltip>
         </div>
+      ) : null}
+
+      {panels.length > 0 ? (
+        <nav
+          aria-label={PANELS_LABEL}
+          style={{ display: "grid", gap: 2, padding: wide ? "0 10px" : "0 6px" }}
+        >
+          {panels.map(({ id, label }) => (
+            <SidebarPanelRow
+              key={id}
+              id={id}
+              label={label}
+              wide={wide}
+              usePanelInfo={usePanelInfo}
+              selectPanel={selectPanel}
+              renderSlot={renderSlot}
+            />
+          ))}
+        </nav>
       ) : null}
 
       <div style={{ minHeight: 0, flex: 1, overflow: "hidden" }}>

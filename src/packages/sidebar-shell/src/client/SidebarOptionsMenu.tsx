@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { IconPersonalizationOutline16, Menu, Tooltip } from "@deepseek-ai/dsh-client-ui-primitives";
+import {
+  IconPersonalizationOutlineMedium,
+  Menu,
+  Tooltip,
+} from "@deepseek-ai/dsh-client-ui-primitives";
 
 /** The one entry the Stack sidebar options menu carries. */
 const SHOW_FILES_ITEM = "show-files";
@@ -56,7 +60,7 @@ export function SidebarOptionsMenu({
               cursor: "pointer",
             }}
           >
-            <IconPersonalizationOutline16 />
+            <IconPersonalizationOutlineMedium />
           </button>
         </Tooltip>
       }

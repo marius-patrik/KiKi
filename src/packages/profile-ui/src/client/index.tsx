@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Menu } from "@deepseek-ai/dsh-client-ui-primitives";
-import type { ClientContext } from "@deepseek-ai/dsh-client-runtime/client";
+import type { Context as ClientContext } from "@deepseek-ai/cordis";
 import type { SettingsSectionOwnerProps } from "@deepseek-ai/dsh-client-ui-settings/client";
 import type { SidebarFooterActionOwnerProps } from "@deepseek-ai/dsh-client-ui-sidebar/client";
 import type {} from "@deepseek-ai/dsh-client-ui-settings/client";
+// Type-only: pulls the SlotRegistry service merge (ctx.slots).
+import type {} from "@deepseek-ai/dsh-client-ui-renderer/client";
 import type {} from "@deepseek-ai/dsh-client-ui-sidebar/client";
 import {
   SETTINGS_SECTION_ICON_SLOT,

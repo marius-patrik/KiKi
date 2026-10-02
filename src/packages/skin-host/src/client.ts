@@ -1,6 +1,8 @@
 import { createElement, type ComponentType } from "react";
-import type { ClientContext } from "@deepseek-ai/dsh-client-runtime/client";
+import type { Context as ClientContext } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/dsh-client-ui-conversation/client";
+// Type-only: pulls the SlotRegistry service merge (ctx.slots).
+import type {} from "@deepseek-ai/dsh-client-ui-renderer/client";
 import type {} from "@deepseek-ai/dsh-client-ui-sidebar/client";
 import type {} from "@dsh-stack/skin-runtime/client";
 import { CodexBrandMark, CodexBrandName } from "@dsh-stack/skin-codex/client";
