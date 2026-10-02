@@ -28,14 +28,14 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-llm": "0.1.1-rc.2"
+    "@deepseek-ai/dsh-llm": "0.2.0-rc.2"
   },
   "dependencies": {
     "@dsh-stack/providers": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-llm": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
     "typescript": "^6.0.3"
   }
 }

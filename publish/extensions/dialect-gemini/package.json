@@ -35,10 +35,10 @@
     "@dsh-stack/dialects": "workspace:*"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-llm": "0.1.1-rc.2"
+    "@deepseek-ai/dsh-llm": "0.2.0-rc.2"
   },
   "devDependencies": {
     "typescript": "^6.0.3",
-    "@deepseek-ai/dsh-llm": "0.1.1-rc.2"
+    "@deepseek-ai/dsh-llm": "0.2.0-rc.2"
   }
 }

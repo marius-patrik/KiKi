@@ -38,7 +38,7 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/schemastery": "*",
-    "@deepseek-ai/dsh-settings": "0.1.1-rc.2"
+    "@deepseek-ai/dsh-settings": "0.2.0-rc.2"
   },
   "dependencies": {
     "@dsh-stack/tweaks": "workspace:*",
@@ -48,6 +48,6 @@
     "typescript": "^6.0.3",
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/schemastery": "*",
-    "@deepseek-ai/dsh-settings": "0.1.1-rc.2"
+    "@deepseek-ai/dsh-settings": "0.2.0-rc.2"
   }
 }
