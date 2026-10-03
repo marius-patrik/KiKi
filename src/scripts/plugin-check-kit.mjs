@@ -125,15 +125,26 @@ export function stubSettingsService() {
   const registrations = [];
   const service = {
     /**
-     * Registers a namespace with an optional base value.
-     * Returns an object with methods `get` to retrieve the base value and `watch` to subscribe to changes (which always returns undefined).
-     * @param {string} ns - The namespace to register.
-     * @param {_schema} _schema - The schema associated with the namespace.
-     * @param {Object} opts - Registration options including `base`.
+     * Registers the calling plugin instance's page policy.
+     * Records the owner fiber so a check can assert a plugin declared its own page,
+     * and returns a disposer as the real service does.
+     * @param {{ auto?: boolean }} presentation - the page policy.
+     * @param {object} owner - the plugin fiber the policy belongs to.
+     * @returns {() => void} disposer withdrawing the policy.
      */
-    register(ns, _schema, opts) {
-      registrations.push(ns);
-      return { get: () => opts.base, watch: () => undefined };
+    configure(presentation, owner) {
+      registrations.push({ presentation, owner });
+      return () => {
+        const index = registrations.findIndex((entry) => entry.owner === owner);
+        if (index >= 0) registrations.splice(index, 1);
+      };
+    },
+    /**
+     * Projects the active profile's Config fields as forms.
+     * @returns {Array<object>} one descriptor per form.
+     */
+    describe() {
+      return [];
     },
   };
   return { service, registrations };
