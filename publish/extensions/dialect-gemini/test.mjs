@@ -85,8 +85,9 @@ const toolCallMsg = {
 };
 const toolResultMsg = {
   id: crypto.randomUUID(),
-  role: "user",
-  content: [{ type: "tool-result", toolCallId: "call_9", content: [{ type: "text", text: "r1" }] }],
+  role: "tool",
+  toolCallId: "call_9",
+  content: [{ type: "text", text: "r1" }],
   source: { kind: "tool", callId: "call_9" },
 };
 const grt = geminiDialect.serialize(
