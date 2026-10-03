@@ -5,6 +5,7 @@ import { assertLoaderShape, stubSettingsService } from "../../../src/scripts/plu
 
 const plugin = await import("./lib/index.js");
 const { forkSession } = await import("./lib/fork-undo.js");
+const { NS_FORK_UNDO } = await import("./lib/settings.js");
 
 assertLoaderShape(plugin, "tweak-fork-undo");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
@@ -33,7 +34,10 @@ const emptyResult = forkSession(sessionsStub, { session: { events: [] } }, -1);
 assert.equal(emptyResult.kind, "error");
 console.log("fork helper ok");
 
-// Boot over stub settings + commands + sessions services.
+// Boot over stub settings + commands + sessions services. Since 0.2.0 a plugin's
+// Config is its form and the namespace is its entry id, so there is no
+// registration to observe; what this plugin must declare is that it ships its
+// own page for that form.
 const ctx = new Context();
 const { service: settings, registrations } = stubSettingsService();
 ctx.provide("settings", settings);
@@ -48,14 +52,42 @@ ctx.provide("commands", {
 ctx.provide("sessions", sessionsStub);
 plugin.apply(ctx, { enabled: true });
 await new Promise((resolve) => setTimeout(resolve, 50));
-assert.ok(
-  registrations.some((ns) => String(ns).includes("tweaks-fork-undo")),
-  `tweaks-fork-undo namespace not registered: ${registrations.join(", ")}`,
+
+assert.equal(NS_FORK_UNDO, "tweak-fork-undo", "namespace must be this plugin's entry id");
+assert.equal(
+  registrations.length,
+  1,
+  `expected one settings page policy, got ${registrations.length}`,
 );
+assert.equal(registrations[0].presentation.auto, false);
 const names = registered.map((entry) => entry.name);
 assert.ok(names.includes("undo"), `undo not registered: ${JSON.stringify(registered)}`);
 assert.ok(names.includes("redo"), `redo not registered: ${JSON.stringify(registered)}`);
 console.log("undo/redo registrations ok:", names.join(", "));
+
+// The page is still declared when the commands are switched off, and no command
+// is registered: `enabled: false` gates only the fork-undo install.
+const disabledCtx = new Context();
+const { service: disabledSettings, registrations: disabledRegistrations } = stubSettingsService();
+disabledCtx.provide("settings", disabledSettings);
+const disabledRegistered = [];
+disabledCtx.provide("commands", {
+  /** register implementation. */
+  register(def) {
+    disabledRegistered.push({ name: def.name, description: def.description });
+    return () => undefined;
+  },
+});
+disabledCtx.provide("sessions", sessionsStub);
+plugin.apply(disabledCtx, { enabled: false });
+await new Promise((resolve) => setTimeout(resolve, 50));
+assert.equal(disabledRegistrations.length, 1, "settings page is declared regardless of enabled");
+assert.equal(
+  disabledRegistered.length,
+  0,
+  `disabled must register no command: ${JSON.stringify(disabledRegistered)}`,
+);
+console.log("disabled installs no command ok");
 console.log("plugin check passed");
 
 // jscpd:ignore-end

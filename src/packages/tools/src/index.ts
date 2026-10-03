@@ -15,17 +15,12 @@
 import type { Context } from "@deepseek-ai/cordis";
 import z from "@deepseek-ai/schemastery";
 import type {} from "@deepseek-ai/dsh-subprocess";
-import type {} from "@deepseek-ai/dsh-settings";
 import { defineTool } from "@deepseek-ai/dsh-tools";
-import { installSettingsSection } from "@deepseek-ai/dsh-settings";
+import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
 import type { ParameterSchemaSpec, ValueSchemaSpec } from "@deepseek-ai/dsh-tools";
 import {
-  NS,
-  ToolSettings,
   ToolsConfig,
-  toolsFor,
   commandArgv,
-  type ToolSettings as ToolSettingsType,
   type ToolsConfig as ToolsConfigType,
   type ToolConfig as ToolConfigType,
   type ToolParameter as ToolParameterType,
@@ -89,69 +84,56 @@ async function runToolCommand(ctx: Context, argv: string[], signal?: AbortSignal
 }
 
 /**
- * Register every configured custom tool as a `ctx.tools` entry. Re-running
- * apply (e.g. a settings reload) registers the current map.
+ * Declare this plugin's own settings page, and register every configured custom
+ * tool as a `ctx.tools` entry.
+ *
+ * Since 0.2.0 a settings form is not registered: the settings service projects
+ * the volatile Config fields of the active profile's entries, so this plugin's
+ * own `ToolsConfig` is its form and its namespace is this plugin's entry id.
+ * `config` is therefore the current settings — a write lands in this entry's
+ * configuration and the Loader re-applies the plugin with it — and registering
+ * from it covers both the first value and every later one.
+ *
  * @param ctx - the plugin context carrying `subprocess` and `tools`.
- * @param config - the plugin's deployment configuration.
+ * @param config - the resolved entry configuration: the current custom tools.
  */
 export function apply(ctx: Context, config: ToolsConfigType): void {
-  installSettingsSection(
-    ctx,
-    NS,
-    ToolSettings,
-    // jscpd:ignore-start -- small settings-wiring block mirrored in formatters/src/index.ts for a different domain
-    { tools: {} },
-    {
-      setSource: () => {},
-      onChange: () => {},
-    },
-  );
+  declareCustomSettingsPage(ctx);
 
-  ctx.inject(["settings"], (sctx) => {
-    /**
-     * Provides tool settings as an object of type `ToolSettingsType` or `undefined`.
-     *
-     * Guarantees the returned settings object contains the tool's description and parameters.
-     * Returns `undefined` if settings are not found for the given namespace.
-     */
-    const settings = () => sctx.settings.get(NS) as ToolSettingsType | undefined;
-    // jscpd:ignore-end
-
-    for (const [name, tool] of Object.entries(toolsFor(settings(), config))) {
-      ctx.tools.register(
-        defineTool({
-          name,
-          description: tool.description,
-          parameters: parametersSchema(tool),
-          output: {
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                stdout: { type: "string", required: true },
-                stderr: { type: "string", required: true },
-                exitCode: { type: "integer", required: true },
-              },
+  for (const [name, tool] of Object.entries(config.tools)) {
+    ctx.tools.register(
+      defineTool({
+        name,
+        description: tool.description,
+        parameters: parametersSchema(tool),
+        output: {
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              stdout: { type: "string", required: true },
+              stderr: { type: "string", required: true },
+              exitCode: { type: "integer", required: true },
             },
-            render: (_args, value) => [
-              {
-                type: "text",
-                text:
-                  value.exitCode === 0
-                    ? value.stdout.length > 0
-                      ? value.stdout
-                      : `exit ${value.exitCode}`
-                    : `exit ${value.exitCode}\n${value.stderr.length > 0 ? value.stderr : value.stdout}`,
-              },
-            ],
           },
-          /** execute implementation. */
-          async execute(args, exec) {
-            const argv = commandArgv(tool, args as Record<string, unknown>);
-            return await runToolCommand(ctx, argv, exec.signal);
-          },
-        }),
-      );
-    }
-  });
+          render: (_args, value) => [
+            {
+              type: "text",
+              text:
+                value.exitCode === 0
+                  ? value.stdout.length > 0
+                    ? value.stdout
+                    : `exit ${value.exitCode}`
+                  : `exit ${value.exitCode}\n${value.stderr.length > 0 ? value.stderr : value.stdout}`,
+            },
+          ],
+        },
+        /** execute implementation. */
+        async execute(args, exec) {
+          const argv = commandArgv(tool, args as Record<string, unknown>);
+          return await runToolCommand(ctx, argv, exec.signal);
+        },
+      }),
+    );
+  }
 }

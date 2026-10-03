@@ -4,10 +4,11 @@ import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:http";
+import { Readable } from "node:stream";
 import { execFileSync } from "node:child_process";
 import { Context } from "@deepseek-ai/cordis";
 import assert from "node:assert";
-import { assertLoaderShape } from "../../scripts/plugin-check-kit.mjs";
+import { assertLoaderShape, stubSettingsService } from "../../scripts/plugin-check-kit.mjs";
 
 const root = mkdtempSync(join(tmpdir(), "themes-"));
 
@@ -160,24 +161,27 @@ console.log("catalog search ok");
 // and answers with the store contents.
 const ctx = new Context();
 const registered = [];
-const sections = new Map([[NS, { active: "" }]]);
-ctx.provide("settings", {
-  get: (ns) => sections.get(ns),
-  /**
-   * Registers a new setting or web server route.
-   *
-   * Guarantees that the provided namespace or route is set in the sections.
-   * Returns an object with a getter method for the namespace and an undefined watch method.
-   * Fails if the namespace or route is already registered or if the provided parameters are invalid.
-   */
-  register(_ns, _schema, opts) {
-    sections.set(_ns, opts.base);
-    return {
-      get: (ns) => sections.get(ns),
-      watch: () => undefined,
-    };
-  },
-});
+const themesHome = join(root, "route-home");
+process.env.DSH_HOME = themesHome;
+const storeFor = store.storeHandle(themesHome, "themes");
+await store.saveTheme(storeFor, { ...vsDef, name: "Monokai Pro" });
+
+// Since 0.2.0 a plugin's own Config IS its form and the namespace is its entry
+// id, so there is no registration to observe: what this plugin must declare is
+// that it ships its own page for the form `ThemesConfig` projects.
+const config = plugin.Config({ active: "paper" });
+const writes = [];
+// `update` stands in for the real write plus the Loader's volatile commit: the
+// settings service persists into the profile patch, then the Loader commits the
+// new value into the very reference the plugin reads.
+const commitVolatile = Symbol.for("cosmokit.volatile.write");
+const { service: settings, registrations } = stubSettingsService();
+settings.update = async (ns, patch) => {
+  assert.equal(ns, NS, "the write must address this plugin's own entry id");
+  writes.push(patch);
+  for (const [key, value] of Object.entries(patch)) config[key][commitVolatile](value);
+};
+ctx.provide("settings", settings);
 ctx.provide("webServer", {
   /**
    * Registers a new namespace or route, ensuring it is not already registered.
@@ -189,39 +193,79 @@ ctx.provide("webServer", {
     return () => undefined;
   },
 });
-const themesHome = join(root, "route-home");
-const storeFor = store.storeHandle(themesHome, "themes");
-await store.saveTheme(storeFor, { ...vsDef, name: "Monokai Pro" });
-process.env.DSH_HOME = themesHome;
-plugin.apply(ctx, {});
+plugin.apply(ctx, config);
 await new Promise((resolve) => setTimeout(resolve, 200));
+assert.equal(
+  registrations.length,
+  1,
+  `expected one settings page policy, got ${registrations.length}`,
+);
+assert.equal(registrations[0].presentation.auto, false);
+console.log("plugin declares its own settings page ok");
+
 const themesRoute = registered.find((r) => r.path === "/themes.json");
 assert.ok(themesRoute, "expected /themes.json route to be registered");
 assert.equal(themesRoute.kind, "exact");
-sections.set(NS, { active: "monokai-pro" });
-const res = {
-  _status: 0,
-  _body: "",
-  /** writeHead implementation. */
-  writeHead(s) {
-    this._status = s;
-  },
-  /**
-   * Ends the response by setting the response body.
-   *
-   * @param {string|Buffer} b - The body content to be sent in the response.
-   * Guarantees that the response status is set to 200 and the body contains the theme name.
-   * Fails if the response status is not set or the body is not correctly updated.
-   */
-  end(b) {
-    this._body = b;
-  },
-};
+const apiRoute = registered.find((r) => r.path === "/themes/api");
+assert.ok(apiRoute, "expected /themes/api prefix route to be registered");
+
+/** Minimal response double capturing the JSON a handler sends. */
+function jsonRes() {
+  return {
+    _status: 0,
+    _body: "",
+    /**
+     * Records the status code.
+     * @param {number} s - the status to record.
+     */
+    writeHead(s) {
+      this._status = s;
+    },
+    /**
+     * Records the response body.
+     * @param {string|Buffer} b - The body content to be sent in the response.
+     * Guarantees that the body is captured for later assertion.
+     */
+    end(b) {
+      this._body = String(b);
+    },
+  };
+}
+
+/** Minimal request double carrying a JSON body the themes API can parse. */
+function jsonReq(url, body) {
+  const req = Readable.from(body === undefined ? [] : [Buffer.from(JSON.stringify(body))]);
+  req.url = url;
+  req.method = "POST";
+  return req;
+}
+
+// The route reports the live reference it was handed at apply time, not a
+// value captured when the plugin booted.
+const res = jsonRes();
 await themesRoute.handler({ url: "/themes.json" }, res);
 assert.equal(res._status, 200);
 assert.ok(res._body.includes('"monokai-pro"'));
-assert.ok(res._body.includes('"active":"monokai-pro"'));
+assert.ok(res._body.includes('"active":"paper"'));
 assert.ok(res._body.includes('"root":"themes"'));
+
+// Applying a theme writes through the settings service rather than a captured
+// writer, and the committed value is what the route then reports — the live-update
+// path no longer depends on a settings.get read or a module-level mirror.
+const applied = jsonRes();
+await apiRoute.handler(jsonReq("/themes/api/apply", { id: "monokai-pro" }), applied);
+assert.equal(applied._status, 200);
+assert.deepEqual(applied._body, '{"active":"monokai-pro"}');
+assert.deepEqual(writes, [{ active: "monokai-pro" }]);
+const afterApply = jsonRes();
+await themesRoute.handler({ url: "/themes.json" }, afterApply);
+assert.ok(afterApply._body.includes('"active":"monokai-pro"'));
+
+// Removing the active theme clears the persisted choice the same way.
+const cleared = jsonRes();
+await apiRoute.handler(jsonReq("/themes/api/remove", { id: "monokai-pro" }), cleared);
+assert.equal(cleared._status, 200);
+assert.deepEqual(writes[1], { active: "" });
 delete process.env.DSH_HOME;
 console.log("plugin route wiring ok");
 

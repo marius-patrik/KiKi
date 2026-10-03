@@ -8,7 +8,7 @@
  */
 
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
 /** The settings namespace this plugin owns. */
 export const VOICE_NS = settingsNamespace("voice");

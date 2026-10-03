@@ -25,9 +25,9 @@
 import type { Context } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/dsh-settings";
 import type {} from "@deepseek-ai/dsh-tools";
-import { installSettingsSection } from "@deepseek-ai/dsh-settings";
+import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { Config, VOICE_NS, type VoiceConfig } from "./config.js";
+import type { VoiceConfig } from "./config.js";
 import { makeConfigHandler, makeSttHandler, makeTtsHandler } from "./routes.js";
 import { registerVoiceTools } from "./tools.js";
 import type { AccountsLike } from "./speech.js";
@@ -74,29 +74,41 @@ export const name = "voice";
 export const inject = ["tools", "settings", "webServer", "accounts"];
 
 /**
- * Wire the plugin: install the `voice` settings section, mount the three
- * /voice/api routes, and register the agent tools. Every consumer reads the
- * live config source, so settings edits apply without a restart.
+ * Wire the plugin: declare this plugin's own page for the `voice` settings
+ * form, mount the three /voice/api routes, and register the agent tools.
+ *
+ * The `voice` form is the `Config` this plugin already exports and its
+ * namespace is this plugin's own entry id, so there is nothing to install. This
+ * plugin ships its own page, so the automatic-page policy is turned off.
+ *
+ * A settings edit is reconciled by writing the profile patch and then
+ * restarting this fiber through the Loader, so the `config` handed to this
+ * call is the whole live story: every consumer below reads it per request, and
+ * a settings edit reaches them by re-running this function with the new config.
+ *
  * @param ctx - the plugin context carrying tools, settings, webServer, accounts.
- * @param config - the plugin's deployment configuration (settings base layer).
+ * @param config - the active profile entry this plugin was applied with.
  */
 export function apply(ctx: Context, config: VoiceConfig): void {
-  let /** current implementation. */ current: () => VoiceConfig = () => config;
-  installSettingsSection(ctx, VOICE_NS, Config, config, {
-    setSource: (source) => {
-      current = source;
-    },
-    onChange: () => {},
-  });
+  declareCustomSettingsPage(ctx);
 
   const accounts: AccountsLike | undefined = ctx.accounts;
+  /**
+   * The config this entry was applied with, read at call time.
+   *
+   * A settings write reconciles the profile and restarts this fiber, so `apply`
+   * runs again with the new config rather than this closure observing a mutation.
+   *
+   * @returns the resolved voice config.
+   */
+  const current = (): VoiceConfig => config;
 
   ctx.effect(
     () =>
       ctx.webServer.register({
         kind: "exact",
         path: "/voice/api/tts",
-        handler: makeTtsHandler(() => current(), accounts),
+        handler: makeTtsHandler(current, accounts),
       }),
     "voice: /voice/api/tts route",
   );
@@ -105,7 +117,7 @@ export function apply(ctx: Context, config: VoiceConfig): void {
       ctx.webServer.register({
         kind: "exact",
         path: "/voice/api/stt",
-        handler: makeSttHandler(() => current(), accounts),
+        handler: makeSttHandler(current, accounts),
       }),
     "voice: /voice/api/stt route",
   );
@@ -114,12 +126,12 @@ export function apply(ctx: Context, config: VoiceConfig): void {
       ctx.webServer.register({
         kind: "exact",
         path: "/voice/api/config",
-        handler: makeConfigHandler(() => current()),
+        handler: makeConfigHandler(current),
       }),
     "voice: /voice/api/config route",
   );
 
-  registerVoiceTools(ctx.tools, () => current(), accounts);
+  registerVoiceTools(ctx.tools, current, accounts);
 
   ctx
     .logger("[voice]")

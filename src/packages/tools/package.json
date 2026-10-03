@@ -32,12 +32,17 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
     "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
     "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
     "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.0.0"
   },
+  "dependencies": {
+    "@dsh-stack/plugin-kit": "workspace:*"
+  },
   "devDependencies": {
+    "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
     "typescript": "^5.9.0",
     "@types/node": "^22.0.0",
     "@deepseek-ai/cordis": "^4.0.1",

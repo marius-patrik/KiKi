@@ -10,7 +10,13 @@
 
 import { contentHasImage, LlmError } from "@deepseek-ai/dsh-llm";
 import type { ContentBlock, GenerateOptions, ToolCallId } from "@deepseek-ai/dsh-llm";
-import type { Dialect, DialectAuth, DialectDefaults, RequestTurn, WireRequest } from "@dsh-stack/dialects";
+import type {
+  Dialect,
+  DialectAuth,
+  DialectDefaults,
+  RequestTurn,
+  WireRequest,
+} from "@dsh-stack/dialects";
 import { parseNdjson, splitRequestMessages } from "@dsh-stack/dialects";
 import { translateGemini } from "./translate-gemini.js";
 
@@ -109,7 +115,9 @@ export function serializeContents(messages: readonly RequestTurn[]): WireContent
         for (const block of message.content) {
           if (block.type === "text") parts.push({ text: block.text });
           else if (block.type === "tool-call") {
-            parts.push({ functionCall: { name: block.name, args: parseToolArgs(block.arguments) } });
+            parts.push({
+              functionCall: { name: block.name, args: parseToolArgs(block.arguments) },
+            });
           }
         }
         break;

@@ -9,9 +9,10 @@
 
 import { join } from "node:path";
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
-/** Settings namespace owning the persona authoring configuration. */
+/** Settings namespace owning the persona authoring configuration — this
+ * plugin's own Loader entry id, since 0.2.0 a form is the entry's own Config. */
 export const NS = settingsNamespace("agents");
 
 /** The authoring directory default: `<dshHome>/agents`. */

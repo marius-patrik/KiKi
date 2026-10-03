@@ -11,7 +11,13 @@
 
 import { contentHasImage, LlmError } from "@deepseek-ai/dsh-llm";
 import type { AssistantMessage, ContentBlock, GenerateOptions } from "@deepseek-ai/dsh-llm";
-import type { Dialect, DialectAuth, DialectDefaults, RequestTurn, WireRequest } from "@dsh-stack/dialects";
+import type {
+  Dialect,
+  DialectAuth,
+  DialectDefaults,
+  RequestTurn,
+  WireRequest,
+} from "@dsh-stack/dialects";
 import { parseSseData, splitRequestMessages } from "@dsh-stack/dialects";
 import { translateOpenAi } from "./translate-openai.js";
 

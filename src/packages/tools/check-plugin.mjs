@@ -5,30 +5,24 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { Context } from "@deepseek-ai/cordis";
 import assert from "node:assert";
-import { assertLoaderShape, stubSpawnSyncSubprocess } from "../../scripts/plugin-check-kit.mjs";
+import {
+  assertLoaderShape,
+  stubSettingsService,
+  stubSpawnSyncSubprocess,
+} from "../../scripts/plugin-check-kit.mjs";
 
 const root = mkdtempSync(join(tmpdir(), "agent-tools-"));
 
 const plugin = await import("./lib/index.js");
-const { NS, ToolSettings } = await import("./lib/settings.js");
-const { toolsFor, substitutePlaceholder, commandArgv } = await import("./lib/settings.js");
+const { NS } = await import("./lib/settings.js");
+const { substitutePlaceholder, commandArgv } = await import("./lib/settings.js");
 
 assertLoaderShape(plugin, "agent-tools");
 assert.equal(NS, "agent-tools");
 assert.equal(plugin.inject.join(","), "subprocess,tools");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
-// settings helpers: merge precedence + placeholder substitution.
-assert.deepEqual(toolsFor(undefined, { tools: { a: { description: "d", command: ["x"] } } }), {
-  a: { description: "d", command: ["x"] },
-});
-assert.deepEqual(
-  toolsFor(
-    { tools: { a: { description: "from-settings", command: ["s"] } } },
-    { tools: { a: { description: "from-entry", command: ["e"] } } },
-  ),
-  { a: { description: "from-settings", command: ["s"] } },
-);
+// settings helpers: placeholder substitution and argv assembly.
 assert.equal(substitutePlaceholder("--name {name} {missing}", { name: "alice" }), "--name alice ");
 assert.equal(substitutePlaceholder("{count}", { count: 3 }), "3");
 assert.equal(substitutePlaceholder("{flag}", { flag: true }), "true");
@@ -42,53 +36,14 @@ assert.deepEqual(
 );
 console.log("settings helpers ok");
 
-// apply: registers each configured tool over a stub settings/tools surface.
-const sections = new Map([
-  [
-    NS,
-    {
-      tools: {
-        "echo-name": {
-          description: "Echo the name argument",
-          parameters: { name: { type: "string", required: true } },
-          command: [process.execPath, "-e", "process.stdout.write(process.argv[1])", "{name}"],
-        },
-        "fail-loud": {
-          description: "A command that exits nonzero",
-          command: [process.execPath, "-e", 'process.stderr.write("boom");process.exit(3)'],
-        },
-        "optional-param": {
-          description: "A tool with an optional number parameter",
-          parameters: { count: { type: "number" } },
-          command: [
-            process.execPath,
-            "-e",
-            "process.stdout.write(String(process.argv[1]))",
-            "{count}",
-          ],
-        },
-      },
-    },
-  ],
-]);
-const actx = new Context();
-actx.provide("settings", {
-  get: (ns) => sections.get(ns),
-  /**
-   * Registers a new tool definition.
-   *
-   * Guarantees that the tool definition is added to the `registeredTools` array.
-   * Returns an object with a `get` method to retrieve the tool definition and
-   * a `watch` method that always returns `undefined`.
-   * Fails if the tool definition is not provided or if `sections` does not contain
-   * the namespace `_ns`.
-   */
-  register(_ns, _schema, opts) {
-    if (!sections.has(_ns)) sections.set(_ns, opts.base);
-    return { get: (ns) => sections.get(ns), watch: () => undefined };
-  },
-});
+// Boot over a stub settings service. Since 0.2.0 a plugin's Config is its form and
+// the namespace is its entry id, so there is no registration to observe; what this
+// plugin must declare is that it ships its own page for that form. Its resolved
+// config is the current settings, so every tool in it registers at load.
 const registeredTools = [];
+const actx = new Context();
+const { service: settings, registrations } = stubSettingsService();
+actx.provide("settings", settings);
 actx.provide("tools", {
   register: (def) => {
     registeredTools.push(def);
@@ -98,11 +53,46 @@ actx.provide("tools", {
 actx.subprocess = stubSpawnSyncSubprocess();
 actx.logger = { info: () => {}, warn: (m) => console.log("WARN:", m) };
 actx.on = () => () => {};
-plugin.apply(actx, {});
+plugin.apply(actx, {
+  tools: {
+    "echo-name": {
+      description: "Echo the name argument",
+      parameters: { name: { type: "string", required: true } },
+      command: [process.execPath, "-e", "process.stdout.write(process.argv[1])", "{name}"],
+    },
+    "fail-loud": {
+      description: "A command that exits nonzero",
+      command: [process.execPath, "-e", 'process.stderr.write("boom");process.exit(3)'],
+    },
+    "optional-param": {
+      description: "A tool with an optional number parameter",
+      parameters: { count: { type: "number" } },
+      command: [process.execPath, "-e", "process.stdout.write(String(process.argv[1]))", "{count}"],
+    },
+  },
+});
 await new Promise((resolve) => setTimeout(resolve, 50));
+
+assert.equal(NS, "agent-tools", "namespace must be this plugin's entry id");
+assert.equal(
+  registrations.length,
+  1,
+  `expected one settings page policy, got ${registrations.length}`,
+);
+assert.equal(registrations[0].presentation.auto, false);
 const names = registeredTools.map((t) => t.name).sort();
 assert.deepEqual(names, ["echo-name", "fail-loud", "optional-param"]);
-console.log("apply wiring ok (3 custom tools registered)");
+console.log("boot ok (custom settings page declared, 3 custom tools registered)");
+
+// An entry carrying no tools registers nothing rather than failing.
+const emptyCtx = new Context();
+emptyCtx.provide("settings", stubSettingsService().service);
+emptyCtx.provide("tools", { register: () => () => {} });
+emptyCtx.subprocess = stubSpawnSyncSubprocess();
+emptyCtx.logger = { info: () => {}, warn: () => {} };
+emptyCtx.on = () => () => {};
+plugin.apply(emptyCtx, { tools: {} });
+console.log("empty config ok");
 
 // execute: real subprocess round-trip with placeholder substitution.
 const echoDef = registeredTools.find((t) => t.name === "echo-name");

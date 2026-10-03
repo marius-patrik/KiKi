@@ -12,23 +12,29 @@ process.env.DSH_HOME = join(root, ".agents");
 
 const plugin = await import("./lib/index.js");
 const stats = await import("./lib/stats.js");
+const { NS_STATS } = await import("./lib/settings.js");
 
 assertLoaderShape(plugin, "tweak-stats");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
 const home = join(root, ".agents");
 
-// Boot the extension over a stub settings service.
+// Boot over a stub settings service. Since 0.2.0 a plugin's Config is its form and
+// the namespace is its entry id, so there is no registration to observe; what this
+// plugin must declare is that it ships its own page for that form.
 const ctx = new Context();
 const { service: settings, registrations } = stubSettingsService();
 ctx.provide("settings", settings);
 plugin.apply(ctx, { enabled: true, format: "table" });
 await new Promise((resolve) => setTimeout(resolve, 50));
 
-assert.ok(
-  registrations.some((ns) => String(ns).includes("tweaks-stats")),
-  `tweaks-stats namespace not registered: ${registrations.join(", ")}`,
+assert.equal(NS_STATS, "tweak-stats", "namespace must be this plugin's entry id");
+assert.equal(
+  registrations.length,
+  1,
+  `expected one settings page policy, got ${registrations.length}`,
 );
+assert.equal(registrations[0].presentation.auto, false);
 console.log("boot ok");
 
 // Stats from a planted projection cache.

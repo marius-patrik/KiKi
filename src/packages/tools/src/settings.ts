@@ -13,9 +13,9 @@
  */
 
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
-/** Settings namespace owning the custom tool registry. */
+/** Settings namespace of the custom tool registry — this plugin's own Loader entry id. */
 export const NS = settingsNamespace("agent-tools");
 
 /** One custom tool parameter: its JSON type and whether the model must supply it. */
@@ -54,32 +54,20 @@ export const ToolConfig: z<ToolConfig> = z.object({
   command: z.array(String).required(),
 });
 
-/** The user-facing section: tool name → definition. */
-export interface ToolSettings {
-  tools: Record<string, ToolConfig>;
-}
-
-export const ToolSettings: z<ToolSettings> = z.object({
-  tools: z.dict(ToolConfig).default({}),
-});
-
-/** The plugin's deployment configuration: optional entry-level tool map. */
+/**
+ * The plugin's entry configuration, and with it the settings form the settings
+ * service projects: tool name → definition. Since 0.2.0 a settings write lands
+ * in this entry's configuration and the Loader re-applies the plugin with it, so
+ * the resolved config this plugin receives is its current settings.
+ */
 export interface ToolsConfig {
-  /** Extra custom tools merged under the settings map (settings win). */
-  tools?: Record<string, ToolConfig>;
+  /** Custom tools registered as model-facing tools. */
+  tools: Record<string, ToolConfig>;
 }
 
 export const ToolsConfig: z<ToolsConfig> = z.object({
   tools: z.dict(ToolConfig).default({}),
 });
-
-/** The effective custom-tool map, settings first then deployment entry. */
-export function toolsFor(
-  settings: ToolSettings | undefined,
-  entry: ToolsConfig | undefined,
-): Record<string, ToolConfig> {
-  return { ...(entry?.tools ?? {}), ...(settings?.tools ?? {}) };
-}
 
 /**
  * Substitute `{name}` placeholders in one argv entry with the matching

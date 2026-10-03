@@ -17,7 +17,12 @@
  */
 
 import { LlmError } from "@deepseek-ai/dsh-llm";
-import type { DeveloperMessage, GenerateOptions, RequestMessage, SystemMessage } from "@deepseek-ai/dsh-llm";
+import type {
+  DeveloperMessage,
+  GenerateOptions,
+  RequestMessage,
+  SystemMessage,
+} from "@deepseek-ai/dsh-llm";
 import type { DialectId } from "./types.js";
 
 /**
@@ -71,7 +76,12 @@ export function splitRequestMessages(
           "UNSUPPORTED_CONTENT",
         );
       }
-      prompts.push(message.content.filter((block) => block.type === "text").map((block) => block.text).join(""));
+      prompts.push(
+        message.content
+          .filter((block) => block.type === "text")
+          .map((block) => block.text)
+          .join(""),
+      );
       continue;
     }
     if (message.role === "developer") {

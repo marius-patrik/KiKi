@@ -5,10 +5,10 @@
  */
 
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
-/** Namespace of the observability (stats) section. */
-export const NS_STATS = settingsNamespace("tweaks-stats");
+/** Namespace of the observability section — this plugin's own Loader entry id. */
+export const NS_STATS = settingsNamespace("tweak-stats");
 
 /** Observability knobs. */
 export interface StatsConfig {

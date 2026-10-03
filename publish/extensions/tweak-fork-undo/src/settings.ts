@@ -4,10 +4,10 @@
  */
 
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
-/** Namespace of the fork-undo section. */
-export const NS_FORK_UNDO = settingsNamespace("tweaks-fork-undo");
+/** Namespace of the fork-undo section — this plugin's own Loader entry id. */
+export const NS_FORK_UNDO = settingsNamespace("tweak-fork-undo");
 
 /** Fork-undo knobs. */
 export interface ForkUndoConfig {

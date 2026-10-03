@@ -23,7 +23,13 @@
 
 import { LlmError } from "@deepseek-ai/dsh-llm";
 import type { ContentBlock, GenerateOptions, StreamChunk, TokenUsage } from "@deepseek-ai/dsh-llm";
-import type { Dialect, DialectAuth, DialectDefaults, RequestTurn, WireRequest } from "@dsh-stack/dialects";
+import type {
+  Dialect,
+  DialectAuth,
+  DialectDefaults,
+  RequestTurn,
+  WireRequest,
+} from "@dsh-stack/dialects";
 import { splitRequestMessages } from "@dsh-stack/dialects";
 
 /**
@@ -62,9 +68,7 @@ interface WireChatChunk {
  * with every other block contributing nothing.
  */
 function textOf(content: readonly ContentBlock[]): string {
-  return content
-    .map((part) => (part.type === "text" ? part.text : ""))
-    .join("");
+  return content.map((part) => (part.type === "text" ? part.text : "")).join("");
 }
 
 /**

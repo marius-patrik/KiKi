@@ -7,8 +7,8 @@
 
 import type { Context } from "@deepseek-ai/cordis";
 import type z from "@deepseek-ai/schemastery";
-import { installLiveSettingsSection } from "@dsh-stack/plugin-kit";
-import { NS_STATS, StatsConfig, type StatsConfig as StatsConfigType } from "./settings.js";
+import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
+import { StatsConfig, type StatsConfig as StatsConfigType } from "./settings.js";
 
 export { NS_STATS, StatsConfig } from "./settings.js";
 export type { StatsConfig as StatsConfigType } from "./settings.js";
@@ -22,12 +22,17 @@ export type Config = StatsConfigType;
 
 export const Config: z<Config> = StatsConfig;
 
-/** apply implementation. */
+/**
+ * Declare this plugin's settings surface as its own page.
+ *
+ * The stats form is the `StatsConfig` this plugin already declares, and its
+ * namespace is this plugin's entry id, so there is nothing to install. The CLI
+ * verbs in bin/ read the projection cache directly, so no server wiring is
+ * needed either.
+ *
+ * @param ctx - the calling plugin's context.
+ * @param config - the stats section: whether the verbs are enabled and the output format.
+ */
 export function apply(ctx: Context, config: Config): void {
-  const stats: StatsConfigType = {
-    enabled: config?.enabled ?? true,
-    format: config?.format ?? "table",
-  };
-  // The CLI verbs read the projection cache directly; no server wiring needed.
-  installLiveSettingsSection(ctx, NS_STATS, StatsConfig, stats, undefined, () => {});
+  declareCustomSettingsPage(ctx);
 }

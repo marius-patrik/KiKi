@@ -1,15 +1,18 @@
 /**
- * formatters settings: the `formatters` section owns the per-extension
- * formatter table and the auto-format-on-edit toggle. The plugin exposes a
- * model-facing `format` tool over the table and reformats files on `edit` /
- * `write` (via the `tools/post-execute` waterfall) when auto-format is on.
+ * formatters settings: this plugin's own `Config` IS its settings form. Since
+ * 0.2.0 a form is not registered — the settings service projects the volatile
+ * Config fields of the active profile's entries, so the namespace is this
+ * plugin's entry id and `FormatterConfig` is the form. The plugin exposes a
+ * model-facing `format` tool over the formatter table and reformats files on
+ * `edit` / `write` (via the `tools/post-execute` waterfall) when auto-format is
+ * on.
  * @module formatters/settings
  */
 
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
-/** Settings namespace owning the formatter table. */
+/** Settings namespace owning the formatter table — this plugin's own Loader entry id. */
 export const NS = settingsNamespace("formatters");
 
 /**
@@ -26,26 +29,13 @@ export const FormatterCommand: z<FormatterCommand> = z.object({
 });
 
 /**
- * The user-facing section: extension → formatter command, plus the
- * auto-format-on-edit toggle (default on).
+ * The plugin's own configuration, which is also its settings form: extension →
+ * formatter command, plus the auto-format-on-edit toggle (default on).
  */
-export interface FormatterSettings {
-  /** Lowercase leading-dot extension (e.g. `.ts`) → formatter command. */
-  formatters: Record<string, FormatterCommand>;
-  /** Reformat the target file after every successful `edit`/`write`. */
-  autoFormatOnEdit: boolean;
-}
-
-export const FormatterSettings: z<FormatterSettings> = z.object({
-  formatters: z.dict(FormatterCommand).default({}),
-  autoFormatOnEdit: z.boolean().default(true),
-});
-
-/** The plugin's deployment configuration: optional entry-level defaults. */
 export interface FormatterConfig {
-  /** Extra formatter commands merged under the settings table (settings win). */
+  /** Lowercase leading-dot extension (e.g. `.ts`) → formatter command. */
   formatters?: Record<string, FormatterCommand>;
-  /** Deployment default for the auto-format toggle (settings win). */
+  /** Reformat the target file after every successful `edit`/`write`. */
   autoFormatOnEdit?: boolean;
 }
 
@@ -56,17 +46,13 @@ export const FormatterConfig: z<FormatterConfig> = z.object({
 
 /** Pick the formatter command for an extension, if one is configured. */
 export function formatterFor(
-  settings: FormatterSettings | undefined,
-  entry: FormatterConfig | undefined,
+  config: FormatterConfig | undefined,
   ext: string,
 ): FormatterCommand | undefined {
-  return { ...(entry?.formatters ?? {}), ...(settings?.formatters ?? {}) }[ext];
+  return config?.formatters?.[ext];
 }
 
-/** Whether auto-format is on (settings wins over the deployment default). */
-export function autoFormatEnabled(
-  settings: FormatterSettings | undefined,
-  entry: FormatterConfig | undefined,
-): boolean {
-  return settings?.autoFormatOnEdit ?? entry?.autoFormatOnEdit ?? true;
+/** Whether auto-format is on. */
+export function autoFormatEnabled(config: FormatterConfig | undefined): boolean {
+  return config?.autoFormatOnEdit ?? true;
 }

@@ -17,7 +17,13 @@ import type {
   ToolResultMessage,
   UserMessage,
 } from "@deepseek-ai/dsh-llm";
-import type { Dialect, DialectAuth, DialectDefaults, RequestTurn, WireRequest } from "@dsh-stack/dialects";
+import type {
+  Dialect,
+  DialectAuth,
+  DialectDefaults,
+  RequestTurn,
+  WireRequest,
+} from "@dsh-stack/dialects";
 import { parseSseEvents, splitRequestMessages } from "@dsh-stack/dialects";
 import { translateClaude } from "./translate-claude.js";
 

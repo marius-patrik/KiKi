@@ -11,7 +11,10 @@ Formatters run through `ctx.subprocess` — never shell-interpreted.
 
 ## Settings
 
-`formatters:` section of `settings.yaml`:
+Since 0.2.0 a settings form is not registered: the settings service projects the
+volatile Config fields of the active profile's entries, so this plugin's own
+`Config` **is** its form and its namespace is its entry id `formatters`. The
+plugin declares it ships its own page for that form.
 
 ```yaml
 formatters:
@@ -20,8 +23,6 @@ formatters:
     ".ts": { argv: [npx, prettier, --write] }
     ".py": { argv: [black, -q] }
 ```
-
-Changes apply on the next boot (mounts are boot-time, not hot-reloaded).
 
 ## CLI
 
@@ -34,9 +35,10 @@ dsh formatter set-auto <on|off>
 
 ## Layout
 
-- `src/settings.ts` — the `formatters` settings namespace, formatter schema,
-  and `formatterFor` / `autoFormatEnabled` helpers.
+- `src/settings.ts` — the `formatters` namespace (this plugin's entry id), the
+  Config schema that is also its settings form, and the `formatterFor` /
+  `autoFormatEnabled` helpers.
 - `src/format.ts` — the shared formatting runner (`formatFile`) and path helpers.
-- `src/index.ts` — plugin: settings section, `format` tool, auto-format hook.
+- `src/index.ts` — plugin: settings page declaration, `format` tool, auto-format hook.
 - `bin/formatter.mjs` — the `dsh formatter` CLI.
 - `check-plugin.mjs` — boot-verify harness (`npm test`).

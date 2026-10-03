@@ -3,89 +3,49 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { Context } from "@deepseek-ai/cordis";
 import assert from "node:assert";
-import { assertLoaderShape } from "../../scripts/plugin-check-kit.mjs";
+import { assertLoaderShape, stubSettingsService } from "../../scripts/plugin-check-kit.mjs";
 
 const root = mkdtempSync(join(tmpdir(), "lsp-"));
 const lspCli = new URL("./bin/lsp.mjs", import.meta.url).pathname;
 
 const plugin = await import("./lib/index.js");
-const { NS, LspSettings, LspConfig } = await import("./lib/settings.js");
+const { NS, LspConfig } = await import("./lib/settings.js");
 
 assertLoaderShape(plugin, "lsp");
-assert.equal(NS, "lsp");
-assert.equal(typeof LspSettings, "function");
+assert.equal(NS, "lsp", "namespace must be this plugin's own entry id");
 assert.equal(typeof LspConfig, "function");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
-// mergeServers: settings table wins over the entry table, empty-safe.
-assert.deepEqual(plugin.mergeServers({}, undefined), {});
-assert.deepEqual(
-  plugin.mergeServers(
-    { a: { command: "x", extensionToLanguage: { ".x": "x" } } },
-    { servers: { b: { command: "y", extensionToLanguage: { ".y": "y" } } } },
-  ),
-  {
-    a: { command: "x", extensionToLanguage: { ".x": "x" } },
-    b: { command: "y", extensionToLanguage: { ".y": "y" } },
-  },
-);
-assert.deepEqual(
-  plugin.mergeServers(
-    { a: { command: "x", extensionToLanguage: { ".x": "x" } } },
-    { servers: { a: { command: "z", extensionToLanguage: { ".a": "a" } } } },
-  ).a.command,
-  "z",
-);
-console.log("mergeServers ok (settings win)");
-
-// apply over a stub settings service with an EMPTY table: the LSP service def
+// Boot over a stub settings service with an EMPTY config: the LSP service def
 // mounts (so ctx.lsp exists) but no stdio provider/tool (server table empty).
 const ctx = new Context();
-const sections = new Map([[NS, { servers: {} }]]);
-ctx.provide("settings", {
-  get: (ns) => sections.get(ns),
-  /** register implementation. */
-  register(_ns, _schema, opts) {
-    sections.set(_ns, opts.base);
-    return { get: (ns) => sections.get(ns), watch: () => undefined };
-  },
-});
+const { service, registrations } = stubSettingsService();
+ctx.provide("settings", service);
 const warns = [];
 ctx.logger = { info: () => {}, warn: (m) => warns.push(m) };
 plugin.apply(ctx, {});
 await new Promise((resolve) => setTimeout(resolve, 200));
 assert.ok(ctx.get("lsp") !== undefined, "Lsp service definition should mount");
 assert.ok(warns.some((m) => m.includes("no LSP servers configured")));
+// Since 0.2.0 the plugin's Config IS its form and the namespace is its entry id,
+// so there is no registration to observe; what this plugin must declare is that
+// it ships its own page for that form.
+assert.equal(
+  registrations.length,
+  1,
+  `expected one settings page policy, got ${registrations.length}`,
+);
+assert.equal(registrations[0].presentation.auto, false);
 console.log("empty-table boot ok (service def mounted, no providers, guidance logged)");
 
-// apply with a server in the settings section: the stdio provider and tool
-// mount with the settings server (spy wraps real ctx.plugin and records).
+// apply with a server in the plugin's own Config: the stdio provider and tool
+// mount from config.servers (spy wraps real ctx.plugin and records).
 const ctx2 = new Context();
-const sections2 = new Map([
-  [
-    NS,
-    {
-      servers: {
-        typescript: {
-          command: "typescript-language-server",
-          extensionToLanguage: { ".ts": "typescript" },
-          args: ["--stdio"],
-        },
-      },
-    },
-  ],
-]);
-ctx2.provide("settings", {
-  get: (ns) => sections2.get(ns),
-  /** register implementation. */
-  register(_ns, _schema, opts) {
-    if (!sections2.has(_ns)) sections2.set(_ns, opts.base);
-    return { get: (ns) => sections2.get(ns), watch: () => undefined };
-  },
-});
+const { service: settings2 } = stubSettingsService();
+ctx2.provide("settings", settings2);
 const mounts = [];
 const realPlugin = ctx2.plugin.bind(ctx2);
 ctx2.plugin = function (mod, cfg) {
@@ -97,7 +57,15 @@ ctx2.plugin = function (mod, cfg) {
   return realPlugin.call(this, mod, cfg);
 };
 ctx2.logger = { info: () => {}, warn: () => {} };
-plugin.apply(ctx2, {});
+plugin.apply(ctx2, {
+  servers: {
+    typescript: {
+      command: "typescript-language-server",
+      extensionToLanguage: { ".ts": "typescript" },
+      args: ["--stdio"],
+    },
+  },
+});
 await new Promise((resolve) => setTimeout(resolve, 300));
 assert.ok(mounts.includes("lsp-stdio"), "expected lsp-stdio mount");
 assert.ok(mounts.includes("tool-lsp"), "expected tool-lsp mount");

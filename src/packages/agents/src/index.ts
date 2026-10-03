@@ -22,11 +22,9 @@ import type { Context } from "@deepseek-ai/cordis";
 import { watch } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import z from "@deepseek-ai/schemastery";
-import type {} from "@deepseek-ai/dsh-settings";
-import { installSettingsSection } from "@deepseek-ai/dsh-settings";
+import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
 import { resolveDshHome } from "@deepseek-ai/dsh-home-paths";
 import {
-  NS,
   AgentSettings,
   authoringRoot,
   defaultBase,
@@ -161,31 +159,36 @@ async function syncOnce(
 }
 
 /**
- * Install the plugin: register the `agents` settings section, then (once
- * the settings service is live) resolve the authoring directory, load the
- * runtime catalog, sync once at boot, re-sync debounced whenever the
- * authoring directory changes, and mount the live-persona surface — the
- * `persona:policy` section, the `persona` projection unit, the `/persona`
- * command, and the pending-commit pre-step listener.
+ * Declare this plugin's settings surface and install the live-persona machinery.
+ *
+ * Since 0.2.0 no settings form is registered: the settings service projects the
+ * volatile Config fields of the active profile's entries, so this plugin's own
+ * `AgentSettings` is its form and its namespace is its entry id `agents`. All
+ * that is left to declare is that this plugin ships its own page for that form.
+ *
+ * The authoring directory, the default base preset, and the fallback persona are
+ * read from the `config` this entry was applied with — the settings section
+ * `agents` used to hand over separately no longer exists, and nothing mirrors it
+ * into a mutable module-level copy.
+ *
+ * When the settings service is live, the rest mounts: the runtime catalog, a
+ * sync at boot, a debounced re-sync whenever the authoring directory changes,
+ * and the live-persona surface — the `persona:policy` section, the `persona`
+ * projection unit, the `/persona` command, and the pending-commit pre-step
+ * listener.
+ *
+ * @param ctx - the plugin's context.
+ * @param config - the `agents` profile entry this plugin was applied with: the
+ *   authoring root, the default base preset, and the fallback persona id.
  */
 export function apply(ctx: Context, config: AgentSettingsType): void {
-  installSettingsSection(
-    ctx,
-    NS,
-    AgentSettings,
-    { root: undefined, defaultBase: undefined, defaultPersona: undefined },
-    {
-      setSource: () => {},
-      onChange: () => {},
-    },
-  );
+  declareCustomSettingsPage(ctx);
 
   ctx.inject(["settings"], (sctx) => {
-    const settings = sctx.settings.get(NS) as AgentSettingsType | undefined;
     const home = resolveDshHome();
-    const root = authoringRoot(home, settings, config);
-    const base = defaultBase(settings, config);
-    const fallback = defaultPersona(settings, config);
+    const root = authoringRoot(home, undefined, config);
+    const base = defaultBase(undefined, config);
+    const fallback = defaultPersona(undefined, config);
     const baseDir = basePresetDir();
 
     const catalog = new PersonaCatalog({ root });

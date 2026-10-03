@@ -5,7 +5,7 @@ import { join, resolve as pathResolve } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { Context } from "@deepseek-ai/cordis";
 import assert from "node:assert";
-import { assertLoaderShape } from "../../scripts/plugin-check-kit.mjs";
+import { assertLoaderShape, stubSettingsService } from "../../scripts/plugin-check-kit.mjs";
 
 const root = mkdtempSync(join(tmpdir(), "formatters-"));
 const cli = new URL("./bin/formatter.mjs", import.meta.url).pathname;
@@ -14,28 +14,20 @@ const plugin = await import("./lib/index.js");
 const { NS } = await import("./lib/settings.js");
 
 assertLoaderShape(plugin, "formatters");
-assert.equal(NS, "formatters");
+assert.equal(NS, "formatters", "namespace must be this plugin's entry id");
 assert.equal(plugin.inject.join(","), "fs,subprocess,tools");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
 // settings helpers: extension matching + auto-format toggle precedence.
 const { formatterFor, autoFormatEnabled } = await import("./lib/settings.js");
 assert.equal(
-  formatterFor(undefined, { formatters: { ".ts": { argv: ["prettier"] } } }, ".ts").argv[0],
+  formatterFor({ formatters: { ".ts": { argv: ["prettier"] } } }, ".ts").argv[0],
   "prettier",
 );
-assert.equal(
-  formatterFor(
-    { formatters: { ".ts": { argv: ["black"] } } },
-    { formatters: { ".ts": { argv: ["prettier"] } } },
-    ".ts",
-  ).argv[0],
-  "black",
-);
-assert.ok(formatterFor({ formatters: {} }, undefined, ".ts") === undefined);
-assert.equal(autoFormatEnabled(undefined, undefined), true);
-assert.equal(autoFormatEnabled(undefined, { autoFormatOnEdit: false }), false);
-assert.equal(autoFormatEnabled({ autoFormatOnEdit: false }, { autoFormatOnEdit: true }), false);
+assert.equal(formatterFor({ formatters: {} }, ".ts"), undefined);
+assert.equal(formatterFor(undefined, ".ts"), undefined);
+assert.equal(autoFormatEnabled(undefined), true);
+assert.equal(autoFormatEnabled({ autoFormatOnEdit: false }), false);
 console.log("settings helpers ok");
 
 // formatFile: a real subprocess formatter (node one-liner normalizing
@@ -76,31 +68,15 @@ assert.equal(targetPathFromArguments({ path: "c.ts" }), "c.ts");
 assert.equal(targetPathFromArguments({ nope: 1 }), undefined);
 console.log("targetPathFromArguments ok");
 
-// apply: registers the `format` tool and the auto-format post-execute hook.
+// apply: declares this plugin's own settings page, registers the `format` tool,
+// and hooks `tools/post-execute`. Since 0.2.0 there is no form to register: the
+// settings service projects the volatile Config fields of the active profile's
+// entries, so the formatter table and the auto-format toggle arrive as `config`
+// and the namespace is this plugin's entry id. What must be declared is that
+// this plugin ships its own page for that form.
 const actx = new Context();
-const sections = new Map([
-  [
-    NS,
-    {
-      formatters: { ".ts": { argv: [process.execPath, "-e", script] } },
-      autoFormatOnEdit: true,
-    },
-  ],
-]);
-actx.provide("settings", {
-  get: (ns) => sections.get(ns),
-  /**
-   * Registers a new setting or tool.
-   *
-   * Guarantees that the setting or tool is added to the `sections` or `registeredTools` map.
-   * Returns an object with `get` to retrieve the current state and `watch` to listen for changes.
-   * Fails silently by returning an empty function if the registration already exists.
-   */
-  register(_ns, _schema, opts) {
-    if (!sections.has(_ns)) sections.set(_ns, opts.base);
-    return { get: (ns) => sections.get(ns), watch: () => undefined };
-  },
-});
+const { service: settings, registrations } = stubSettingsService();
+actx.provide("settings", settings);
 const registeredTools = [];
 const listeners = new Map();
 actx.provide("tools", {
@@ -117,14 +93,23 @@ actx.on = (event, fn) => {
   listeners.set(event, [...(listeners.get(event) ?? []), fn]);
   return () => {};
 };
-plugin.apply(actx, {});
+plugin.apply(actx, {
+  formatters: { ".ts": { argv: [process.execPath, "-e", script] } },
+  autoFormatOnEdit: true,
+});
 await new Promise((resolve) => setTimeout(resolve, 100));
+assert.equal(
+  registrations.length,
+  1,
+  `expected one settings page policy, got ${registrations.length}`,
+);
+assert.equal(registrations[0].presentation.auto, false);
 assert.ok(
   registeredTools.some((t) => t.name === "format"),
   "format tool not registered",
 );
 assert.ok(listeners.has("tools/post-execute"), "auto-format hook not registered");
-console.log("apply wiring ok (format tool + post-execute hook)");
+console.log("apply wiring ok (settings page + format tool + post-execute hook)");
 
 // Auto-format hook: an `edit` exec on the work file yields an additional
 // context note with before/after; a non-formatable path delegates unchanged.
@@ -155,6 +140,56 @@ const afterOther = await hook(
 );
 assert.equal(afterOther.additionalContexts, undefined);
 console.log("auto-format hook ok (context note on formatable edit, silent otherwise)");
+
+// The hook's reads come from the `config` this entry was applied with: a config
+// with no formatter table, and a config with auto-format off, both pass an
+// `edit` on the same formatable file straight through with no context note.
+/**
+ * Build the post-execute hook under `config` and run one edit through it.
+ * @param {object} config - the resolved formatter config this entry was applied with.
+ * @returns {Promise<object>} the additional contexts the hook produced.
+ */
+const silentHook = (config) => {
+  const sctx = new Context();
+  const { service } = stubSettingsService();
+  sctx.provide("settings", service);
+  sctx.provide("tools", { register: () => () => {} });
+  sctx.baseUrl = root;
+  sctx.fs = fctx.fs;
+  sctx.subprocess = fctx.subprocess;
+  sctx.logger = { info: () => {}, warn: () => {} };
+  const captured = new Map();
+  sctx.on = (event, fn) => {
+    captured.set(event, [...(captured.get(event) ?? []), fn]);
+    return () => {};
+  };
+  plugin.apply(sctx, config);
+  return captured.get("tools/post-execute")[0];
+};
+const editExec = {
+  name: "edit",
+  arguments: { file_path: workFile },
+  callId: "c3",
+  signal: new AbortController().signal,
+};
+/** Approval callback that accepts the edit without prompting. */
+const accept = async () => ({ kind: "accept" });
+writeFileSync(workFile, "const   dirty=1;");
+assert.equal(
+  (await silentHook({})(editExec, { isError: false }, accept)).additionalContexts,
+  undefined,
+);
+writeFileSync(workFile, "const   dirty=1;");
+assert.equal(
+  (
+    await silentHook({
+      formatters: { ".ts": { argv: [process.execPath, "-e", script] } },
+      autoFormatOnEdit: false,
+    })(editExec, { isError: false }, accept)
+  ).additionalContexts,
+  undefined,
+);
+console.log("auto-format hook reads its own config ok (no table / auto off -> silent)");
 
 // CLI round-trip: add/list/remove/set-auto over a temp home.
 const home = join(root, "cli-home");
