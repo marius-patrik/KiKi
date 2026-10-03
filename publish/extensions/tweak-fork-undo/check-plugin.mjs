@@ -16,7 +16,7 @@ const forkSeed = [
   { type: "assistant/message", seq: 1, time: 2, data: { message: { content: "b" } } },
   { type: "user/message", seq: 2, time: 3, data: { message: { content: "c" } } },
 ];
-const agent = { session: { events: forkSeed } };
+const agent = { session: { snapshotEvents: () => forkSeed } };
 const forks = [];
 const sessionsStub = {
   /** create implementation. */
@@ -30,7 +30,7 @@ assert.equal(undoResult.kind, "success");
 assert.equal(forks[0].seed.length, 2);
 const redoResult = forkSession(sessionsStub, agent, 1);
 assert.equal(forks[1].seed.length, 3);
-const emptyResult = forkSession(sessionsStub, { session: { events: [] } }, -1);
+const emptyResult = forkSession(sessionsStub, { session: { snapshotEvents: () => [] } }, -1);
 assert.equal(emptyResult.kind, "error");
 console.log("fork helper ok");
 

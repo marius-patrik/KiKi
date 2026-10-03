@@ -41,10 +41,10 @@ export function installForkUndo(ctx: Context): unknown {
 /** Fork a new session from an earlier/later message boundary in the log. */
 export function forkSession(
   sessions: { create(id?: string, options?: { seed?: readonly SessionEvent[] }): unknown },
-  agent: { session: { events: readonly SessionEvent[] } },
+  agent: { session: { snapshotEvents(): readonly SessionEvent[] } },
   direction: -1 | 1,
 ): { kind: "success"; text: string } | { kind: "error"; text: string } {
-  const events = agent.session.events;
+  const events = agent.session.snapshotEvents();
   if (events.length === 0) return { kind: "error", text: "no events to fork from" };
   const boundaries: number[] = [];
   events.forEach((event, index) => {

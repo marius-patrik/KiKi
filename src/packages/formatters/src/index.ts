@@ -15,6 +15,13 @@ import type {} from "@deepseek-ai/dsh-subprocess";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
 import { createUserMessage } from "@deepseek-ai/dsh-llm";
+import type { ContextFormed } from "@deepseek-ai/dsh-llm";
+
+declare module "@deepseek-ai/dsh-llm" {
+  interface MessageSourceMap {
+    formatters: { kind: "formatters" } & ContextFormed;
+  }
+}
 import {
   FormatterConfig,
   formatterFor,
@@ -129,7 +136,11 @@ export function apply(ctx: Context, config: FormatterConfigType): void {
         `before:\n${outcome.before}\nafter:\n${outcome.after}`;
       const noteMessage = createUserMessage({
         content: [{ type: "text", text: note }],
-        source: { kind: "plugin", plugin: "formatters" },
+        source: {
+          kind: "formatters",
+          form: "snapshot",
+          sections: [{ name: "formatters", text: note }],
+        },
       });
       return {
         ...downstream,
