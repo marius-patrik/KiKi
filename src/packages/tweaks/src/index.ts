@@ -1,16 +1,15 @@
 /**
- * `tweaks`: the user-facing harness tweaks surface — the `tweaks` settings
- * namespace (homeRoot/command) registrar and its mirror into every agent
- * home's settings document. The session-UX features that v1 bundled here now
- * live in dedicated extensions plugging into this surface:
- * `tweak-share-links`, `tweak-stats`, `tweak-plan-toggle`, `tweak-fork-undo`,
- * `tweak-drag-drop`, `tweak-slash-commands`, and `tweak-keybinds`.
+ * `tweaks`: the user-facing harness tweaks surface — the `tweaks` entry's own
+ * settings form and its mirror into every agent home's settings document. The
+ * session-UX features that v1 bundled here now live in dedicated extensions
+ * plugging into this surface: `tweak-share-links`, `tweak-stats`,
+ * `tweak-plan-toggle`, `tweak-fork-undo`, `tweak-drag-drop`,
+ * `tweak-slash-commands`, and `tweak-keybinds`.
  * @module tweaks
  */
 
 import type { Context } from "@deepseek-ai/cordis";
-import z from "@deepseek-ai/schemastery";
-import { installSettingsSection, settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -20,7 +19,7 @@ import {
   writeTweaksSection,
 } from "./mirror.js";
 import type { TweaksSection } from "./mirror.js";
-import { NS } from "./settings.js";
+import { TweaksConfig, type TweaksConfig as TweaksConfigType } from "./settings.js";
 
 export {
   normalizeSection,
@@ -29,6 +28,7 @@ export {
   writeTweaksSection,
 } from "./mirror.js";
 export type { TweaksSection } from "./mirror.js";
+export type { TweaksConfig } from "./settings.js";
 export { NS } from "./settings.js";
 
 export const name = "tweaks";
@@ -41,26 +41,30 @@ export function resolveHome(): string {
   return resolve(process.env["DSH_HOME"] ?? DEFAULT_HOME);
 }
 
-/** The tweaks config: the homeRoot/command mirror section. */
-export type Config = TweaksSection;
-
-export const Config: z<Config> = z.object({
-  homeRoot: z.string(),
-  command: z.string(),
-});
+/**
+ * The `tweaks` entry's configuration, which is also its settings form. Neither
+ * field is volatile, so this is declared through the `TweaksConfig` annotation
+ * rather than left to inference (see `settings.ts` for why).
+ */
+export const Config = TweaksConfig;
 
 /**
- * Mirror the effective `tweaks` (homeRoot/command) section into the
- * settings document of every agent home (see `mirror.ts`). The launcher reads
- * only this top-level section; the tweak extension sections live under their
- * own namespaces the web Settings UI edits directly.
+ * Mirror the effective `tweaks` (homeRoot/command) section into the settings
+ * document of every agent home (see `mirror.ts`). The launcher reads only this
+ * top-level section; the tweak extension sections live under their own namespaces
+ * the web Settings UI edits directly.
+ *
+ * @param currentHome - the agent home this run booted under.
+ * @param section - the effective section, as this entry's Config declares it.
+ * @param log - the logger warnings about an unreachable home are reported to.
+ * @returns a promise settling once every target home has been written or skipped.
  */
 export function mirrorTweaks(
   currentHome: string,
-  section: () => Config,
+  section: TweaksSection,
   log: Pick<Context["logger"], "warn">,
 ): Promise<void> {
-  const effective = normalizeSection(section());
+  const effective = normalizeSection(section);
   if (Object.keys(effective).length === 0) return Promise.resolve();
   const targets = new Set<string>([currentHome, DEFAULT_HOME]);
   return Promise.all(
@@ -79,49 +83,39 @@ export function mirrorTweaks(
 }
 
 /**
- * Applies the configuration to the current context, ensuring settings are
- * initialized and changes are mirrored to the active configuration source.
+ * Declare this plugin's settings page and bootstrap the launcher-visible
+ * settings document.
  *
- * Guarantees that the settings are initialized and the active configuration
- * source is updated if changes are detected.
+ * Since 0.2.0 no settings form is registered: the settings service projects the
+ * volatile Config fields of the active profile's entries, and this entry declares
+ * none, so `TweaksConfig` yields no form and every write to this entry is refused.
+ * That is the correct outcome — the settings shell this package ships edits its own
+ * `localStorage`-backed rows (see `client.js`), never these two fields — and what
+ * is left to declare is that this plugin ships its own page regardless.
  *
- * Fails silently if the settings provider is not mounted, but initializes
- * the document for the next launch.
+ * The second namespace this plugin used to hand-mint, `ui-onboarding`, is gone
+ * rather than folded in. At 0.2.0 a namespace is a Loader entry id and one entry
+ * yields exactly one form, so a second one has no home: `SettingsForms.write`
+ * resolves a namespace through `configEditor.entries()` and would refuse every
+ * write naming an id no entry carries. Its single field, `welcomeNoticeVersion`,
+ * is in any case not a user choice — it is a version stamp the harness's own
+ * `ui-settings-models` writes under `ui-settings-general` when a notice is
+ * dismissed — and the Stack never reaches that writer, because this package's
+ * `TweaksWelcomeNoticeOverride` shadows the `welcome-notice` onboarding step at a
+ * lower priority and persists the acknowledgement to `localStorage` instead.
+ *
+ * `config` is read once, per mount. There is no `setSource` mirror to rewire: no
+ * volatile field exists, so a settings change that reaches these values is an
+ * ordinary one, and the Loader remounts this entry — which re-runs the mirror
+ * below against the new Config.
+ *
+ * @param ctx - the plugin's context.
+ * @param config - the `tweaks` profile entry this plugin was applied with.
  */
-export function apply(ctx: Context, config: Config): void {
-  const currentHome = resolveHome();
-  let /** current implementation. */ current: () => Config = () => config;
-  /**
-   * Mirrors the current configuration settings to the active configuration source.
-   *
-   * Guarantees that the settings are initialized and the active configuration
-   * source is updated if changes are detected.
-   *
-   * Fails silently if the settings provider is not mounted, but initializes
-   * the document for the next launch.
-   */
-  const mirror = (): void => {
-    void mirrorTweaks(currentHome, current, ctx.logger);
-  };
-  // The launcher reads settings.yaml before this process exists, so the first
-  // mirror must run even when no settings provider is mounted: it bootstrap
-  // the document for the next launch.
-  mirror();
-  installSettingsSection(ctx, NS, Config, config, {
-    setSource: (source) => {
-      current = source;
-    },
-    onChange: mirror,
-  });
-
-  // Register the ui-onboarding namespace that ui-settings-general used to own.
-  // The web profile disables ui-settings-general (tweaks took over the settings
-  // surface), but ui-settings-models still writes welcomeNoticeVersion through
-  // the settings API. Without this registration, settings.mutate fails silently.
-  ctx.inject(["settings"], (settingsCtx) => {
-    settingsCtx.settings.register(
-      settingsNamespace("ui-onboarding"),
-      z.object({ welcomeNoticeVersion: z.string() }),
-    );
-  });
+export function apply(ctx: Context, config: TweaksConfigType): void {
+  declareCustomSettingsPage(ctx);
+  // The launcher reads settings.yaml before this process exists, so the mirror
+  // must run even when no settings service is mounted: it bootstraps the
+  // document for the next launch.
+  void mirrorTweaks(resolveHome(), config, ctx.logger);
 }

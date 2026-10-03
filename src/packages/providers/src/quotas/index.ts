@@ -1,23 +1,26 @@
 /**
  * The quotas half of providers (merged from the standalone dsh-quotas
  * plugin): a registry of quota providers, one snapshot per provider, the
- * `/quotas/api/*` web routes with the HTML dashboard, the built-in probe
- * providers with a staggered 15-minute auto-refresh, and the `dsh-quotas`
- * settings section.
+ * `/quotas/api/*` web routes with the HTML dashboard, and the built-in probe
+ * providers with a staggered 15-minute auto-refresh.
+ *
+ * It registers no settings form. Since 0.2.0 one Loader entry yields exactly one
+ * form, and the `providers` entry already owns that one, so the former
+ * `dsh-quotas` namespace and its `QuotaSettings` schema are deleted rather than
+ * bridged: nothing in the workspace named `dsh-quotas` but this file, and the two
+ * fields it declared (`enabled`, `refreshMinutes`) had no reader anywhere — the
+ * refresh interval below is the plugin's own deployment constant, not a setting.
+ * What the plugin passes in is wiring, not configuration.
  * @module providers/quotas
  */
 
 import type { Context } from "@deepseek-ai/cordis";
-import { installSettingsSection } from "@deepseek-ai/dsh-settings";
 import type { AccountsService } from "@dsh-stack/credential-vault";
-import { NS, QuotaSettings, type QuotaSettings as QuotaSettingsValue } from "./settings.js";
 import { mountQuotaWeb } from "./web/index.js";
 import { createBuiltinProviders } from "./providers.js";
 import { createConfiguredProviders } from "./configured.js";
 import type { ConfigurableProviderEntry, SettingsDescriptorView } from "./configured.js";
 
-export { NS, QuotaSettings } from "./settings.js";
-export type { QuotaProviderConfig, QuotaSettings as QuotaSettingsValue } from "./settings.js";
 export { QUOTAS_PREFIX, mountQuotaWeb } from "./web/index.js";
 export { createBuiltinProviders } from "./providers.js";
 export {
@@ -131,8 +134,8 @@ declare module "@deepseek-ai/cordis" {
   }
 }
 
+/** How the quotas half is wired by its owner plugin. */
 export interface QuotasConfig {
-  providers?: QuotaSettingsValue["providers"];
   /**
    * Resolve one probe credential. Defaults to reading the account seam as
    * stored, which is wrong for a subscription route: its access token is
@@ -160,22 +163,16 @@ async function resolveProbeToken(ctx: Context, ref: string): Promise<string | un
 }
 
 /**
- * Mount the quotas registry, settings section, web routes, and the built-in
- * probe providers with their staggered 15-minute auto-refresh.
+ * Mount the quotas registry, web routes, and the built-in probe providers with
+ * their staggered 15-minute auto-refresh.
+ *
+ * @param ctx - the owning plugin's context.
+ * @param config - the wiring its owner passes down; see {@link QuotasConfig}.
+ * @returns the mounted registry, provided as `ctx.quotas`.
  */
 export function applyQuotas(ctx: Context, config: QuotasConfig = {}): QuotaRegistry {
   const registry = new QuotaRegistry();
   ctx.provide("quotas", registry);
-  installSettingsSection(
-    ctx,
-    NS,
-    QuotaSettings,
-    { providers: config.providers ?? {} },
-    {
-      setSource: () => {},
-      onChange: () => {},
-    },
-  );
   mountQuotaWeb(ctx, registry);
 
   const read =
@@ -295,7 +292,9 @@ export function applyQuotas(ctx: Context, config: QuotasConfig = {}): QuotaRegis
     initial.push(timeout);
   }
 
-  // Periodic auto-refresh (default every 15 minutes)
+  // Periodic auto-refresh, every 15 minutes. A deployment fact rather than a
+  // setting: it is the provider's own rate-limit window, so it is a constant here
+  // instead of a field on a schema no client could edit.
   const refreshMinutes = 15;
   const timer = setInterval(() => {
     for (const [i, id] of probeIds().entries()) {

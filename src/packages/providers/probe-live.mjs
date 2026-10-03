@@ -8,6 +8,7 @@ import * as providers from "./lib/index.js";
 import * as dialects from "@dsh-stack/dialects";
 import { Context } from "@deepseek-ai/cordis";
 import { AccountsService } from "../credential-vault/lib/index.js";
+import { stubSettingsService } from "../../scripts/plugin-check-kit.mjs";
 
 const home = resolve(process.env.DSH_HOME ?? join(homedir(), ".agents"));
 const ctx = new Context();
@@ -29,10 +30,11 @@ const llm = {
   },
 };
 ctx.provide("llm", llm);
-ctx.provide("settings", {
-  register: (_ns, _s, opts) => ({ get: () => opts.base, watch: () => undefined }),
-});
-providers.apply(ctx, { mode: "all" });
+ctx.provide("settings", stubSettingsService().service);
+// The config is built through the plugin's own `Config` schema, exactly as the
+// Loader builds it: `mode` is a volatile field, so what `apply` reads is a live
+// reference rather than the value that was configured.
+providers.apply(ctx, providers.Config["~standard"].validate({ mode: "all" }).value);
 // Every route now lives in its own @dsh-stack/provider-<id> extension; load
 // them all so this probe still sees the full catalog it used to get from the
 // static table.
