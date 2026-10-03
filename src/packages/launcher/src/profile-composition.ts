@@ -68,7 +68,10 @@ function packageSourceDirs(repoRoot: string): string[] {
  * @param fallback - document to use when the file cannot supply one.
  * @returns the parsed document.
  */
-function readPackageJsonOr(path: string, fallback: Record<string, unknown>): Record<string, unknown> {
+function readPackageJsonOr(
+  path: string,
+  fallback: Record<string, unknown>,
+): Record<string, unknown> {
   if (!existsSync(path)) return fallback;
   try {
     return JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
