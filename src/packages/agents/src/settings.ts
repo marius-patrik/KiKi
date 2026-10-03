@@ -1,12 +1,23 @@
 /**
- * agents settings: the `agents` section owns where authoring root
- * lives (the directory of JSON/MD persona files) and which shipped preset
- * materialized personas are composed from by default. The `dsh agents` CLI
- * and the plugin's boot/watch sync read the same section, so authoring and
- * runtime agree on where personas live and what base each gets.
+ * agents settings: the `agents` entry's own Config schema, which is also its
+ * settings form — since 0.2.0 the settings service projects a plugin's own
+ * Config from the active profile's entries, so there is no second section
+ * schema and the namespace is this plugin's entry id. The `dsh agents` CLI and
+ * the plugin's boot/watch sync read the same values, so authoring and runtime
+ * agree on where personas live and what base each gets.
+ *
+ * The authoring root and the default base preset are deployment facts: where
+ * the persona files live and which shipped composition they compose from are
+ * wiring an operator sets once, and neither is a choice a session makes. The
+ * persona a fresh session runs on when it has no live selection is the user's
+ * choice, so it alone is declared `.volatile()`, which makes it the only field
+ * the settings service projects as this entry's form — an entry whose Config
+ * declares no volatile field is omitted from `describe()` and refused by every
+ * write.
  * @module agents/settings
  */
 
+import type { Volatile } from "@deepseek-ai/cordis";
 import { join } from "node:path";
 import z from "@deepseek-ai/schemastery";
 import { settingsNamespace } from "@dsh-stack/plugin-kit";
@@ -21,9 +32,28 @@ export const DEFAULT_ROOT = "agents";
 /** The shipped preset personas are composed from by default. */
 export const DEFAULT_BASE = "standard";
 
-/** The user-writable slice: authoring root, default base preset, and the
- * persona a fresh session runs on when it has no live selection. */
+/** The plugin's configuration, which is also its settings form. */
 export interface AgentSettings {
+  /** Directory of JSON/MD persona files, relative to the dsh home or absolute. */
+  root: string;
+  /** Preset id whose composition a persona with no `base` is composed from. */
+  defaultBase: string;
+  /**
+   * Persona id resolved by `persona:policy` when a session has no selection,
+   * held as a live reference: the Loader commits every settings write into this
+   * same object without remounting the plugin, so read it with `.get()` at each
+   * use rather than capturing the value once.
+   */
+  defaultPersona: Volatile<string>;
+}
+
+/**
+ * The same three values as a settings document carries them: plain strings, no
+ * live reference. This is the shape the `dsh agents` CLI builds out of
+ * `settings.yaml`; the plugin has no such layer of its own, because at 0.2.0
+ * its Config is the only source of these values.
+ */
+export interface AgentSettingsSection {
   /** Directory of JSON/MD persona files, relative to the dsh home or absolute. */
   root?: string;
   /** Preset id whose composition a persona with no `base` is composed from. */
@@ -32,42 +62,44 @@ export interface AgentSettings {
   defaultPersona?: string;
 }
 
-export const AgentSettings: z<AgentSettings> = z.object({
-  root: z.string(),
-  defaultBase: z.string(),
-  defaultPersona: z.string(),
+export const AgentSettings = z.object({
+  root: z.string().default(DEFAULT_ROOT),
+  defaultBase: z.string().default(DEFAULT_BASE),
+  defaultPersona: z.string().default("").volatile(),
 });
 
 /**
- * Resolve the authoring directory: the settings value, else the deployment
- * Config value, else the `<dshHome>/agents` default. A relative settings
+ * Resolve the authoring directory: the settings-document value, else the
+ * deployment Config value, else the `<dshHome>/agents` default. A relative
  * value resolves against the dsh home; an absolute one is used as-is.
  */
 export function authoringRoot(
   home: string,
-  settings?: AgentSettings,
+  section?: AgentSettingsSection,
   config?: AgentSettings,
 ): string {
-  const value = settings?.root ?? config?.root ?? DEFAULT_ROOT;
+  const value = section?.root ?? config?.root ?? DEFAULT_ROOT;
   return value.startsWith("/") ? value : join(home, value);
 }
 
 /**
- * Resolve the default base preset: the settings value, else the deployment
- * Config value, else `standard`.
+ * Resolve the default base preset: the settings-document value, else the
+ * deployment Config value, else `standard`.
  */
-export function defaultBase(settings?: AgentSettings, config?: AgentSettings): string {
-  return settings?.defaultBase ?? config?.defaultBase ?? DEFAULT_BASE;
+export function defaultBase(section?: AgentSettingsSection, config?: AgentSettings): string {
+  return section?.defaultBase ?? config?.defaultBase ?? DEFAULT_BASE;
 }
 
 /**
- * Resolve the default persona: the settings value, else the deployment Config
- * value, else none. The `persona:policy` section renders it only when the
- * session has no live selection and no preset-derived persona.
+ * Resolve the default persona: the settings-document value, else the deployment
+ * Config value read live out of its reference, else none. The `persona:policy`
+ * section renders it only when the session has no live selection and no
+ * preset-derived persona; an empty id means none.
  */
 export function defaultPersona(
-  settings?: AgentSettings,
+  section?: AgentSettingsSection,
   config?: AgentSettings,
 ): string | undefined {
-  return settings?.defaultPersona ?? config?.defaultPersona;
+  const value = section?.defaultPersona ?? config?.defaultPersona?.get() ?? "";
+  return value === "" ? undefined : value;
 }

@@ -1,17 +1,21 @@
 /**
- * agent-tools settings: the `agent-tools` section owns the config-file custom tool
- * registry — a map of tool name → definition. Each definition carries a
- * description, an optional parameter schema, and the `argv` to run (through
- * `ctx.subprocess`, never shell-interpreted). `{name}` placeholders in the
- * argv are substituted with the corresponding argument value at call time.
+ * agent-tools settings: the `agent-tools` entry's own Config schema owns the
+ * custom tool registry — a map of tool name → definition. Each definition
+ * carries a description, an optional parameter schema, and the `argv` to run
+ * (through `ctx.subprocess`, never shell-interpreted). `{name}` placeholders in
+ * the argv are substituted with the corresponding argument value at call time.
  *
  * The harness ships a rich fixed toolset; this registry is for tools that are
  * personal and ephemeral — wrapper scripts, project-specific commands, or a
- * one-off CLI the agent should reach without a new plugin. Changes apply on
- * the next boot (the `dsh tool` CLI manages the section).
+ * one-off CLI the agent should reach without a new plugin. Which tools exist is
+ * the user's choice, so the whole map is declared `.volatile()` and becomes the
+ * only field the settings service projects as this entry's form; the Loader
+ * commits each write into the same reference, so a tool added through the form
+ * is callable without a remount.
  * @module agent-tools/settings
  */
 
+import type { Volatile, VolatileSnapshot } from "@deepseek-ai/cordis";
 import z from "@deepseek-ai/schemastery";
 import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
@@ -56,18 +60,27 @@ export const ToolConfig: z<ToolConfig> = z.object({
 
 /**
  * The plugin's entry configuration, and with it the settings form the settings
- * service projects: tool name → definition. Since 0.2.0 a settings write lands
- * in this entry's configuration and the Loader re-applies the plugin with it, so
- * the resolved config this plugin receives is its current settings.
+ * service projects: tool name → definition. One field is live, because which
+ * tools exist is the user's choice rather than a deployment fact.
  */
 export interface ToolsConfig {
-  /** Custom tools registered as model-facing tools. */
-  tools: Record<string, ToolConfig>;
+  /**
+   * The custom tools registered as model-facing tools, held as a live reference:
+   * the Loader commits every settings write into this same object, so read it
+   * with `.get()` at each use rather than capturing the value once.
+   */
+  tools: Volatile<Record<string, ToolConfig>>;
 }
 
-export const ToolsConfig: z<ToolsConfig> = z.object({
-  tools: z.dict(ToolConfig).default({}),
+export const ToolsConfig: z<{ tools: Record<string, ToolConfig> }, ToolsConfig> = z.object({
+  tools: z.dict(ToolConfig).default({}).volatile(),
 });
+
+/** One custom tool as the live reference hands it over: every field readonly. */
+export type ToolSnapshot = VolatileSnapshot<ToolConfig>;
+
+/** One custom tool parameter as the live reference hands it over. */
+export type ToolParameterSnapshot = VolatileSnapshot<ToolParameter>;
 
 /**
  * Substitute `{name}` placeholders in one argv entry with the matching
@@ -89,6 +102,6 @@ export function substitutePlaceholder(template: string, args: Record<string, unk
  * `substitutePlaceholder`, so `{name}` in fixed arguments or a whole
  * `['{path}']` command both work.
  */
-export function commandArgv(tool: ToolConfig, args: Record<string, unknown>): string[] {
+export function commandArgv(tool: ToolSnapshot, args: Record<string, unknown>): string[] {
   return tool.command.map((entry) => substitutePlaceholder(entry, args));
 }

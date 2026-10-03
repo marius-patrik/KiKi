@@ -9,7 +9,7 @@
 import type { Context } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/dsh-subprocess";
 import type { FsTarget } from "@deepseek-ai/dsh-fs";
-import type { FormatterCommand } from "./settings.js";
+import type { FormatterCommandView } from "./settings.js";
 import { dirname } from "node:path";
 
 /** The model-facing formatting outcome shared by the tool and the hook. */
@@ -59,14 +59,15 @@ export async function resolveTarget(
  * or a failed spawn leaves the file untouched and surfaces as an error.
  * @param ctx - the plugin context carrying `fs` and `subprocess`.
  * @param target - the resolved file target to format in place.
- * @param command - the configured formatter command (argv[0] is the executable).
+ * @param command - the configured formatter command, read from the live
+ *   formatter table (argv[0] is the executable), so it is a frozen snapshot.
  * @param signal - aborts the subprocess.
  * @returns the before/after outcome.
  */
 export async function formatFile(
   ctx: Context,
   target: FsTarget,
-  command: FormatterCommand,
+  command: FormatterCommandView,
   signal?: AbortSignal,
 ): Promise<FormatOutcome> {
   const path = target.displayPath;

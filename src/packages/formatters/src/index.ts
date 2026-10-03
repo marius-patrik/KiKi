@@ -10,7 +10,6 @@
  */
 
 import type { Context } from "@deepseek-ai/cordis";
-import z from "@deepseek-ai/schemastery";
 import type {} from "@deepseek-ai/dsh-fs";
 import type {} from "@deepseek-ai/dsh-subprocess";
 import { defineTool } from "@deepseek-ai/dsh-tools";
@@ -30,10 +29,12 @@ export type * from "./format.js";
 export const name = "formatters";
 export const inject = ["fs", "subprocess", "tools"];
 
-export const Config: z<FormatterConfig> = FormatterConfig;
+/** Re-exported bare, not as `z<FormatterConfig>` — see `settings.ts`. */
+export const Config = FormatterConfig;
 
 /**
  * Pick the formatter command for a path's extension, if one is configured.
+ * Reads the live formatter table, so it sees writes committed after boot.
  */
 function commandFor(config: FormatterConfigType | undefined, path: string) {
   const ext = path.toLowerCase().slice(path.lastIndexOf(".")).trimEnd();
@@ -48,14 +49,18 @@ function commandFor(config: FormatterConfigType | undefined, path: string) {
  * volatile Config fields of the active profile's entries, so this plugin's own
  * `FormatterConfig` is its form and its namespace is its entry id `formatters`.
  * All that is left to declare is that this plugin ships its own page for that
- * form. The formatter table and the auto-format toggle are therefore read
- * straight off the `config` this entry was applied with — the separate
- * `settings.get(formatters)` scope they used to come from no longer exists, and
- * nothing mirrors it into a mutable module-level copy.
+ * form.
+ *
+ * The formatter table and the auto-format toggle arrive as volatile fields, so
+ * `config` carries live references and the Loader commits every settings write
+ * into this same object instead of remounting the plugin. Both the `format` tool
+ * and the auto-format hook therefore read them through `.get()` per call
+ * (`commandFor` / `autoFormatEnabled`) — there is no module-level mirror and no
+ * boot-time snapshot to go stale.
  *
  * @param ctx - the plugin context carrying `fs`, `subprocess`, and `tools`.
- * @param config - the `formatters` profile entry this plugin was applied with:
- *   the per-extension formatter table and the auto-format-on-edit toggle.
+ * @param config - the `formatters` profile entry this plugin was applied with,
+ *   carrying the live per-extension formatter table and auto-format toggle.
  */
 export function apply(ctx: Context, config: FormatterConfigType): void {
   declareCustomSettingsPage(ctx);

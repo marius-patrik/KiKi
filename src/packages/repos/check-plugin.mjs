@@ -16,7 +16,7 @@ const root = mkdtempSync(join(tmpdir(), "repos-"));
 const env = { ...process.env };
 
 const plugin = await import("./lib/index.js");
-const { NS } = await import("./lib/settings.js");
+const { NS, RepoConfig, defaultRemote, defaultBaseBranch } = await import("./lib/settings.js");
 const { runGit, currentBranch, GitCommandError } = await import("./lib/git.js");
 const { resolveGitHubToken, createPullRequest, GITHUB_OAUTH_REF } = await import("./lib/github.js");
 const { ownerRepoFromRemote } = plugin;
@@ -26,14 +26,40 @@ assert.equal(NS, "repos", "namespace must be this plugin's entry id");
 assert.equal(plugin.inject.join(","), "subprocess,tools");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
-// settings helpers: remote/base-branch fall back to the schema defaults.
-const { defaultRemote, defaultBaseBranch } = await import("./lib/settings.js");
-assert.equal(defaultRemote(undefined), "origin");
-assert.equal(defaultRemote({ remote: "upstream" }), "upstream");
-assert.equal(defaultBaseBranch(undefined), "main");
-assert.equal(defaultBaseBranch({ defaultBaseBranch: "trunk" }), "trunk");
-assert.equal(defaultBaseBranch({ remote: "origin" }), "main");
-console.log("settings helpers ok");
+// The `repos` form is the Config this plugin exports, and the settings service
+// projects only its volatile fields — an entry with none is omitted from
+// `describe()` and refuses writes. Both defaults are the operator's choice, so
+// both must stay declared volatile, and both reads must go through the live
+// reference rather than a value captured at boot.
+const config = RepoConfig({ remote: "upstream", defaultBaseBranch: "trunk" });
+assert.equal(RepoConfig.dict.remote.meta.volatile, true, "remote must be declared volatile");
+assert.equal(
+  RepoConfig.dict.defaultBaseBranch.meta.volatile,
+  true,
+  "defaultBaseBranch must be declared volatile",
+);
+assert.equal(typeof config.remote.get, "function", "remote must resolve to a live reference");
+assert.equal(
+  typeof config.defaultBaseBranch.get,
+  "function",
+  "defaultBaseBranch must resolve to a live reference",
+);
+assert.equal(defaultRemote(config), "upstream");
+assert.equal(defaultBaseBranch(config), "trunk");
+
+// A settings write is persisted into the profile patch and then committed by the
+// Loader into the very reference `apply` was handed. Reading after that commit
+// must observe the new value, so a boot-time snapshot cannot pass here.
+const commitVolatile = Symbol.for("cosmokit.volatile.write");
+config.remote[commitVolatile]("fork");
+config.defaultBaseBranch[commitVolatile]("develop");
+assert.equal(defaultRemote(config), "fork", "defaultRemote must read the live remote reference");
+assert.equal(
+  defaultBaseBranch(config),
+  "develop",
+  "defaultBaseBranch must read the live defaultBaseBranch reference",
+);
+console.log("settings helpers ok (both defaults volatile and read live)");
 
 // ownerRepoFromRemote parsing across remote shapes.
 assert.equal(
@@ -86,7 +112,7 @@ actx.provide("tools", {
 actx.subprocess = gitCtx.subprocess;
 actx.logger = { info: () => {}, warn: (m) => console.log("WARN:", m) };
 actx.on = () => () => {};
-plugin.apply(actx, { remote: "upstream", defaultBaseBranch: "trunk" });
+plugin.apply(actx, config);
 await new Promise((resolve) => setTimeout(resolve, 50));
 assert.equal(
   registrations.length,
@@ -94,6 +120,11 @@ assert.equal(
   `expected one settings page policy, got ${registrations.length}`,
 );
 assert.equal(registrations[0].presentation.auto, false);
+// The tools closed over the very Config object this boot received, so a write
+// committed into it after apply is what `repo-push` and `repo-pr` resolve.
+config.remote[commitVolatile]("origin");
+assert.equal(defaultRemote(config), "origin");
+assert.equal(defaultBaseBranch(config), "develop");
 const names = registeredTools.map((t) => t.name).sort();
 assert.deepEqual(names, ["repo-branch", "repo-commit", "repo-pr", "repo-push", "repo-status"]);
 console.log("apply wiring ok (5 repo tools registered, custom settings page declared)");

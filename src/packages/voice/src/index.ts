@@ -77,14 +77,18 @@ export const inject = ["tools", "settings", "webServer", "accounts"];
  * Wire the plugin: declare this plugin's own page for the `voice` settings
  * form, mount the three /voice/api routes, and register the agent tools.
  *
- * The `voice` form is the `Config` this plugin already exports and its
- * namespace is this plugin's own entry id, so there is nothing to install. This
- * plugin ships its own page, so the automatic-page policy is turned off.
+ * The `voice` form is the volatile half of the `Config` this plugin already
+ * exports and its namespace is this plugin's own entry id, so there is nothing
+ * to install. This plugin ships its own page, so the automatic-page policy is
+ * turned off.
  *
- * A settings edit is reconciled by writing the profile patch and then
- * restarting this fiber through the Loader, so the `config` handed to this
- * call is the whole live story: every consumer below reads it per request, and
- * a settings edit reaches them by re-running this function with the new config.
+ * Every consumer below is handed the `config` this call received rather than a
+ * snapshot of it, because the user choices in it are volatile: a settings write
+ * is committed into those same references in place, without restarting this
+ * plugin, so the routes and the tools must read through them on each request
+ * (`.get()` in `resolveTts` and in the config route). Editing a deployment fact
+ * changes no reference, so the Loader restarts this plugin instead and this
+ * function runs again with the new config.
  *
  * @param ctx - the plugin context carrying tools, settings, webServer, accounts.
  * @param config - the active profile entry this plugin was applied with.

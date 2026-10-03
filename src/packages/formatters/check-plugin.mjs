@@ -18,16 +18,37 @@ assert.equal(NS, "formatters", "namespace must be this plugin's entry id");
 assert.equal(plugin.inject.join(","), "fs,subprocess,tools");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
-// settings helpers: extension matching + auto-format toggle precedence.
-const { formatterFor, autoFormatEnabled } = await import("./lib/settings.js");
+// The settings service projects an entry ONLY through its volatile fields:
+// `volatileForm` returns undefined when a Config declares none, so `describe()`
+// silently omits the entry and `write()` throws `Plugin entry "formatters" has no
+// volatile fields`. Assert the shape first, before any behavioural read, so
+// dropping either `.volatile()` from the schema is reported here as the contract
+// violation it is rather than as a TypeError from a helper that called `.get()`
+// on a plain value.
+const sampleConfig = plugin.Config({});
 assert.equal(
-  formatterFor({ formatters: { ".ts": { argv: ["prettier"] } } }, ".ts").argv[0],
-  "prettier",
+  typeof sampleConfig.formatters?.get,
+  "function",
+  "formatters must resolve to a live .volatile() reference, or the settings service omits this entry",
 );
-assert.equal(formatterFor({ formatters: {} }, ".ts"), undefined);
-assert.equal(formatterFor(undefined, ".ts"), undefined);
-assert.equal(autoFormatEnabled(undefined), true);
-assert.equal(autoFormatEnabled({ autoFormatOnEdit: false }), false);
+assert.equal(
+  typeof sampleConfig.autoFormatOnEdit?.get,
+  "function",
+  "autoFormatOnEdit must resolve to a live .volatile() reference, or the settings service omits this entry",
+);
+assert.equal(sampleConfig.autoFormatOnEdit.get(), true, "the toggle default comes from the schema");
+assert.deepEqual(sampleConfig.formatters.get(), {}, "the table default comes from the schema");
+console.log("config volatile shape ok (both fields are live references)");
+
+// settings helpers: extension matching and the auto-format toggle, read through
+// the live references the schema produces.
+const { FormatterConfig, formatterFor, autoFormatEnabled } = await import("./lib/settings.js");
+const tsPrettier = { ".ts": { argv: ["prettier"] } };
+assert.equal(formatterFor(FormatterConfig({ formatters: tsPrettier }), ".ts").argv[0], "prettier");
+assert.equal(formatterFor(FormatterConfig({ formatters: {} }), ".ts"), undefined);
+assert.equal(formatterFor(FormatterConfig({}), ".ts"), undefined);
+assert.equal(autoFormatEnabled(FormatterConfig({})), true);
+assert.equal(autoFormatEnabled(FormatterConfig({ autoFormatOnEdit: false })), false);
 console.log("settings helpers ok");
 
 // formatFile: a real subprocess formatter (node one-liner normalizing
@@ -68,12 +89,17 @@ assert.equal(targetPathFromArguments({ path: "c.ts" }), "c.ts");
 assert.equal(targetPathFromArguments({ nope: 1 }), undefined);
 console.log("targetPathFromArguments ok");
 
-// apply: declares this plugin's own settings page, registers the `format` tool,
-// and hooks `tools/post-execute`. Since 0.2.0 there is no form to register: the
-// settings service projects the volatile Config fields of the active profile's
-// entries, so the formatter table and the auto-format toggle arrive as `config`
-// and the namespace is this plugin's entry id. What must be declared is that
-// this plugin ships its own page for that form.
+// apply: parses the entry config through this plugin's own schema, declares its
+// settings page, registers the `format` tool, and hooks `tools/post-execute`.
+// Since 0.2.0 there is no form to register: the settings service projects the
+// volatile Config fields of the active profile's entries, and the namespace is
+// this plugin's entry id. What must be declared is that this plugin ships its
+// own page for that form.
+const config = plugin.Config({
+  formatters: { ".ts": { argv: [process.execPath, "-e", script] } },
+  autoFormatOnEdit: true,
+});
+
 const actx = new Context();
 const { service: settings, registrations } = stubSettingsService();
 actx.provide("settings", settings);
@@ -93,10 +119,7 @@ actx.on = (event, fn) => {
   listeners.set(event, [...(listeners.get(event) ?? []), fn]);
   return () => {};
 };
-plugin.apply(actx, {
-  formatters: { ".ts": { argv: [process.execPath, "-e", script] } },
-  autoFormatOnEdit: true,
-});
+plugin.apply(actx, config);
 await new Promise((resolve) => setTimeout(resolve, 100));
 assert.equal(
   registrations.length,
@@ -111,20 +134,32 @@ assert.ok(
 assert.ok(listeners.has("tools/post-execute"), "auto-format hook not registered");
 console.log("apply wiring ok (settings page + format tool + post-execute hook)");
 
+// The hook and the tool registered above are captured ONCE, before any settings
+// write. Everything after this point reuses those same references.
+const hook = listeners.get("tools/post-execute")[0];
+const formatTool = registeredTools.find((t) => t.name === "format");
+/** Approval callback that accepts the edit without prompting. */
+const accept = async () => ({ kind: "accept" });
+/** Run one `edit` on the work file through the captured post-execute hook. */
+const runEdit = (callId) =>
+  hook(
+    {
+      name: "edit",
+      arguments: { file_path: workFile },
+      callId,
+      signal: new AbortController().signal,
+    },
+    { isError: false },
+    accept,
+  );
+/** Run the captured `format` tool over the work file. */
+const runTool = () =>
+  formatTool.execute({ path: workFile }, { signal: new AbortController().signal });
+
 // Auto-format hook: an `edit` exec on the work file yields an additional
 // context note with before/after; a non-formatable path delegates unchanged.
 writeFileSync(workFile, "const   dirty=1;");
-const hook = listeners.get("tools/post-execute")[0];
-const afterEdit = await hook(
-  {
-    name: "edit",
-    arguments: { file_path: workFile },
-    callId: "c1",
-    signal: new AbortController().signal,
-  },
-  { isError: false },
-  async () => ({ kind: "accept" }),
-);
+const afterEdit = await runEdit("c1");
 assert.equal(afterEdit.kind, "accept");
 assert.ok(afterEdit.additionalContexts?.[0]?.content?.[0]?.text.includes("[auto-format]"));
 assert.ok(afterEdit.additionalContexts[0].content[0].text.includes(workFile));
@@ -136,60 +171,89 @@ const afterOther = await hook(
     signal: new AbortController().signal,
   },
   { isError: false },
-  async () => ({ kind: "accept" }),
+  accept,
 );
 assert.equal(afterOther.additionalContexts, undefined);
 console.log("auto-format hook ok (context note on formatable edit, silent otherwise)");
 
-// The hook's reads come from the `config` this entry was applied with: a config
-// with no formatter table, and a config with auto-format off, both pass an
-// `edit` on the same formatable file straight through with no context note.
-/**
- * Build the post-execute hook under `config` and run one edit through it.
- * @param {object} config - the resolved formatter config this entry was applied with.
- * @returns {Promise<object>} the additional contexts the hook produced.
- */
-const silentHook = (config) => {
-  const sctx = new Context();
-  const { service } = stubSettingsService();
-  sctx.provide("settings", service);
-  sctx.provide("tools", { register: () => () => {} });
-  sctx.baseUrl = root;
-  sctx.fs = fctx.fs;
-  sctx.subprocess = fctx.subprocess;
-  sctx.logger = { info: () => {}, warn: () => {} };
-  const captured = new Map();
-  sctx.on = (event, fn) => {
-    captured.set(event, [...(captured.get(event) ?? []), fn]);
-    return () => {};
-  };
-  plugin.apply(sctx, config);
-  return captured.get("tools/post-execute")[0];
+// The format tool runs the command the live table holds for the extension.
+writeFileSync(workFile, "const   tool=1;");
+assert.equal((await runTool()).after, "const tool=1;\n");
+console.log("format tool ok (runs the live table's command)");
+
+// LIVE READ. A settings write is not a remount: the Loader commits the new value
+// into the very reference `apply` was handed, and the plugin must see it. The
+// hook and the tool exercised here were registered before the first commit and
+// are never re-applied, so a boot-time snapshot in place of `.get()` would still
+// report the original table and the original toggle and go red below.
+const commitVolatile = Symbol.for("cosmokit.volatile.write");
+
+// Turning the toggle off stops the hook, with no re-apply.
+config.autoFormatOnEdit[commitVolatile](false);
+writeFileSync(workFile, "const   dirty=1;");
+assert.equal(
+  (await runEdit("c3")).additionalContexts,
+  undefined,
+  "the hook must honour a live autoFormatOnEdit=false commit",
+);
+
+// Swapping the table to one that no longer covers `.ts` stops the hook and
+// makes the tool refuse, again with no re-apply.
+config.autoFormatOnEdit[commitVolatile](true);
+config.formatters[commitVolatile]({ ".py": { argv: [process.execPath, "-e", script] } });
+writeFileSync(workFile, "const   dirty=1;");
+assert.equal(
+  (await runEdit("c4")).additionalContexts,
+  undefined,
+  "the hook must honour a live formatter-table swap that drops .ts",
+);
+await assert.rejects(
+  runTool(),
+  /no formatter configured/,
+  "the format tool must honour a live formatter-table swap",
+);
+
+// Restoring `.ts` through the same reference brings both back.
+config.formatters[commitVolatile]({ ".ts": { argv: [process.execPath, "-e", script] } });
+writeFileSync(workFile, "const   dirty=1;");
+assert.ok(
+  (await runEdit("c5")).additionalContexts?.[0]?.content?.[0]?.text.includes("[auto-format]"),
+  "restoring .ts through the live reference must bring the hook back",
+);
+console.log("volatile config is read live ok (toggle + table commits, no re-apply)");
+
+// An entry with no formatter at all — the schema default — is silent, and the
+// settings page policy is declared regardless.
+const emptyCtx = new Context();
+const { service: emptySettings, registrations: emptyRegistrations } = stubSettingsService();
+emptyCtx.provide("settings", emptySettings);
+emptyCtx.provide("tools", { register: () => () => {} });
+emptyCtx.baseUrl = root;
+emptyCtx.fs = fctx.fs;
+emptyCtx.subprocess = fctx.subprocess;
+emptyCtx.logger = { info: () => {}, warn: () => {} };
+const emptyListeners = new Map();
+emptyCtx.on = (event, fn) => {
+  emptyListeners.set(event, [...(emptyListeners.get(event) ?? []), fn]);
+  return () => {};
 };
-const editExec = {
+plugin.apply(emptyCtx, plugin.Config({}));
+await new Promise((resolve) => setTimeout(resolve, 50));
+assert.equal(emptyRegistrations.length, 1, "settings page is declared for an empty table too");
+assert.equal(emptyRegistrations[0].presentation.auto, false);
+const emptyHook = emptyListeners.get("tools/post-execute")[0];
+const emptyExec = {
   name: "edit",
   arguments: { file_path: workFile },
-  callId: "c3",
+  callId: "c6",
   signal: new AbortController().signal,
 };
-/** Approval callback that accepts the edit without prompting. */
-const accept = async () => ({ kind: "accept" });
 writeFileSync(workFile, "const   dirty=1;");
 assert.equal(
-  (await silentHook({})(editExec, { isError: false }, accept)).additionalContexts,
+  (await emptyHook(emptyExec, { isError: false }, accept)).additionalContexts,
   undefined,
 );
-writeFileSync(workFile, "const   dirty=1;");
-assert.equal(
-  (
-    await silentHook({
-      formatters: { ".ts": { argv: [process.execPath, "-e", script] } },
-      autoFormatOnEdit: false,
-    })(editExec, { isError: false }, accept)
-  ).additionalContexts,
-  undefined,
-);
-console.log("auto-format hook reads its own config ok (no table / auto off -> silent)");
+console.log("empty formatter table is silent ok");
 
 // CLI round-trip: add/list/remove/set-auto over a temp home.
 const home = join(root, "cli-home");

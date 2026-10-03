@@ -13,19 +13,19 @@
  */
 
 import type { Context } from "@deepseek-ai/cordis";
-import z from "@deepseek-ai/schemastery";
 import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
 import Lsp from "@deepseek-ai/dsh-lsp";
 import * as LspStdio from "@deepseek-ai/dsh-lsp-stdio";
 import * as ToolLsp from "@deepseek-ai/dsh-tool-lsp";
-import { LspConfig } from "./settings.js";
+import { installedServers, LspConfig } from "./settings.js";
 
 export type * from "./settings.js";
 
 export const name = "lsp";
 export const inject: string[] = [];
 
-export const Config: z<LspConfig> = LspConfig;
+/** Re-exported bare, not as `z<LspConfig>` — see `settings.ts`. */
+export const Config = LspConfig;
 
 /**
  * Mount the LSP service definition, the stdio provider (only when at least one
@@ -35,9 +35,11 @@ export const Config: z<LspConfig> = LspConfig;
  * Since 0.2.0 there is no separate settings section to read: this plugin's
  * `Config` is the `lsp` form the settings service projects, under this entry's
  * own id as its namespace, so `config.servers` is the one server table — entry
- * values and profile edits alike arrive through it. The mounts stay boot-time,
- * so a table edited after boot takes effect on the next boot, the same
- * contract the `dsh lsp` CLI documents.
+ * values and profile edits alike arrive through it. It is a live reference the
+ * Loader commits settings writes into, so it is read through `installedServers`
+ * at mount rather than snapshotted. The mounts stay boot-time, so a table edited
+ * after boot takes effect on the next boot, the same contract the `dsh lsp` CLI
+ * documents.
  *
  * @param ctx - the plugin context.
  * @param config - the plugin's live configuration, carrying the LSP server table.
@@ -46,7 +48,7 @@ export function apply(ctx: Context, config: LspConfig): void {
   declareCustomSettingsPage(ctx);
 
   ctx.inject(["settings"], async () => {
-    const servers = config.servers ?? {};
+    const servers = installedServers(config);
 
     if (ctx.get("lsp") === undefined) {
       await ctx.plugin(Lsp);

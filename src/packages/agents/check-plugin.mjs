@@ -5,7 +5,11 @@ import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { Context } from "@deepseek-ai/cordis";
 import assert from "node:assert";
-import { assertLoaderShape, loadClientLoaderSpec } from "../../scripts/plugin-check-kit.mjs";
+import {
+  assertLoaderShape,
+  loadClientLoaderSpec,
+  stubSettingsService,
+} from "../../scripts/plugin-check-kit.mjs";
 
 const root = mkdtempSync(join(tmpdir(), "agents-"));
 
@@ -13,9 +17,14 @@ const plugin = await import("./lib/index.js");
 const { authoringRoot, defaultBase, defaultPersona, NS } = await import("./lib/settings.js");
 const { parsePersona, sanitizeId } = await import("./lib/persona.js");
 const { splicePersona, composeComposition, composeMetadata } = await import("./lib/compose.js");
-const { basePresetDir, PRESET_ROOT, SOURCE_MARKER, syncPersonas, materializePreset } = await import(
-  "./lib/sync.js"
-);
+const {
+  basePresetDir,
+  PRESET_ROOT,
+  SOURCE_MARKER,
+  readBaseComposition,
+  syncPersonas,
+  materializePreset,
+} = await import("./lib/sync.js");
 const { PersonaCatalog } = await import("./lib/catalog.js");
 const { PERSONA_SELECTED, PersonaController, foldPersona, hasOpenTurn } = await import(
   "./lib/controller.js"
@@ -27,18 +36,65 @@ assert.equal(NS, "agents");
 assert.equal(plugin.inject.length, 0);
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
+// ── volatile marking: what keeps `agents` a settings form at all ──
+// Since 0.2.0 the settings service projects an entry's form from the VOLATILE
+// fields of its Config alone. `volatileForm()` returns undefined for a schema
+// that declares none, so `describe()` silently omits the entry and every write
+// (`update`/`replace`/`mutate`) throws `has no volatile fields` — and the
+// `auto: false` page policy would attach to a form that does not exist.
+// `defaultPersona` is the user's choice and is therefore volatile; the
+// authoring root and the default base preset are deployment facts and stay out.
+const configMeta = (() => {
+  const json = plugin.Config.toJSON();
+  const dict = json.dict ?? json.refs[json.uid].dict;
+  return (field) => json.refs[dict[field]].meta;
+})();
+assert.equal(
+  configMeta("defaultPersona").volatile,
+  true,
+  "defaultPersona must stay volatile or the agents entry has no settings form",
+);
+assert.equal(
+  configMeta("root").volatile,
+  undefined,
+  "root is deployment wiring, not a field the settings page edits",
+);
+assert.equal(
+  configMeta("defaultBase").volatile,
+  undefined,
+  "defaultBase is deployment wiring, not a field the settings page edits",
+);
+
+// The marking is not decoration: a volatile field resolves to a live reference,
+// a plain one to the value itself.
+const resolved = plugin.Config({ defaultPersona: "reviewer" });
+assert.equal(typeof resolved.root, "string", "root stays a plain string");
+assert.equal(
+  typeof resolved.defaultPersona.get,
+  "function",
+  "defaultPersona must resolve to a live reference the Loader commits writes into",
+);
+assert.equal(resolved.defaultPersona.get(), "reviewer");
+assert.equal(defaultPersona(undefined, resolved), "reviewer");
+console.log("volatile marking ok (defaultPersona live; root/defaultBase deployment facts)");
+
 // ── settings helpers: root, base, persona ──
 assert.equal(authoringRoot("/home", undefined, undefined), "/home/agents");
 assert.equal(authoringRoot("/home", { root: "custom" }, undefined), "/home/custom");
-assert.equal(authoringRoot("/home", undefined, { root: "/abs/root" }), "/abs/root");
-assert.equal(authoringRoot("/home", { root: "/win" }, { root: "/abs" }), "/win");
+assert.equal(authoringRoot("/home", undefined, plugin.Config({ root: "/abs/root" })), "/abs/root");
+assert.equal(authoringRoot("/home", { root: "/win" }, plugin.Config({ root: "/abs" })), "/win");
 assert.equal(defaultBase(undefined, undefined), "standard");
 assert.equal(defaultBase({ defaultBase: "minimal" }, undefined), "minimal");
-assert.equal(defaultBase(undefined, { defaultBase: "cordis" }), "cordis");
+assert.equal(defaultBase(undefined, plugin.Config({ defaultBase: "cordis" })), "cordis");
 assert.equal(defaultPersona(undefined, undefined), undefined);
 assert.equal(defaultPersona({ defaultPersona: "x" }, undefined), "x");
-assert.equal(defaultPersona(undefined, { defaultPersona: "y" }), "y");
-assert.equal(defaultPersona({ defaultPersona: "x" }, { defaultPersona: "y" }), "x");
+assert.equal(defaultPersona(undefined, plugin.Config({ defaultPersona: "y" })), "y");
+assert.equal(
+  defaultPersona({ defaultPersona: "x" }, plugin.Config({ defaultPersona: "y" })),
+  "x",
+  "a settings document still wins over the Config",
+);
+assert.equal(defaultPersona(undefined, plugin.Config({})), undefined, "an empty id means none");
 console.log("settings helpers ok");
 
 // ── persona parsing ──
@@ -98,24 +154,49 @@ assert.ok(prepended.startsWith("- id: persona"), "prepended when none present");
 assert.ok(prepended.includes("- id: tool-fs"));
 console.log("base splice ok");
 
-// ── real-world: neutral row spliced into the shipped standard composition ──
+// ── real-world: neutral row spliced into the shipped standard declaration ──
+// Since dsh-v0.2.0-rc.2 a shipped preset is one `@deepseek-ai/dsh-agent-preset`
+// declaration in the web-app bundle (`<id>.patch.yml`) whose plugin entry list
+// is nested under `config.plugins`, not a per-preset `agent.cordis.yml`
+// directory under `packages/preset/agent-presets/presets`.
 const baseDir = basePresetDir();
 assert.ok(
-  baseDir !== undefined && existsSync(join(baseDir, "standard", "agent.cordis.yml")),
-  "shipped standard preset must be reachable for the splice test",
+  baseDir !== undefined && existsSync(join(baseDir, "standard.patch.yml")),
+  "shipped standard preset declaration must be reachable for the splice test",
 );
-const standard = readFileSync(join(baseDir, "standard", "agent.cordis.yml"), "utf8");
-const jsBefore = standard.split("!!js").length - 1;
-const swapped = splicePersona(standard);
-assert.equal(swapped.split("!!js").length - 1, jsBefore);
-assert.equal(swapped.split("- id: persona").length - 1, 1);
-assert.ok(swapped.includes("text: ''"), "neutral row in standard composition");
+const standard = await readBaseComposition(baseDir, "standard");
+assert.ok(standard !== undefined, "the shipped declaration must carry a plugin entry list");
 assert.ok(
-  !swapped.includes("You are a coding agent powered by the {{model}} model"),
+  standard.startsWith("- id: "),
+  "the entry list is dedented to column 0, not left at the declaration's nesting",
+);
+const jsBefore = standard.split("!!js").length - 1;
+const standardSpliced = splicePersona(standard);
+assert.equal(standardSpliced.split("!!js").length - 1, jsBefore);
+assert.equal(standardSpliced.split("- id: persona").length - 1, 1);
+assert.ok(standardSpliced.includes("text: ''"), "neutral persona row in standard composition");
+assert.ok(
+  !standardSpliced.includes("You are a coding agent powered by the {{model}} model"),
   "old persona prompt gone",
 );
-assert.ok(swapped.includes("- id: agent-instructions"), "non-persona rows intact");
+assert.ok(standardSpliced.includes("- id: agent-instructions"), "non-persona rows intact");
 console.log("standard composition splice ok (!!js preserved, neutral persona row)");
+
+// Every shipped preset resolves to a usable entry list — including `cordis`,
+// whose block opens with comments rather than a row.
+for (const id of ["standard", "minimal", "ptc", "cordis"]) {
+  const list = await readBaseComposition(baseDir, id);
+  assert.ok(list !== undefined, `${id}: entry list readable`);
+  assert.ok(
+    splicePersona(list)
+      .split("\n")
+      .some((line) => line.startsWith("- id: ")),
+    `${id}: entry list carries rows`,
+  );
+  assert.equal(splicePersona(list).split("- id: persona").length - 1, 1, `${id}: one persona row`);
+}
+assert.equal(await readBaseComposition(baseDir, "no-such-preset"), undefined);
+console.log("shipped preset declarations ok (all four presets)");
 
 // ── materialize + sync over a temp home: neutral row in output ──
 const home = join(root, "home");
@@ -339,21 +420,15 @@ console.log("personaPolicyText ok");
 const bootHome = join(root, "boot-home");
 mkdirSync(join(bootHome, "agents"), { recursive: true });
 writeFileSync(join(bootHome, "agents", "boot.md"), "Boot persona.");
+writeFileSync(join(bootHome, "agents", "reviewer.md"), "Review personas.");
 const prevDshHome = process.env.DSH_HOME;
 process.env.DSH_HOME = bootHome;
-const sections = new Map([[NS, {}]]);
 let capturedSection = null;
 let capturedProjection = null;
 let capturedCommand = null;
 const actx = new Context();
-actx.provide("settings", {
-  get: (ns) => sections.get(ns),
-  /** register implementation. */
-  register(_ns, _schema, opts) {
-    if (!sections.has(_ns)) sections.set(_ns, opts.base);
-    return { get: (ns) => sections.get(ns), watch: () => undefined };
-  },
-});
+const { service: bootSettings, registrations } = stubSettingsService();
+actx.provide("settings", bootSettings);
 actx.provide("systemPrompt", {
   section: (def) => {
     capturedSection = def;
@@ -373,8 +448,20 @@ actx.provide("commands", {
   },
 });
 actx.logger = { info: () => {}, warn: (m) => console.log("WARN:", m) };
-plugin.apply(actx, {});
+const bootConfig = plugin.Config({ defaultPersona: "reviewer" });
+plugin.apply(actx, bootConfig);
 await new Promise((resolve) => setTimeout(resolve, 500));
+
+// Since 0.2.0 the plugin registers no settings form; it only declares that it
+// ships its own page for the form the service projects from its own Config.
+assert.equal(NS, "agents", "namespace must be this plugin's entry id");
+assert.equal(
+  registrations.length,
+  1,
+  `expected one settings page policy, got ${registrations.length}`,
+);
+assert.equal(registrations[0].presentation.auto, false);
+console.log("declareCustomSettingsPage ok (auto=false)");
 
 // boot sync: neutral row in the materialized preset
 assert.ok(
@@ -405,6 +492,41 @@ assert.equal(
   "Boot persona.",
   "header preset resolves via catalog",
 );
+
+// The volatile fallback is read per use, never captured at boot: the Loader
+// commits a settings write into the SAME reference without remounting the
+// plugin, so a captured value would go stale for the life of the process.
+const unselectedSession = {
+  events: [],
+  header: {} /** append implementation. */,
+  /** append implementation. */
+  append() {},
+};
+assert.equal(
+  capturedSection.text({ agent: { session: unselectedSession } }),
+  "Review personas.",
+  "configured fallback renders with no live selection and no header preset",
+);
+bootConfig.defaultPersona[Symbol.for("cosmokit.volatile.write")]("boot");
+assert.equal(
+  capturedSection.text({ agent: { session: unselectedSession } }),
+  "Boot persona.",
+  "a settings write commits into the same reference and the section follows it",
+);
+assert.equal(
+  capturedCommand.handler({ agent: { session: unselectedSession }, rawInput: "" }).text,
+  "Current persona: boot",
+  "/persona with no argument reads the live reference too",
+);
+// Put the deployment default back so the remaining command assertions exercise
+// the no-fallback path they were written against.
+bootConfig.defaultPersona[Symbol.for("cosmokit.volatile.write")]("");
+assert.equal(
+  capturedSection.text({ agent: { session: unselectedSession } }),
+  "",
+  "clearing the fallback leaves the section empty",
+);
+console.log("volatile fallback ok (read per use, not captured at boot)");
 
 // projection registration: persona unit
 assert.ok(capturedProjection !== null, "persona projection registered");

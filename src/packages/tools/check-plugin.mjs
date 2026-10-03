@@ -36,24 +36,47 @@ assert.deepEqual(
 );
 console.log("settings helpers ok");
 
-// Boot over a stub settings service. Since 0.2.0 a plugin's Config is its form and
-// the namespace is its entry id, so there is no registration to observe; what this
-// plugin must declare is that it ships its own page for that form. Its resolved
-// config is the current settings, so every tool in it registers at load.
-const registeredTools = [];
-const actx = new Context();
-const { service: settings, registrations } = stubSettingsService();
-actx.provide("settings", settings);
-actx.provide("tools", {
-  register: (def) => {
-    registeredTools.push(def);
-    return () => {};
-  },
-});
-actx.subprocess = stubSpawnSyncSubprocess();
-actx.logger = { info: () => {}, warn: (m) => console.log("WARN:", m) };
-actx.on = () => () => {};
-plugin.apply(actx, {
+/**
+ * Commit a value into a live config reference, the way the Loader does.
+ *
+ * The reference protocol is a global symbol shared across cosmokit copies, so the
+ * write needs no import of the runtime that owns it. The committed value is
+ * frozen exactly as the runtime freezes a committed snapshot, which is what keeps
+ * a plugin that tries to mutate it honest.
+ *
+ * @param {object} reference - the `Volatile` reference handed to `apply`.
+ * @param {object} value - the next immutable value for that reference.
+ */
+function commitVolatile(reference, value) {
+  /**
+   * Deep-freeze a committed value, matching what a settings write hands a volatile field.
+   * @param {unknown} node - the value to freeze.
+   * @returns {unknown} the same value, frozen.
+   */
+  const freeze = (node) => {
+    if (node === null || typeof node !== "object") return node;
+    for (const child of Object.values(node)) freeze(child);
+    return Object.freeze(node);
+  };
+  reference[Symbol.for("cosmokit.volatile.write")](freeze(value));
+}
+
+// The volatile marking is what makes this entry's form exist at all: the settings
+// service projects a Config field only when its schema node is volatile, omits an
+// entry with no volatile fields from every description, and refuses a write to
+// one. Dropping `.volatile()` from `tools` therefore deletes the agent-tools page
+// silently rather than loudly, so the marking is asserted here.
+assert.equal(
+  plugin.Config.dict.tools.meta.volatile,
+  true,
+  "tools must stay volatile: without it describe() omits this entry and write() refuses it",
+);
+console.log("volatile marking ok");
+
+// The resolved Config the Loader hands `apply`, built by this plugin's own schema
+// exactly as the Loader builds it: `tools` is a live reference the Loader commits
+// settings writes into, so it is what the plugin must read through.
+const { value: initialConfig } = plugin.Config["~standard"].validate({
   tools: {
     "echo-name": {
       description: "Echo the name argument",
@@ -71,6 +94,27 @@ plugin.apply(actx, {
     },
   },
 });
+assert.equal(typeof initialConfig.tools.get, "function", "tools must be a live reference");
+
+// Boot over a stub settings service. Since 0.2.0 a plugin's Config is its form and
+// the namespace is its entry id, so there is no registration to observe; what this
+// plugin must declare is that it ships its own page for that form.
+const registeredTools = [];
+const actx = new Context();
+const { service: settings, registrations } = stubSettingsService();
+actx.provide("settings", settings);
+actx.provide("tools", {
+  register: (def) => {
+    registeredTools.push(def);
+    return () => {
+      const index = registeredTools.indexOf(def);
+      if (index >= 0) registeredTools.splice(index, 1);
+    };
+  },
+});
+actx.subprocess = stubSpawnSyncSubprocess();
+actx.logger = { info: () => {}, warn: (m) => console.log("WARN:", m) };
+plugin.apply(actx, initialConfig);
 await new Promise((resolve) => setTimeout(resolve, 50));
 
 assert.equal(NS, "agent-tools", "namespace must be this plugin's entry id");
@@ -90,8 +134,7 @@ emptyCtx.provide("settings", stubSettingsService().service);
 emptyCtx.provide("tools", { register: () => () => {} });
 emptyCtx.subprocess = stubSpawnSyncSubprocess();
 emptyCtx.logger = { info: () => {}, warn: () => {} };
-emptyCtx.on = () => () => {};
-plugin.apply(emptyCtx, { tools: {} });
+plugin.apply(emptyCtx, plugin.Config["~standard"].validate({}).value);
 console.log("empty config ok");
 
 // execute: real subprocess round-trip with placeholder substitution.
@@ -117,6 +160,26 @@ assert.ok(text0[0].text.includes("alice"));
 const text3 = failDef.output.render({}, { stdout: "", stderr: "boom", exitCode: 3 });
 assert.ok(text3[0].text.includes("boom"));
 console.log("output render ok");
+
+// A settings write: the Loader commits the new map into the same reference and
+// notifies the owning fiber with `loader/volatile-update` instead of restarting
+// the plugin, so an added tool must reach the registry through that notification
+// and a removed one must leave it. Snapshotting the map at boot fails both halves.
+commitVolatile(initialConfig.tools, {
+  "echo-name": initialConfig.tools.get()["echo-name"],
+  "added-later": {
+    description: "Added through the settings form",
+    parameters: {},
+    command: [process.execPath, "-e", 'process.stdout.write("added")'],
+  },
+});
+actx.emit("loader/volatile-update", [["tools"]]);
+assert.deepEqual(
+  registeredTools.map((t) => t.name).sort(),
+  ["added-later", "echo-name"],
+  "a committed settings write must re-register the current tools",
+);
+console.log("volatile commit ok (added tool live, removed tool withdrawn)");
 
 // CLI round-trip: add/list/remove over a temp home.
 const cliHome = join(root, "cli-home");

@@ -8,14 +8,13 @@
  * stores credentials itself.
  *
  * The remote and base-branch defaults live in the plugin's own `RepoConfig`,
- * which the settings service projects as the `repos` form; the tools read that
- * resolved Config at call time. The `dsh repos` CLI (bin/repos.mjs) edits the
- * same two keys.
+ * which the settings service projects as the `repos` form; the tools read those
+ * defaults through the live references in that Config at each call. The
+ * `dsh repos` CLI (bin/repos.mjs) edits the same two keys.
  * @module repos
  */
 
 import type { Context } from "@deepseek-ai/cordis";
-import z from "@deepseek-ai/schemastery";
 import type {} from "@deepseek-ai/dsh-subprocess";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
@@ -35,7 +34,7 @@ export type * from "./github.js";
 export const name = "repos";
 export const inject = ["subprocess", "tools"];
 
-export const Config: z<RepoConfig> = RepoConfig;
+export const Config = RepoConfig;
 
 /** The working directory a tool operates on: the named path, or the cwd. */
 function workDir(rawPath: string | undefined): string {
@@ -59,15 +58,17 @@ async function requiredToken(ctx: Context): Promise<string> {
 /**
  * Register the repo workflow tools and declare this plugin's settings page.
  *
- * The remote and base-branch defaults the push and PR tools fall back to are
- * the `RepoConfig` this plugin already exports, which the settings service
- * projects as the `repos` form under this plugin's own entry id — so there is
- * no section to install, and a settings edit reaches the tools because the
- * Loader re-applies this entry with the new resolved Config. This plugin ships
- * its own page for that form, so no schema page is generated over it.
+ * Since 0.2.0 no settings form is registered: the settings service projects the
+ * volatile Config fields of this plugin's own `repos` entry, so `RepoConfig` is
+ * the form and its namespace is this plugin's entry id. Both defaults are
+ * volatile, so the tools read them through `defaultRemote(config)` /
+ * `defaultBaseBranch(config)`, which dereference the live references handed to
+ * `apply`; the Loader commits a settings write into those same references, so a
+ * change reaches the tools without a remount. What remains to declare is that
+ * this plugin ships its own page for the form.
  *
  * @param ctx - the plugin context carrying `subprocess` and `tools`.
- * @param config - the active profile's projected `repos` Config fields.
+ * @param config - this entry's projected Config, carrying the live default references.
  */
 export function apply(ctx: Context, config: RepoConfigType): void {
   declareCustomSettingsPage(ctx);

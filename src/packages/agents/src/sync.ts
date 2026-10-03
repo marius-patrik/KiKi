@@ -12,10 +12,9 @@
  * marked presets whose source is gone, so a hand-authored preset in the same
  * root is never touched.
  *
- * The base composition comes from the shipped preset directories beside the
- * installed harness (overridable with `DSH_AGENTS_BASE_DIR`); when the
- * harness checkout is not reachable, materialization degrades to the bare
- * persona row.
+ * The base composition comes from the shipped preset declarations beside the
+ * installed harness (overridable with `DSH_AGENTS_BASE_DIR`); when the harness
+ * checkout is not reachable, materialization degrades to the bare persona row.
  * @module agents/sync
  */
 
@@ -51,30 +50,70 @@ export interface SyncReport {
 }
 
 /**
- * The shipped preset root: `DSH_AGENTS_BASE_DIR` when set, else the
- * `harness/packages/preset/agent-presets/presets` tree beside this package's
- * checkout (four levels up from `lib/`, since packages now live under
- * `src/`). Returns undefined when neither
- * resolves, which degrades materialization to the bare persona row.
+ * The shipped preset declarations: `DSH_AGENTS_BASE_DIR` when set, else the
+ * `harness/packages/bundle/web-app/presets` tree beside this package's checkout
+ * (four levels up from `lib/`, since packages live under `src/`). Returns
+ * undefined when neither resolves, which degrades materialization to the bare
+ * persona row.
  *
  * Moved here from `harness/apps/cli/config/agent-presets` by harness commit
- * f94495e527 ("bundle the shipped presets inside dsh-agent-presets").
+ * f94495e527 ("bundle the shipped presets inside dsh-agent-presets"), then
+ * again by the 0.2.0 move out of `packages/preset/agent-presets/presets`: a
+ * shipped preset is now one `@deepseek-ai/dsh-agent-preset` declaration in the
+ * web-app bundle, `<id>.patch.yml`.
  */
 export function basePresetDir(): string | undefined {
   if (process.env.DSH_AGENTS_BASE_DIR !== undefined && process.env.DSH_AGENTS_BASE_DIR !== "") {
     return process.env.DSH_AGENTS_BASE_DIR;
   }
-  return new URL("../../../../harness/packages/preset/agent-presets/presets", import.meta.url)
-    .pathname;
+  return new URL("../../../../harness/packages/bundle/web-app/presets", import.meta.url).pathname;
 }
 
-/** Read a base preset's composition text, or undefined when unreadable. */
+/** Leading spaces of a line, or the whole line when it carries no other text. */
+function indentOf(line: string): number {
+  return (/^ */.exec(line)?.[0] ?? line).length;
+}
+
+/**
+ * One shipped preset's plugin entry list, taken verbatim out of its bundle
+ * declaration. The declaration nests the entry list under the preset row's
+ * `config.plugins`, so the block is dedented by its own indentation rather than
+ * re-serialized: the harness's dialect carries `!!js` expressions and `{{...}}`
+ * template strings that must round-trip byte for byte.
+ * @param declaration - the `<id>.patch.yml` text.
+ * @returns the entry list, or undefined when the declaration carries none.
+ */
+function entryListFromDeclaration(declaration: string): string | undefined {
+  const rows: string[] = [];
+  let rowIndent: number | undefined;
+  for (const line of declaration.split("\n")) {
+    if (rowIndent === undefined) {
+      if (/^ *plugins: *$/.test(line)) rowIndent = indentOf(line) + 2;
+      continue;
+    }
+    if (line.trim() === "") {
+      rows.push("");
+      continue;
+    }
+    if (indentOf(line) < rowIndent) break;
+    rows.push(line.slice(rowIndent));
+  }
+  while (rows.at(-1) === "") rows.pop();
+  const firstRow = rows.find((row) => row !== "" && !row.startsWith("#"));
+  if (firstRow === undefined || !firstRow.startsWith("- ")) return undefined;
+  return `${rows.join("\n")}\n`;
+}
+
+/**
+ * Read a base preset's composition as an `agent.cordis.yml` entry list, or
+ * undefined when the shipped declaration is absent or carries no entry list.
+ */
 export async function readBaseComposition(
   baseDir: string,
   base: string,
 ): Promise<string | undefined> {
   try {
-    return await readFile(join(baseDir, base, "agent.cordis.yml"), "utf8");
+    return entryListFromDeclaration(await readFile(join(baseDir, `${base}.patch.yml`), "utf8"));
   } catch {
     return undefined;
   }

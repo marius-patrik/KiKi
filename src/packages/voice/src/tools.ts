@@ -89,7 +89,10 @@ export function registerVoiceTools(
        */
       async execute(args) {
         const config = current();
-        if (!config.tts.enabled) throw new Error("TTS is disabled (voice.tts.enabled)");
+        // `tts.enabled` is a volatile user choice, so it is read through its
+        // reference: a `Volatile` object is always truthy, so a missing `.get()`
+        // would silently turn this guard into dead code.
+        if (!config.tts.enabled.get()) throw new Error("TTS is disabled (voice.tts.enabled)");
         const target = resolveTts(config.tts);
         const apiKey = await resolveCredential(accounts, target.credentialRef);
         if (apiKey.length === 0 && target.provider.auth !== "none") {
