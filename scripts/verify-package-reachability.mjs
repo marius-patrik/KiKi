@@ -29,7 +29,7 @@ const root = resolveRepoRoot(import.meta.url);
  * Packs are excluded: a pack is a composition manifest and is reached by being
  * installed, not by being imported.
  */
-const PACKAGE_ROOTS = ["plugins", "plugins"];
+const PACKAGE_ROOTS = ["plugins"];
 
 /**
  * Source roots searched for imports of one package by another.
@@ -96,6 +96,90 @@ const ALLOWED_UNREACHABLE = new Map([
   [
     "@dsh-stack/agent-personas",
     "declared in KNOWN_CORDIS_MOUNT_INCOMPATIBILITIES (generate-stack-bundle-patch.mjs)",
+  ],
+  [
+    "@dsh-stack/dialect-claude",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-anthropic-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-antigravity-sub",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-cerebras-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-claude-sub",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-deepseek-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-gemini-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-gemini-sub",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-grok-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-grok-sub",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-groq-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-kimi-code",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-kimi-sub",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-llamacpp",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-mistral-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-ollama",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-openai-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-openrouter-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-vllm",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-zai-api",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
+  ],
+  [
+    "@dsh-stack/provider-zen",
+    "unreachable since the pack indirection was deleted in #308: the only thing citing this package was a pack dependencies block, never a mount or an import. Mount-or-delete is #309.",
   ],
   // Pre-existing dead packages, each tracked for resolution by #123. They are
   // listed so this gate can hold the line from now on rather than being
