@@ -4,7 +4,7 @@
 # git submodule (core.worktree lives in the common config).
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-harness="$here/../../harness"
+harness="$here/../harness"
 
 # The harness is upstream and keeps its own pnpm workspace: pnpm-workspace.yaml
 # carries patchedDependencies, peerDependencyRules, minimumReleaseAgeExclude and

@@ -14,9 +14,9 @@
  * human to handle.
  *
  * Usage:
- *   node src/scripts/rewrite-filler-jsdoc.mjs --dry-run
- *   node src/scripts/rewrite-filler-jsdoc.mjs --package providers --limit 20
- *   node src/scripts/rewrite-filler-jsdoc.mjs --root plugins
+ *   node scripts/rewrite-filler-jsdoc.mjs --dry-run
+ *   node scripts/rewrite-filler-jsdoc.mjs --package providers --limit 20
+ *   node scripts/rewrite-filler-jsdoc.mjs --root plugins
  *
  * @module @dsh-stack/scripts/rewrite-filler-jsdoc
  */
@@ -116,9 +116,7 @@ if (served === null) {
 }
 console.log(`local server: ${served.length} model(s); using ${LOCAL_MODEL}`);
 
-const searchRoot = pkgArg
-  ? join(root, "plugins", pkgArg)
-  : join(root, rootArg ?? join("src", "packages"));
+const searchRoot = pkgArg ? join(root, "plugins", pkgArg) : join(root, rootArg ?? "plugins");
 /** Descriptions already accepted, so one function's contract is not reused for another. */
 const seenDescriptions = new Set();
 let examined = 0;

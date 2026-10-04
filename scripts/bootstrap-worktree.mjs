@@ -163,7 +163,7 @@ async function seedData(primaryRoot, targetRoot) {
 
 /** Verify the launcher can resolve its own built output under the headless profile. */
 async function smokeTest(targetRoot) {
-  const bin = join(targetRoot, "src", "packages", "launcher", "bin", "dsh.mjs");
+  const bin = join(targetRoot, "plugins", "launcher", "bin", "dsh.mjs");
   if (!existsSync(bin)) {
     throw new Error(`Launcher bin missing at ${bin}`);
   }
