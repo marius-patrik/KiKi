@@ -22,6 +22,7 @@ import {
 import { createRequire } from "node:module";
 import { isAbsolute, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import YAML from "yaml";
 
 /**
  * Inputs identifying one profile to provision.
@@ -209,6 +210,59 @@ function linksTo(linkTarget: string, expected: string): boolean {
 }
 
 /**
+ * Shell rows the Stack's client bundle re-declares for itself.
+ *
+ * `sidebar` and `sidebar.settings` moved to dsh-tweaks' client bundle under a
+ * one-declarer-per-slot rule, so the harness' own shells have to be disabled or
+ * the client tree refuses to boot both of them. Every other surface
+ * (ui-workspace and the settings features) stays enabled and re-attaches through
+ * the slots dsh-tweaks re-declares.
+ */
+const REPLACED_SHELL_ROWS = ["ui-sidebar", "ui-settings-general"] as const;
+
+/** Patch filename in a profile directory. */
+const PROFILE_PATCH_FILENAME = "cordis.patch.yml";
+
+/**
+ * Ensure the profile's patch layer disables the harness shells the Stack replaces.
+ *
+ * A profile provisioned without this layer still serves HTTP 200 and reports every
+ * entry active on the server, but the browser then fails the whole client tree:
+ * `dsh-client-ui-sidebar` and `@dsh-stack/tweaks` both declare the same slot, and
+ * the client refuses to boot either. So this cannot be left to whoever created the
+ * profile — an existing one is repaired too, since a profile written before the
+ * slots moved carries the same latent conflict.
+ *
+ * Only the disables are added. The rest of a person's patch layer, and any explicit
+ * `disabled` they set on those rows themselves, is left as written.
+ *
+ * @param profileDir - the profile directory.
+ */
+function ensureStackPatchLayer(profileDir: string): void {
+  const patchPath = join(profileDir, PROFILE_PATCH_FILENAME);
+  let entries: Record<string, unknown>[] = [];
+  if (existsSync(patchPath)) {
+    try {
+      const parsed = YAML.parse(readFileSync(patchPath, "utf8")) as unknown;
+      if (Array.isArray(parsed)) entries = parsed as Record<string, unknown>[];
+    } catch {
+      // An unparseable patch layer is a person's file to fix; leave it untouched.
+      return;
+    }
+  }
+  const declared = new Set(entries.map((entry) => entry?.id));
+  const missing = REPLACED_SHELL_ROWS.filter(
+    (row) =>
+      !declared.has(row) || entries.find((entry) => entry?.id === row)?.disabled === undefined,
+  );
+  if (missing.length === 0) return;
+  for (const row of missing) {
+    entries.push({ id: row, disabled: true });
+  }
+  writeFileSync(patchPath, YAML.stringify(entries), "utf8");
+}
+
+/**
  * Remove whatever occupies `path` so a link can be created in its place.
  *
  * A symlink is unlinked rather than removed recursively: `rmSync` with
@@ -309,6 +363,7 @@ export async function ensureProfileComposition(options: ProfileCompositionOption
   const profileDir = join(home, "profiles", profile);
   mkdirSync(profileDir, { recursive: true });
   await ensureBundleDeclaration(profileDir, bundle, profile, harnessDir ?? null);
+  ensureStackPatchLayer(profileDir);
   removeRetiredWorkspaceManifests(profileDir);
   ensureStackSymlinks(profileDir, pkgDir);
 }

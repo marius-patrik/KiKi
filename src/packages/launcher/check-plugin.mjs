@@ -585,6 +585,40 @@ assert.ok(
 );
 console.log("shipped template seeded ok");
 
+// The replaced harness shells must be disabled in the provisioned patch layer.
+// Without it the server reports every entry active and still serves HTTP 200, but
+// the browser refuses to boot the client tree: dsh-client-ui-sidebar and
+// @dsh-stack/tweaks both declare the same slot.
+const patchText = readFileSync(join(seededDir, "cordis.patch.yml"), "utf8");
+const patchDoc = YAML.parse(patchText);
+for (const row of ["ui-sidebar", "ui-settings-general"]) {
+  assert.ok(
+    patchDoc.some((entry) => entry?.id === row && entry.disabled === true),
+    `the provisioned patch layer must disable ${row}`,
+  );
+}
+// Reconciling again must not duplicate the rows, and a person's own entries stay.
+patchDoc.push({ id: "webserver", config: { port: 3081 } });
+writeFileSync(join(seededDir, "cordis.patch.yml"), YAML.stringify(patchDoc), "utf8");
+await ensureProfileComposition({
+  home: join(root, "seeded-home"),
+  pkgDir,
+  profile: "web",
+  bundle: WEB_PROFILE_BUNDLE,
+  harnessDir,
+});
+const reconciled = YAML.parse(readFileSync(join(seededDir, "cordis.patch.yml"), "utf8"));
+assert.equal(
+  reconciled.filter((entry) => entry?.id === "ui-sidebar").length,
+  1,
+  "reconciling must not duplicate a shell row",
+);
+assert.ok(
+  reconciled.some((entry) => entry?.id === "webserver"),
+  "a person's own patch entries must survive reconciliation",
+);
+console.log("stack patch layer seeded ok");
+
 // parseWorktreeList: porcelain parsing, main-checkout flagging, detached entries.
 const porcelain = [
   "worktree /repo",
