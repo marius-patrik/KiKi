@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "typeRoots": ["./node_modules/@types", "../../../harness/node_modules/@types"],
+    "outDir": "lib",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"]
+}

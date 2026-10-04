@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@dsh-stack/icon-engine": ["../icon-engine/src/index.ts"]
+    },
+    "rootDir": "../../.."
+  },
+  "include": ["src"]
+}

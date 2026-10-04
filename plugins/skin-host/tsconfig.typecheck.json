@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "paths": {
+      "@dsh-stack/skin-runtime": ["../skin-runtime/src/index.ts"],
+      "@dsh-stack/skin-codex/client": ["../skin-codex/src/client.tsx"],
+      "@dsh-stack/skin-claude/client": ["../skin-claude/src/client.tsx"],
+      "@dsh-stack/skin-deepseek/client": ["../skin-deepseek/src/client.tsx"]
+    },
+    "rootDir": "../../.."
+  },
+  "include": ["src"]
+}

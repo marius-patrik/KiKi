@@ -11,14 +11,14 @@ on:
   pull_request:
     paths:
       # Client bundles and the surfaces they compose into.
-      - "src/packages/**/client.js"
-      - "src/packages/*/src/**/*.{ts,tsx}"
-      - "src/packages/**/patches/**"
-      - "src/packages/**/stack.json"
+      - "plugins/**/client.js"
+      - "plugins/*/src/**/*.{ts,tsx}"
+      - "plugins/**/patches/**"
+      - "plugins/**/stack.json"
       - "publish/**"
       # The composition itself: boot wiring, profiles, harness pin.
-      - "src/packages/launcher/**"
-      - "src/scripts/browser-check.mjs"
+      - "plugins/launcher/**"
+      - "scripts/browser-check.mjs"
       - ".github/workflows/browser-verification.yml"
       - "harness"
 
@@ -75,7 +75,7 @@ jobs:
       # submodule's own e2e lane is a separate concern and is not reused here,
       # because that lane writes into the pinned checkout.
       - name: Build pinned harness
-        run: ./src/scripts/bootstrap install && ./src/scripts/bootstrap build
+        run: ./scripts/bootstrap install && ./scripts/bootstrap build
 
       - name: Cache Playwright browsers
         id: playwright-cache
@@ -97,7 +97,7 @@ jobs:
         env:
           DSH_HOME: ${{ github.workspace }}/.ci-home
         run: |
-          node src/packages/launcher/bin/dsh.mjs start
+          node plugins/launcher/bin/dsh.mjs start
           # The launcher reports readiness through the log, and the browser needs
           # the session token the server generated for this boot.
           for _ in $(seq 1 60); do
@@ -118,7 +118,7 @@ jobs:
             echo "::error::the profile never reported a URL; see the boot log above"
             exit 1
           fi
-          node src/scripts/browser-check.mjs "$url" \
+          node scripts/browser-check.mjs "$url" \
             --screenshot "${RUNNER_TEMP}/screenshots/web-profile.png"
 
       - name: Collect the boot log
@@ -131,7 +131,7 @@ jobs:
         if: always()
         env:
           DSH_HOME: ${{ github.workspace }}/.ci-home
-        run: node src/packages/launcher/bin/dsh.mjs stop || true
+        run: node plugins/launcher/bin/dsh.mjs stop || true
 
       - name: Upload screenshots
         if: always()

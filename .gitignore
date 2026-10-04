@@ -12,9 +12,9 @@ harness/packages/*/lib/
 harness/*/dist/
 
 # stack package build output
-publish/plugins/*/lib/
-src/packages/*/lib/
-publish/extensions/*/lib/
+
+plugins/*/lib/
+plugins/*/lib/
 publish/packs/*/lib/
 
 # repo .agents/ (docs, hooks, rules, requests, notes) is an ordinary

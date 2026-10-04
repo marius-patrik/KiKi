@@ -17,10 +17,10 @@
     "id": "stack.pack.provider.zen"
   },
   "scripts": {
-    "build": "node ../../../src/scripts/pack.mjs build",
-    "typecheck": "node ../../../src/scripts/pack.mjs typecheck",
-    "test": "node ../../../src/scripts/pack.mjs test",
-    "verify": "node ../../../src/scripts/pack.mjs verify"
+    "build": "node ../../scripts/../../scripts/pack.mjs build",
+    "typecheck": "node ../../scripts/../../scripts/pack.mjs typecheck",
+    "test": "node ../../scripts/../../scripts/pack.mjs test",
+    "verify": "node ../../scripts/../../scripts/pack.mjs verify"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1"
