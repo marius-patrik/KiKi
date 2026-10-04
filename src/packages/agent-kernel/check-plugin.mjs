@@ -98,14 +98,22 @@ try {
   second.ctx.agentKernel.registerEnvironment(syntheticEnvironment());
   await second.ctx.agentKernel.consumeEnvironment("test.synthetic");
 
-  assert.equal(second.ctx.agentKernel.worldline.count(), 2, "replay must not duplicate source events");
+  assert.equal(
+    second.ctx.agentKernel.worldline.count(),
+    2,
+    "replay must not duplicate source events",
+  );
   assert.equal(second.ctx.agentKernel.worldline.read().length, 2);
 
   const original = second.ctx.agentKernel.worldline.read()[0];
   second.ctx.agentKernel.record("test.synthetic.events", {
     ...original.event,
   });
-  assert.equal(second.ctx.agentKernel.worldline.count(), 2, "direct duplicate append must be idempotent");
+  assert.equal(
+    second.ctx.agentKernel.worldline.count(),
+    2,
+    "direct duplicate append must be idempotent",
+  );
 
   assert.throws(
     () =>
@@ -119,7 +127,9 @@ try {
   );
 
   second.dispose();
-  console.log("agent-kernel check passed: durable identity, replay, dedupe, cursor and capability contracts");
+  console.log(
+    "agent-kernel check passed: durable identity, replay, dedupe, cursor and capability contracts",
+  );
 } finally {
   delete process.env.DSH_HOME;
   rmSync(root, { recursive: true, force: true });

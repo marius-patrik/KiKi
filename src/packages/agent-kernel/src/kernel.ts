@@ -68,9 +68,7 @@ export class AgentKernel extends Service {
   async consumeEnvironment(environmentId: string, signal?: AbortSignal): Promise<void> {
     this.assertOpen();
     const environment = this.environments.get(environmentId);
-    await Promise.all(
-      environment.eventSources.map((source) => this.consumeSource(source, signal)),
-    );
+    await Promise.all(environment.eventSources.map((source) => this.consumeSource(source, signal)));
   }
 
   /** Invoke one environment capability with a fresh trace when none is supplied. */

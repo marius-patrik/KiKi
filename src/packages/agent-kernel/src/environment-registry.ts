@@ -96,8 +96,6 @@ export class EnvironmentRegistry {
         `agent-kernel: environment "${environmentId}" does not declare capability "${capabilityId}"`,
       );
     }
-    return requireJsonValue(
-      await environment.invoke(capabilityId, input, { traceId }),
-    );
+    return requireJsonValue(await environment.invoke(capabilityId, input, { traceId }));
   }
 }

@@ -7,18 +7,15 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { compareCursor, normalizeCursor } from "./cursor.js";
-import {
-  decodeSourceEvent,
-  encodeSourceEvent,
-  normalizeSourceEvent,
-} from "./envelope.js";
+import { decodeSourceEvent, encodeSourceEvent, normalizeSourceEvent } from "./envelope.js";
 import { WORLDLINE_SCHEMA } from "./schema.js";
 import type { AgentEventRecord, SourceEvent } from "./types.js";
 import { uuidV7 } from "./uuid-v7.js";
 
 function stringColumn(row: Readonly<Record<string, unknown>>, key: string): string {
   const value = row[key];
-  if (typeof value !== "string") throw new Error(`agent-kernel: database column ${key} is not text`);
+  if (typeof value !== "string")
+    throw new Error(`agent-kernel: database column ${key} is not text`);
   return value;
 }
 

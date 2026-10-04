@@ -20,9 +20,7 @@ function isStringRecord(value: unknown): value is Readonly<Record<string, unknow
 
 function isEventReference(value: unknown): value is EventReference {
   return (
-    isStringRecord(value) &&
-    typeof value.sourceId === "string" &&
-    typeof value.eventId === "string"
+    isStringRecord(value) && typeof value.sourceId === "string" && typeof value.eventId === "string"
   );
 }
 
@@ -54,7 +52,8 @@ function optionalReferenceArray<T>(
 export function normalizeSourceEvent(event: SourceEvent): SourceEvent {
   if (event.id.length === 0) throw new Error("agent-kernel: source event id is empty");
   if (event.type.length === 0) throw new Error("agent-kernel: source event type is empty");
-  if (!isJsonValue(event.payload)) throw new Error("agent-kernel: source event payload is not JSON-safe");
+  if (!isJsonValue(event.payload))
+    throw new Error("agent-kernel: source event payload is not JSON-safe");
   if (event.provenance !== undefined && !isJsonValue(event.provenance)) {
     throw new Error("agent-kernel: source event provenance is not JSON-safe");
   }
@@ -71,7 +70,8 @@ export function normalizeSourceEvent(event: SourceEvent): SourceEvent {
 /** Decode a source event written by {@link encodeSourceEvent}. */
 export function decodeSourceEvent(text: string): SourceEvent {
   const value: unknown = JSON.parse(text);
-  if (!isStringRecord(value)) throw new Error("agent-kernel: stored event envelope is not an object");
+  if (!isStringRecord(value))
+    throw new Error("agent-kernel: stored event envelope is not an object");
   if (
     typeof value.id !== "string" ||
     typeof value.cursor !== "string" ||
@@ -109,6 +109,7 @@ export function encodeSourceEvent(event: SourceEvent): string {
 
 /** Assert that a generic capability result is JSON-safe. */
 export function requireJsonValue(value: unknown): JsonValue {
-  if (!isJsonValue(value)) throw new Error("agent-kernel: environment returned non-JSON capability output");
+  if (!isJsonValue(value))
+    throw new Error("agent-kernel: environment returned non-JSON capability output");
   return value;
 }
