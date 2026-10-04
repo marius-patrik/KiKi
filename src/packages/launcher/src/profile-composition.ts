@@ -113,13 +113,13 @@ function readPackageJsonOr(
  *
  * @param harnessDir - the harness checkout, or null when it cannot be located.
  * @param profile - the profile name.
- * @returns the shipped bundles, or an empty list when the template is unreadable.
+ * @returns the shipped bundles, or null when the template cannot be read.
  */
 async function shippedProfileBundles(
   harnessDir: string | null,
   profile: string,
-): Promise<string[]> {
-  if (harnessDir === null) return [];
+): Promise<string[] | null> {
+  if (harnessDir === null) return null;
   try {
     const require = createRequire(join(harnessDir, "apps", "cli", "package.json"));
     const mod = (await import(
@@ -128,9 +128,9 @@ async function shippedProfileBundles(
       PROFILE_TEMPLATES?: Record<string, { bundles?: string[] }>;
     };
     const bundles = mod.PROFILE_TEMPLATES?.[profile]?.bundles;
-    return Array.isArray(bundles) ? [...bundles] : [];
+    return Array.isArray(bundles) ? [...bundles] : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -156,12 +156,23 @@ async function ensureBundleDeclaration(
 ): Promise<void> {
   const pkgJsonPath = join(profileDir, "package.json");
   const shipped = await shippedProfileBundles(harnessDir, profile);
+  if (shipped === null && !existsSync(pkgJsonPath)) {
+    // Seeding only the Stack bundle produces a profile that mounts, serves nothing,
+    // and exits 0. Refusing is the difference between a diagnosable failure and the
+    // silent one this replaces.
+    throw new Error(
+      `dsh: cannot read the shipped '${profile}' profile template from the harness at ` +
+        `${harnessDir ?? "(no harness checkout found)"}; refusing to provision a profile with ` +
+        "only the Stack bundle, because it would mount, serve nothing, and exit 0. " +
+        "Build the harness (./src/scripts/bootstrap install build) and try again.",
+    );
+  }
   const pkgData = readPackageJsonOr(pkgJsonPath, {
     name: `dsh-profile-${profile}`,
     version: "0.1.0",
     type: "module",
     dependencies: {},
-    dsh: { profile: { bundles: [...shipped] } },
+    dsh: { profile: { bundles: [...(shipped ?? [])] } },
   });
 
   const deps = { ...(pkgData.dependencies as Record<string, string> | undefined) };
@@ -173,7 +184,7 @@ async function ensureBundleDeclaration(
   const existing = Array.isArray(profileCfg.bundles) ? (profileCfg.bundles as string[]) : [];
   // Template order first: the base row has to mount before the application row that
   // injects into it. Prepending each missing shipped bundle instead would reverse it.
-  const bundles = [...shipped];
+  const bundles = [...(shipped ?? [])];
   for (const declared of existing) {
     if (declared === bundle) continue;
     if (!bundles.includes(declared)) bundles.push(declared);
