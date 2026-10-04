@@ -22,6 +22,12 @@ on:
       - ".github/workflows/browser-verification.yml"
       - "harness"
 
+permissions:
+  contents: read
+  # The PR comment is the durable record a reviewer sees; the screenshots
+  # themselves are attached to the run either way.
+  issues: write
+
 concurrency:
   group: browser-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
@@ -137,8 +143,11 @@ jobs:
 
       # The artifact link is the durable record; a comment puts it on the PR where
       # a reviewer is already looking instead of in a run they have to go find.
+      # Never let the check itself be red because a comment could not be posted:
+      # the screenshots and boot log are already attached to the run.
       - name: Comment the screenshots on the PR
         if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
