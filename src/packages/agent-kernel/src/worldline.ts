@@ -12,6 +12,7 @@ import { WORLDLINE_SCHEMA } from "./schema.js";
 import type { AgentEventRecord, SourceEvent } from "./types.js";
 import { uuidV7 } from "./uuid-v7.js";
 
+/** Read one required TEXT result column with an explicit runtime type check. */
 function stringColumn(row: Readonly<Record<string, unknown>>, key: string): string {
   const value = row[key];
   if (typeof value !== "string")
@@ -19,6 +20,7 @@ function stringColumn(row: Readonly<Record<string, unknown>>, key: string): stri
   return value;
 }
 
+/** Read one required safe-integer result column with an explicit runtime type check. */
 function numberColumn(row: Readonly<Record<string, unknown>>, key: string): number {
   const value = row[key];
   if (typeof value !== "number" || !Number.isSafeInteger(value)) {
@@ -27,6 +29,7 @@ function numberColumn(row: Readonly<Record<string, unknown>>, key: string): numb
   return value;
 }
 
+/** Decode one SQLite result row into the public durable event shape. */
 function decodeRecord(row: Readonly<Record<string, unknown>>): AgentEventRecord {
   return {
     sequence: numberColumn(row, "sequence"),

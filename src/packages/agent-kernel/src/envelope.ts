@@ -14,16 +14,19 @@ import type {
 } from "./types.js";
 import { uuidV7 } from "./uuid-v7.js";
 
+/** Whether a value is a non-array object suitable for typed field validation. */
 function isStringRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Validate one serialized causal event reference. */
 function isEventReference(value: unknown): value is EventReference {
   return (
     isStringRecord(value) && typeof value.sourceId === "string" && typeof value.eventId === "string"
   );
 }
 
+/** Validate one serialized semantic-entity reference. */
 function isEntityReference(value: unknown): value is EventEntityReference {
   return (
     isStringRecord(value) &&
@@ -33,10 +36,12 @@ function isEntityReference(value: unknown): value is EventEntityReference {
   );
 }
 
+/** Validate one serialized immutable-artifact reference. */
 function isArtifactReference(value: unknown): value is EventArtifactReference {
   return isEntityReference(value);
 }
 
+/** Validate an optional homogeneous reference array while preserving its element type. */
 function optionalReferenceArray<T>(
   value: unknown,
   validator: (item: unknown) => item is T,

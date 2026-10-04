@@ -9,15 +9,18 @@ assertLoaderShape(plugin, "agent-kernel");
 
 const root = mkdtempSync(join(tmpdir(), "dsh-agent-kernel-"));
 
+/** Build the minimal Cordis-shaped context needed to exercise plugin lifecycle. */
 function context() {
   const disposers = [];
   const ctx = {
     agentKernel: null,
     reflect: {
+      /** Mount a Cordis Service under its declared context key. */
       provide(name, service) {
         ctx[name] = service;
       },
     },
+    /** Register one lifecycle effect and retain its disposer for the fixture. */
     effect(factory) {
       const dispose = factory();
       if (typeof dispose === "function") disposers.push(dispose);
@@ -26,18 +29,21 @@ function context() {
   };
   return {
     ctx,
+    /** Dispose fixture effects in reverse registration order. */
     dispose() {
       for (const disposer of disposers.reverse()) disposer();
     },
   };
 }
 
+/** Build a finite replayable environment implementing the public kernel contract. */
 function syntheticEnvironment() {
   return {
     id: "test.synthetic",
     eventSources: [
       {
         id: "test.synthetic.events",
+        /** Replay synthetic ordered events strictly after the committed cursor. */
         async *events({ afterCursor }) {
           const after = BigInt(afterCursor ?? "0");
           for (const index of [1n, 2n]) {
@@ -61,6 +67,7 @@ function syntheticEnvironment() {
         effect: "read",
       },
     ],
+    /** Execute the fixture's sole echo capability. */
     async invoke(capabilityId, input) {
       if (capabilityId !== "test.echo") throw new Error("unexpected capability");
       return input;
