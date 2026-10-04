@@ -1,14 +1,19 @@
 {
   "id": "stack.pack.agents",
   "name": "@dsh-stack/pack-agents",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "kind": "pack",
   "description": "Composable agent capability pack over canonical Stack agent plugins.",
-  "files": ["package.json", "stack.json", "README.md"],
+  "files": [
+    "package.json",
+    "stack.json",
+    "README.md"
+  ],
   "dependencies": [
     "stack.agent.actions",
     "stack.agent.agents",
     "stack.agent.commands",
+    "stack.agent.kernel",
     "stack.agent.loops",
     "stack.agent.personas",
     "stack.agent.preset.coding",

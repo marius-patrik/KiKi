@@ -1,0 +1,43 @@
+{
+  "name": "@dsh-stack/agent-kernel",
+  "description": "Persistent agent identity, environment contracts, and append-only event worldline",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "README.md",
+    "package.json",
+    "stack.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "stack": {
+    "kind": "plugin",
+    "id": "stack.agent.kernel"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node check-plugin.mjs",
+    "verify": "node check-plugin.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@types/node": "^22.15.0",
+    "typescript": "^6.0.3"
+  }
+}

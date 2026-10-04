@@ -1,7 +1,7 @@
 {
   "name": "@dsh-stack/pack-bundle",
   "description": "Harness-bootable dsh.bundle wrapper that mounts the complete dsh-stack catalog (every plugin/extension reachable from the ai, core, ux, integrations, agents, trading and vcs packs) into a single profile bundle entry, so a profile loads the whole Stack with one dsh.profile.bundles line instead of manual per-plugin wiring.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "type": "module",
   "files": [
@@ -34,6 +34,7 @@
   "dependencies": {
     "@dsh-stack/agent-actions": "workspace:*",
     "@dsh-stack/agent-commands": "workspace:*",
+    "@dsh-stack/agent-kernel": "workspace:*",
     "@dsh-stack/agent-loops": "workspace:*",
     "@dsh-stack/agent-personas": "workspace:*",
     "@dsh-stack/agent-preset-coding": "workspace:*",

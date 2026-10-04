@@ -262,7 +262,7 @@ these primitives, not privileged modes.
 The target package split is one feature owner per concern:
 
 ```text
-agent-events       durable event kernel + source registry + worldline
+agent-kernel       durable identity + environment/event-source registry + worldline
 agent-memory       derived memory + retrieval/indexes
 agent-context      ContextCapsule compiler
 agent-cognition    judgement + candidate intention scheduler

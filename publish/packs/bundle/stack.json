@@ -1,10 +1,15 @@
 {
   "id": "stack.pack.bundle",
   "name": "@dsh-stack/pack-bundle",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "kind": "pack",
   "description": "Harness-bootable dsh.bundle wrapper composing every domain pack (ai, core, ux, integrations, agents, trading, vcs) into one cordis.patch.yml, so a profile loads the complete dsh-stack catalog from a single dsh.profile.bundles entry.",
-  "files": ["package.json", "stack.json", "cordis.patch.yml", "README.md"],
+  "files": [
+    "package.json",
+    "stack.json",
+    "cordis.patch.yml",
+    "README.md"
+  ],
   "dependencies": [
     "stack.pack.ai",
     "stack.pack.core",

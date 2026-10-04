@@ -560,10 +560,11 @@
     },
     "publish/packs/agents": {
       "name": "@dsh-stack/pack-agents",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@dsh-stack/agent-actions": "workspace:*",
         "@dsh-stack/agent-commands": "workspace:*",
+        "@dsh-stack/agent-kernel": "workspace:*",
         "@dsh-stack/agent-loops": "workspace:*",
         "@dsh-stack/agent-personas": "workspace:*",
         "@dsh-stack/agent-preset-coding": "workspace:*",
@@ -589,10 +590,11 @@
     },
     "publish/packs/bundle": {
       "name": "@dsh-stack/pack-bundle",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@dsh-stack/agent-actions": "workspace:*",
         "@dsh-stack/agent-commands": "workspace:*",
+        "@dsh-stack/agent-kernel": "workspace:*",
         "@dsh-stack/agent-loops": "workspace:*",
         "@dsh-stack/agent-personas": "workspace:*",
         "@dsh-stack/agent-preset-coding": "workspace:*",
@@ -984,6 +986,18 @@
       "peerDependencies": {
         "@deepseek-ai/cordis": "^4.0.1",
         "react": "^18.2.0",
+      },
+    },
+    "src/packages/agent-kernel": {
+      "name": "@dsh-stack/agent-kernel",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@types/node": "^22.15.0",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
       },
     },
     "src/packages/agents": {
@@ -1831,6 +1845,8 @@
     "@deepseek-ai/schemastery": ["@deepseek-ai/schemastery@3.18.4", "", { "dependencies": { "@deepseek-ai/cosmokit": "~1.8.5", "@standard-schema/spec": "^1.1.0" } }, "sha512-SSXO6tYuyrIqKVbmOnIq0s+riUywYzouFMcnBluHF9n4KMo2G8HvEzhCYj6pj2617/glOjbJuVInJ9hfONsjkg=="],
 
     "@dsh-stack/agent-actions": ["@dsh-stack/agent-actions@workspace:src/packages/agent-actions"],
+
+    "@dsh-stack/agent-kernel": ["@dsh-stack/agent-kernel@workspace:src/packages/agent-kernel"],
 
     "@dsh-stack/agent-commands": ["@dsh-stack/agent-commands@workspace:src/packages/commands"],
 
