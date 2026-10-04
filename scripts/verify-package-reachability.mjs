@@ -43,7 +43,7 @@ const IMPORT_SEARCH_ROOTS = ["plugins", "plugins", "", "scripts"];
  * mount point: being listed as a pack dependency does not make it run, because
  * the bundle generator drops plugins that export no host entry.
  */
-const COMPOSITION_ROOTS = ["publish/packs", ""];
+const COMPOSITION_ROOTS = ["bundles"];
 
 /**
  * Yields `{ dir, manifest }` for every immediate child of `rootName` that has a
@@ -123,7 +123,7 @@ async function readJsonOrNull(path) {
  * treating as "everything is dead".
  */
 async function readMountedNames() {
-  const patch = join(root, "publish", "packs", "bundle", "cordis.patch.yml");
+  const patch = join(root, "bundles", "web", "cordis.patch.yml");
   let text;
   try {
     text = await fs.readFile(patch, "utf8");
@@ -188,7 +188,7 @@ async function collectImporters(packages) {
 const mounted = await readMountedNames();
 if (mounted === null) {
   console.error(
-    "verify-package-reachability: publish/packs/bundle/cordis.patch.yml is missing.\n" +
+    "verify-package-reachability: bundles/web/cordis.patch.yml is missing.\n" +
       "Run `bun run build` first -- reachability cannot be judged without the generated bundle patch.",
   );
   process.exit(1);
@@ -215,7 +215,7 @@ if (unreachable.length > 0) {
   console.error(
     `verify-package-reachability: ${unreachable.length} package(s) cannot be reached by the running system.\n\n` +
       unreachable.map((name) => `  - ${name}`).join("\n") +
-      "\n\nEach is neither mounted in publish/packs/bundle/cordis.patch.yml, nor imported by\n" +
+      "\n\nEach is neither mounted in bundles/web/cordis.patch.yml, nor imported by\n" +
       "another package, nor exposed as a CLI via a bin entry. Code in this state looks\n" +
       "canonical but never runs, so a fix landing there changes nothing a user sees.\n\n" +
       "Resolve it, do not exempt it: mount the package, make its owner import it, delete it,\n" +

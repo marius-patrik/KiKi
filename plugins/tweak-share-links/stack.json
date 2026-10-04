@@ -2,7 +2,7 @@
   "id": "stack.tweaks.share-links",
   "name": "@dsh-stack/tweak-share-links",
   "version": "0.1.0",
-  "kind": "extension",
+  "kind": "plugin",
   "description": "Self-hosted read-only session share links: the share route, share settings section, and the dsh share verb.",
   "files": ["lib", "bin", "README.md", "package.json", "stack.json"],
   "dependencies": ["stack.tweaks", "stack.library.plugin-kit"],

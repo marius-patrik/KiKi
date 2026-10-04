@@ -2,7 +2,7 @@
   "id": "stack.tweaks.plan-toggle",
   "name": "@dsh-stack/tweak-plan-toggle",
   "version": "0.1.0",
-  "kind": "extension",
+  "kind": "plugin",
   "description": "Plan/Build toggle: registers the /build command leaving plan mode through the harness plan-mode controller.",
   "files": ["lib", "README.md", "package.json", "stack.json"],
   "dependencies": ["stack.library.plugin-kit"],

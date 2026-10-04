@@ -14,7 +14,7 @@
  * Stack composition: harness's own isolated `directory-picker-auto` test
  * suite (a bare webserver + chooser, no other entries) never hits it, and a
  * bare/no-Stack `dsh web` boot didn't either -- only a fresh boot with the
- * full `@dsh-stack/pack-bundle` layer present reproduced it, every time.
+ * full `@dsh-stack/bundle` layer present reproduced it, every time.
  *
  * This plugin sidesteps the dynamic Loader path entirely: it resolves the
  * same backend via harness's own exported {@link resolveDirectoryPickerBackend}

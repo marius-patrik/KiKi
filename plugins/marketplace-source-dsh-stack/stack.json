@@ -2,7 +2,7 @@
   "id": "stack.core.marketplace-source.dsh-stack",
   "name": "@dsh-stack/marketplace-source-dsh-stack",
   "version": "0.1.0",
-  "kind": "extension",
+  "kind": "plugin",
   "description": "dsh-stack GitHub Releases marketplace-source extension for the Stack `marketplace` registry.",
   "files": ["lib", "README.md", "package.json", "stack.json"],
   "dependencies": ["stack.core.marketplace"],

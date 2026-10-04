@@ -2,7 +2,7 @@
   "id": "stack.tweaks.slash-commands",
   "name": "@dsh-stack/tweak-slash-commands",
   "version": "0.1.0",
-  "kind": "extension",
+  "kind": "plugin",
   "description": "Config-file slash commands: a settings-driven registry bridging into the harness command registry.",
   "files": ["lib", "README.md", "package.json", "stack.json"],
   "dependencies": ["stack.library.plugin-kit"],

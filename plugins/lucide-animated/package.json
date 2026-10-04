@@ -32,7 +32,7 @@
     "typescript": "^6.0.3"
   },
   "stack": {
-    "kind": "extension",
+    "kind": "plugin",
     "id": "stack.ui.icons.lucide-animated"
   },
   "publishConfig": {

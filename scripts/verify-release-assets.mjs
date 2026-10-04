@@ -7,7 +7,7 @@ const execFileAsync = promisify(execFile);
 const root = process.cwd();
 const pluginsDir = join(root, "plugins");
 const extensionsDir = join(root, "plugins");
-const packsDir = join(root, "publish/packs");
+const packsDir = join(root, "bundles");
 const releaseDir = join(root, ".release");
 
 /** Recursively discover plugin or pack directories, including symlinked component directories. */

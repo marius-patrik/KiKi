@@ -52,7 +52,7 @@ jobs:
             plugins/*/lib
             /*/lib
             plugins/*/lib
-            publish/packs/*/lib
+            bundles/*/lib
             **/*.tsbuildinfo
           key: ts-build-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ github.sha }}
           restore-keys: |
@@ -82,7 +82,7 @@ jobs:
       # absence alone would silently hide it instead.
       - name: Prune orphaned build cache
         run: |
-          for canonicalRoot in plugins  plugins publish/packs; do
+          for canonicalRoot in plugins  plugins bundles; do
             [ -d "$canonicalRoot" ] || continue
             for pkg in "$canonicalRoot"/*/; do
               pkg="${pkg%/}"
@@ -147,7 +147,7 @@ jobs:
             plugins/*/lib
             /*/lib
             plugins/*/lib
-            publish/packs/*/lib
+            bundles/*/lib
             **/*.tsbuildinfo
           key: ts-build-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ github.sha }}
           restore-keys: |
@@ -177,7 +177,7 @@ jobs:
       # absence alone would silently hide it instead.
       - name: Prune orphaned build cache
         run: |
-          for canonicalRoot in plugins  plugins publish/packs; do
+          for canonicalRoot in plugins  plugins bundles; do
             [ -d "$canonicalRoot" ] || continue
             for pkg in "$canonicalRoot"/*/; do
               pkg="${pkg%/}"

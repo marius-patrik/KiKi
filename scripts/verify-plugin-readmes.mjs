@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 
-const roots = [join(process.cwd(), "plugins"), join(process.cwd(), "publish/packs")];
+const roots = [join(process.cwd(), "plugins"), join(process.cwd(), "bundles")];
 const missing = [];
 
 /**

@@ -34,17 +34,26 @@ export interface ProfileCompositionOptions {
   pkgDir: string;
   /** Profile directory name under `profiles/`. */
   profile: string;
-  /** Pack bundle the profile composes, e.g. `@dsh-stack/pack-bundle`. */
+  /** Pack bundle the profile composes, e.g. `@dsh-stack/bundle`. */
   bundle: string;
   /** Harness checkout supplying the shipped profile template; omit in tests. */
   harnessDir?: string | null;
 }
 
-/** Pack bundle the default `web` profile composes. */
-export const WEB_PROFILE_BUNDLE = "@dsh-stack/pack-bundle";
+/**
+ * Bundle names a profile may still carry from before the pack vocabulary was
+ * dropped, mapped to their current names.
+ */
+const LEGACY_PROFILE_BUNDLES: Record<string, string> = {
+  "@dsh-stack/pack-bundle": "@dsh-stack/bundle",
+  "@dsh-stack/pack-bundle-headless": "@dsh-stack/bundle-headless",
+};
+
+/** Bundle the default `web` profile composes. */
+export const WEB_PROFILE_BUNDLE = "@dsh-stack/bundle";
 
 /** Pack bundle the `headless` profile composes. */
-export const HEADLESS_PROFILE_BUNDLE = "@dsh-stack/pack-bundle-headless";
+export const HEADLESS_PROFILE_BUNDLE = "@dsh-stack/bundle-headless";
 
 /**
  * Workspace manifests left behind by a retired package manager.
@@ -62,7 +71,7 @@ const RETIRED_WORKSPACE_MANIFESTS = ["pnpm-workspace.yaml"];
  * @returns absolute package directories to link.
  */
 function packageSourceDirs(repoRoot: string): string[] {
-  return [join(repoRoot, "plugins"), join(repoRoot, "publish", "packs")];
+  return [join(repoRoot, "plugins"), join(repoRoot, "bundles")];
 }
 
 /**
@@ -177,7 +186,22 @@ async function ensureBundleDeclaration(
 
   const dsh = { ...(pkgData.dsh as Record<string, unknown> | undefined) };
   const profileCfg = { ...(dsh.profile as Record<string, unknown> | undefined) };
-  const existing = Array.isArray(profileCfg.bundles) ? (profileCfg.bundles as string[]) : [];
+  // A profile provisioned before the pack vocabulary was dropped declares the
+  // bundle under its old name. Renaming it here is what upgrades an existing
+  // machine: leaving it would put the new bundle beside the stale one and boot
+  // two bundle layers over the same rows.
+  const declaredNow = (Array.isArray(profileCfg.bundles) ? profileCfg.bundles : []) as string[];
+  const existing: string[] = [];
+  for (const name of declaredNow) {
+    const replacement = LEGACY_PROFILE_BUNDLES[name];
+    if (replacement === undefined) {
+      existing.push(name);
+      continue;
+    }
+    if (!declaredNow.includes(replacement) && !existing.includes(replacement)) {
+      existing.push(replacement);
+    }
+  }
   // Template order first: the base row has to mount before the application row that
   // injects into it. Prepending each missing shipped bundle instead would reverse it.
   const bundles = [...(shipped ?? [])];

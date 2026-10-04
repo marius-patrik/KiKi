@@ -23,7 +23,7 @@ import { walkSourceTree } from "./lib/walk-source-tree.mjs";
 const root = resolveRepoRoot(import.meta.url);
 
 /** Trees carrying source that the duplicate gate scans. */
-const ROOTS = ["plugins", "scripts", "publish/packs"];
+const ROOTS = ["plugins", "scripts", "bundles"];
 
 /** Shortest reason accepted. Anything briefer restates the marker rather than justifying it. */
 const MIN_REASON = 20;

@@ -2,7 +2,7 @@
   "id": "stack.tweaks.stats",
   "name": "@dsh-stack/tweak-stats",
   "version": "0.1.0",
-  "kind": "extension",
+  "kind": "plugin",
   "description": "Session observability: the tweaks-stats settings section and the dsh stats/dsh sessions verbs over the projection cache.",
   "files": ["lib", "bin", "README.md", "package.json", "stack.json"],
   "dependencies": ["stack.tweaks", "stack.library.plugin-kit"],

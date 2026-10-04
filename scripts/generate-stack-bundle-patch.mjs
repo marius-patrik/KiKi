@@ -1,13 +1,13 @@
 // jscpd:ignore-start -- shared release-tooling boilerplate (module header), intentionally mirrored across scripts/*.mjs
 /**
- * Generates `publish/packs/bundle/cordis.patch.yml` from the Stack's own
+ * Generates `bundles/web/cordis.patch.yml` from the Stack's own
  * pack composition, so the harness-bootable dsh.bundle for the complete
  * Stack is derived from the real, buildable pack dependency graph rather
  * than hand-maintained.
  *
  * "The complete Stack" (this generator's design choice) is the union of
  * every concrete plugin/extension package reachable from the seven domain
- * packs under `publish/packs/` (`ai`, `core`, `ux`, `integrations`,
+ * packs under `bundles/` (`ai`, `core`, `ux`, `integrations`,
  * `agents`, `trading`, `vcs`) -- i.e. every pack a Stack profile currently
  * composes -- FILTERED to the packages that actually have the cordis
  * loader shape (a built `lib/index.js` exporting a function, or an object
@@ -46,9 +46,9 @@ if (!["write", "check", "list"].includes(mode)) {
 
 const scriptDir = new URL(".", import.meta.url).pathname;
 const repositoryRoot = resolve(scriptDir, "..");
-const packsRoot = join(repositoryRoot, "publish", "packs");
-const domainPackNames = ["ai", "core", "ux", "integrations", "agents", "trading", "vcs"];
-const outputPath = join(repositoryRoot, "publish", "packs", "bundle", "cordis.patch.yml");
+const bundleManifestPath = join(repositoryRoot, "bundles", "web", "package.json");
+
+const outputPath = join(repositoryRoot, "bundles", "web", "cordis.patch.yml");
 
 /**
  * Packages with a real cordis loader shape (they pass {@link hasLoaderShape})
@@ -84,7 +84,7 @@ const KNOWN_CORDIS_MOUNT_INCOMPATIBILITIES = new Set([
  * its own. A constituent package's own `dsh.bundle.patch` (e.g.
  * `@dsh-stack/directory-picker-fix`'s `cordis.patch.yml`) is NOT read here:
  * only a profile's *top-level* `dsh.profile.bundles` layers have their own
- * patch applied at boot, and this bundle (`@dsh-stack/pack-bundle`) is the
+ * patch applied at boot, and this bundle (`@dsh-stack/bundle`) is the
  * one Stack profiles actually list there -- everything it composes arrives
  * as a bare `insert` row, so a disable that must land in the tree this
  * bundle produces has to be authored here.
@@ -126,12 +126,8 @@ async function readJson(path) {
  */
 async function collectMountablePackageNames() {
   const byName = await discoverStackPackages(repositoryRoot);
-  const union = new Set();
-  for (const packName of domainPackNames) {
-    const packManifest = await readJson(join(packsRoot, packName, "package.json"));
-    for (const dependencyName of Object.keys(packManifest.dependencies ?? {}))
-      union.add(dependencyName);
-  }
+  const bundleManifest = await readJson(bundleManifestPath);
+  const union = new Set(Object.keys(bundleManifest.dependencies ?? {}));
 
   const mountable = [];
   const skipped = [];
@@ -165,9 +161,9 @@ function renderPatch(packageNames) {
     "#",
     `# Produced by \`node src/scripts/generate-stack-bundle-patch.mjs write\` from the`,
     "# union of every plugin/extension package the seven domain packs under",
-    "# publish/packs/ (ai, core, ux, integrations, agents, trading, vcs) depend on --",
+    "# bundles/ (ai, core, ux, integrations, agents, trading, vcs) depend on --",
     "# i.e. the complete dsh-stack catalog. Regenerate after any pack dependency",
-    "# change; `bun run --filter @dsh-stack/pack-bundle verify` fails loud on drift.",
+    "# change; `bun run --filter @dsh-stack/bundle verify` fails loud on drift.",
     "#",
     "# Each row's `name` is a PACKAGE NAME resolved through the profile's own",
     "# node_modules (bun installs this bundle's full dependency closure there),",
@@ -193,7 +189,7 @@ const content = renderPatch(mountable);
 await emitGeneratorOutput({
   mode,
   outputPath,
-  relativeOutputPath: "publish/packs/bundle/cordis.patch.yml",
+  relativeOutputPath: "bundles/web/cordis.patch.yml",
   content,
   mountable,
   skipped,

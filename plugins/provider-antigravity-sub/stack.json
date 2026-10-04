@@ -2,7 +2,7 @@
   "id": "stack.ai.provider.antigravity-sub",
   "name": "@dsh-stack/provider-antigravity-sub",
   "version": "0.1.0",
-  "kind": "extension",
+  "kind": "plugin",
   "description": "antigravity-sub provider-route extension for the Stack `providers` registry.",
   "files": ["lib", "README.md", "package.json", "stack.json"],
   "dependencies": ["stack.ai.providers", "stack.ai.dialect.antigravity"],

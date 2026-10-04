@@ -1,6 +1,6 @@
 // jscpd:ignore-start -- shared release-tooling boilerplate (module header), intentionally mirrored across scripts/*.mjs
 /**
- * Generates `publish/packs/bundle-headless/cordis.patch.yml`: the same
+ * Generates `bundles/headless/cordis.patch.yml`: the same
  * union computation `generate-stack-bundle-patch.mjs` uses for the full
  * Stack bundle, filtered to the packages that are safe to compose under
  * `dsh --profile headless` -- a one-shot CLI dispatch with no web server or
@@ -46,12 +46,12 @@ if (!["write", "check", "list"].includes(mode)) {
 }
 
 const repositoryRoot = resolveRepoRoot(import.meta.url);
-const bundlePatchPath = join(repositoryRoot, "publish", "packs", "bundle", "cordis.patch.yml");
-const outputPath = join(repositoryRoot, "publish", "packs", "bundle-headless", "cordis.patch.yml");
+const bundlePatchPath = join(repositoryRoot, "bundles", "web", "cordis.patch.yml");
+const outputPath = join(repositoryRoot, "bundles", "headless", "cordis.patch.yml");
 
 /**
  * Reads the full bundle's generated `insert` row package names straight out
- * of `publish/packs/bundle/cordis.patch.yml`, so this generator's candidate
+ * of `bundles/web/cordis.patch.yml`, so this generator's candidate
  * set is always exactly "whatever the full bundle mounts" -- never a second,
  * independently-drifting union computation over the seven domain packs.
  *
@@ -63,7 +63,7 @@ async function readFullBundlePackageNames() {
   const names = [...content.matchAll(/^ {6}name: '([^']+)'$/gm)].map((match) => match[1]);
   if (names.length === 0) {
     throw new Error(
-      "Stack headless bundle: publish/packs/bundle/cordis.patch.yml has no insert rows -- " +
+      "Stack headless bundle: bundles/web/cordis.patch.yml has no insert rows -- " +
         "run `node src/scripts/generate-stack-bundle-patch.mjs write` first.",
     );
   }
@@ -106,11 +106,11 @@ function renderPatch(packageNames) {
   const header = [
     "# GENERATED FILE -- do not hand-edit.",
     "#",
-    "# Produced by `node src/scripts/generate-stack-bundle-headless-patch.mjs write`",
-    "# from publish/packs/bundle/cordis.patch.yml's own package list, filtered to",
+    "# Produced by `node scripts/generate-stack-bundle-headless-patch.mjs write`",
+    "# from bundles/web/cordis.patch.yml's own package list, filtered to",
     "# packages whose built `inject` array names neither `webServer` nor `loader` --",
     "# the two services a headless boot never composes (dsh-stack#213). Regenerate",
-    "# after regenerating the full bundle; `bun run --filter @dsh-stack/pack-bundle-headless",
+    "# after regenerating the full bundle; `bun run --filter @dsh-stack/bundle-headless",
     "# run verify` fails loud on drift.",
     "#",
     "# Each row's `name` is a PACKAGE NAME resolved through the profile's own",
@@ -133,11 +133,11 @@ const content = renderPatch(mountable);
 await emitGeneratorOutput({
   mode,
   outputPath,
-  relativeOutputPath: "publish/packs/bundle-headless/cordis.patch.yml",
+  relativeOutputPath: "bundles/headless/cordis.patch.yml",
   content,
   mountable,
   skipped,
-  regenerateCommand: "node src/scripts/generate-stack-bundle-headless-patch.mjs write",
+  regenerateCommand: "node scripts/generate-stack-bundle-headless-patch.mjs write",
   includedLabel: "headless-safe plugins",
   excludedLabel: "web-only packages",
   excludedReasonWord: "web-only",

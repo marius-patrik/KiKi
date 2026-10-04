@@ -2,7 +2,7 @@
   "id": "stack.agent.preset.manager",
   "name": "@dsh-stack/agent-preset-manager",
   "version": "0.1.0",
-  "kind": "extension",
+  "kind": "plugin",
   "description": "Orchestrator/manager Stack agent preset extension.",
   "files": ["lib", "README.md", "package.json", "stack.json"],
   "dependencies": ["stack.agent.agents"],

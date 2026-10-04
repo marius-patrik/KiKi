@@ -13,6 +13,6 @@
     "**/tsconfig.json",
     "**/tsconfig.typecheck.json",
     "plugins/*/src/index.mjs",
-    "publish/packs/bundle*/cordis.patch.yml"
+    "bundles/*/cordis.patch.yml"
   ]
 }

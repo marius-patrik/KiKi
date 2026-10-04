@@ -10,7 +10,7 @@
   },
   "workspaces": [
     "plugins/*",
-    "publish/packs/*"
+    "bundles/*"
   ],
   "trustedDependencies": [
     "koffi"
@@ -22,7 +22,7 @@
     "format:check": "bunx @biomejs/biome@2.2.0 format --write . && git diff --exit-code",
     "verify:plugin-readmes": "node scripts/verify-plugin-readmes.mjs",
     "verify:jsdocs": "node scripts/verify-jsdocs.mjs",
-    "verify:duplicates": "jscpd plugins publish/packs scripts",
+    "verify:duplicates": "jscpd plugins bundles scripts",
     "verify:dead-code": "knip --no-progress",
     "verify": "bun run verify:plugin-readmes && bun run verify:jsdocs && bun run verify:duplicates && bun run verify:jscpd-exemptions && bun run verify:dead-code && bun run verify:reachability && bun run verify:non-cordis-exclusions && bun run verify:stateful-client-packages && node scripts/verify-stack.mjs && bun run --filter '*' --if-present verify",
     "test": "node --test 'scripts/**/*.test.mjs' && bun run --filter '*' --if-present test",

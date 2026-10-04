@@ -565,8 +565,8 @@ if (headlessProvisioned) {
   const headlessPkgJson = JSON.parse(
     readFileSync(join(headlessHome, "profiles", "headless", "package.json"), "utf8"),
   );
-  assert.equal(headlessPkgJson.dependencies["@dsh-stack/pack-bundle-headless"], "^0.1.0");
-  assert.ok(headlessPkgJson.dsh.profile.bundles.includes("@dsh-stack/pack-bundle-headless"));
+  assert.equal(headlessPkgJson.dependencies["@dsh-stack/bundle-headless"], "^0.1.0");
+  assert.ok(headlessPkgJson.dsh.profile.bundles.includes("@dsh-stack/bundle-headless"));
   const headlessPatch = YAML.parse(
     readFileSync(join(headlessHome, "profiles", "headless", "cordis.patch.yml"), "utf8"),
   );
@@ -611,8 +611,8 @@ if (webProvisioned) {
   const webScope = join(webProfileDir, "node_modules", "@dsh-stack");
   assert.ok(existsSync(webScope), "web profile must link canonical Stack packages");
   assert.ok(
-    readdirSync(webScope).includes("pack-bundle"),
-    "web profile must resolve the pack bundle it declares",
+    readdirSync(webScope).includes("bundle"),
+    "web profile must resolve the bundle it declares",
   );
   // Re-running must not duplicate the bundle or clobber a pinned range.
   writeFileSync(
@@ -640,8 +640,8 @@ const staleHome = join(root, "stale-home");
 const staleProfileDir = join(staleHome, "profiles", "web");
 mkdirSync(join(staleProfileDir, "node_modules", "@dsh-stack"), { recursive: true });
 writeFileSync(join(staleProfileDir, "package.json"), "{}\n");
-const staleBundle = join(staleProfileDir, "node_modules", "@dsh-stack", "pack-bundle");
-symlinkSync("../../../nowhere/pack-bundle", staleBundle);
+const staleBundle = join(staleProfileDir, "node_modules", "@dsh-stack", "bundle");
+symlinkSync("../../../nowhere/bundle", staleBundle);
 assert.equal(existsSync(staleBundle), false, "the stale link must start out broken");
 await ensureProfileComposition({
   home: staleHome,

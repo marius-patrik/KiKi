@@ -23,7 +23,7 @@ async function readJson(path) {
 }
 
 /**
- * Scans `plugins`, `plugins`, and `publish/packs` for
+ * Scans `plugins`, `plugins`, and `bundles` for
  * directories containing a `stack.json` manifest, returning a Map of
  * stack id to `{ dir, manifest }`.
  *
@@ -32,7 +32,7 @@ async function readJson(path) {
  */
 async function discoverStackPackages() {
   const byId = new Map();
-  for (const catalogRoot of ["plugins", "plugins", "publish/packs"]) {
+  for (const catalogRoot of ["plugins", "plugins", "bundles"]) {
     const catalogDir = join(repositoryRoot, catalogRoot);
     let entries;
     try {

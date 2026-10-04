@@ -9,7 +9,7 @@ double-registration that only reproduces under a full Stack-scale boot
 
 The auto-chooser mounts its resolved backend (`native` or `browse`) as a
 *dynamic* Loader entry from inside its own `apply()`. Under the full
-`@dsh-stack/pack-bundle` composition (250+ concurrently-initializing
+`@dsh-stack/bundle` composition (250+ concurrently-initializing
 entries), that dynamic mount can race a second resolution of the same entry:
 the `directoryPicker` cordis service ends up provided twice, and the whole
 profile fails to boot with:
@@ -30,12 +30,12 @@ effect, but that disable does not live in this package's own `cordis.patch.yml`
 (it has none): only a profile's *top-level* `dsh.profile.bundles` layers have
 their own patch read at boot, and no Stack profile lists this package there
 directly -- it is only ever composed as a nested `insert` row inside
-`@dsh-stack/pack-bundle`. The disable is instead emitted by
+`@dsh-stack/bundle`. The disable is instead emitted by
 `src/scripts/generate-stack-bundle-patch.mjs` (`STATIC_DISABLE_ROWS`) into
-`publish/packs/bundle/cordis.patch.yml`, the one file a Stack profile's
+`bundles/web/cordis.patch.yml`, the one file a Stack profile's
 top-level bundle list actually applies.
 
 ## Usage
 
-Composed automatically wherever `@dsh-stack/pack-bundle` is composed. No
+Composed automatically wherever `@dsh-stack/bundle` is composed. No
 configuration required.

@@ -22,7 +22,7 @@
     "access": "public"
   },
   "stack": {
-    "kind": "extension",
+    "kind": "plugin",
     "id": "stack.ai.provider.llamacpp"
   },
   "scripts": {

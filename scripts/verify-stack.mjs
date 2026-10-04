@@ -11,7 +11,7 @@ const root = process.cwd();
 // src/packages and publish/extensions roots were the same directory twice, which
 // made this verifier compare each file against itself.
 const pluginsDir = join(root, "plugins");
-const packsDir = join(root, "publish/packs");
+const packsDir = join(root, "bundles");
 const codeExts = new Set([".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"]);
 const ignoredDirs = new Set(["node_modules", ".git", "dist", "coverage", "lib"]);
 const generatedFileNames = new Set([
@@ -84,9 +84,9 @@ async function trackedGeneratedFiles() {
         "plugins/**/lib/**",
         "plugins/**/dist/**",
         "plugins/**/node_modules/**",
-        "publish/packs/**/lib/**",
-        "publish/packs/**/dist/**",
-        "publish/packs/**/node_modules/**",
+        "bundles/**/lib/**",
+        "bundles/**/dist/**",
+        "bundles/**/node_modules/**",
       ],
       { cwd: root },
     );
@@ -147,10 +147,7 @@ async function verifyCanonicalPackage(dir) {
     typeof stack.id === "string" && /^stack\.[a-z0-9][a-z0-9.-]*$/.test(stack.id),
     `${label} id must be namespaced`,
   );
-  assert(
-    ["plugin", "extension", "pack", "library"].includes(stack.kind),
-    `${label} has invalid kind`,
-  );
+  assert(["plugin", "bundle", "library"].includes(stack.kind), `${label} has invalid kind`);
   assert(
     typeof stack.version === "string" && /^\d+\.\d+\.\d+$/.test(stack.version),
     `${label} must have a semver version`,
@@ -172,7 +169,7 @@ async function verifyCanonicalPackage(dir) {
     Array.isArray(stack.optionalDependencies ?? []),
     `${label} optionalDependencies must be an array`,
   );
-  if (stack.kind === "plugin" || stack.kind === "extension")
+  if (stack.kind === "plugin")
     assert(
       await exists(join(dir, "src")),
       `${label} declares a ${stack.kind} but has no src/ directory`,
@@ -215,7 +212,7 @@ async function verifyPluginTree() {
     const packagePath = join(dir, "package.json");
     if (!(await exists(packagePath))) continue;
     const manifest = await readJson(packagePath, relative(root, packagePath));
-    if (manifest?.stack?.kind === "pack") continue;
+    if (manifest?.stack?.kind === "bundle") continue;
 
     assert(manifest?.type === "module", `${relative(root, packagePath)} must use ESM`);
     assert(

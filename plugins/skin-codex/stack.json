@@ -2,7 +2,7 @@
   "id": "stack.ui.skin.codex",
   "name": "@dsh-stack/skin-codex",
   "version": "0.1.0",
-  "kind": "extension",
+  "kind": "plugin",
   "description": "@dsh-stack/skin-codex",
   "files": ["lib", "README.md", "package.json", "stack.json"],
   "dependencies": [],

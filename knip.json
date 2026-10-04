@@ -41,9 +41,9 @@
       "project": ["src/**/*.{ts,tsx}", "*.mjs"],
       "ignoreDependencies": ["@types/react"]
     },
-    "publish/packs/*": {
-      "entry": ["src/index.{ts,tsx,mjs,js}", "*.mjs"],
-      "project": ["src/**/*.{ts,tsx}", "*.mjs"],
+    "bundles/*": {
+      "entry": ["*.mjs"],
+      "project": ["*.mjs"],
       "ignoreDependencies": ["@dsh-stack/*"]
     }
   },

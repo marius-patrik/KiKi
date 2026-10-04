@@ -15,7 +15,7 @@ harness/*/dist/
 
 plugins/*/lib/
 plugins/*/lib/
-publish/packs/*/lib/
+bundles/*/lib/
 
 # repo .agents/ (docs, hooks, rules, requests, notes) is an ordinary
 # tracked directory — do not confuse it with ~/.agents, the user-home
