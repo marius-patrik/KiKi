@@ -18,6 +18,8 @@ export interface HeadlessProfileOptions {
   home: string;
   /** Root directory of the @dsh-stack/launcher package. */
   pkgDir: string;
+  /** Harness checkout supplying the shipped profile template. */
+  harnessDir?: string | null;
 }
 
 /** Pack bundle the headless profile composes. */
@@ -123,10 +125,16 @@ function ensureHeadlessCordisPatch(profileDir: string, settingsPath: string): vo
  *
  * @param options - Configuration options specifying home and pkgDir.
  */
-export function ensureHeadlessProfile(options: HeadlessProfileOptions): void {
-  const { home, pkgDir } = options;
+export async function ensureHeadlessProfile(options: HeadlessProfileOptions): Promise<void> {
+  const { home, pkgDir, harnessDir } = options;
   const profileDir = join(home, "profiles", "headless");
   mkdirSync(profileDir, { recursive: true });
-  ensureProfileComposition({ home, pkgDir, profile: "headless", bundle: HEADLESS_BUNDLE });
+  await ensureProfileComposition({
+    home,
+    pkgDir,
+    profile: "headless",
+    bundle: HEADLESS_BUNDLE,
+    harnessDir,
+  });
   ensureHeadlessCordisPatch(profileDir, join(home, "settings.yaml"));
 }

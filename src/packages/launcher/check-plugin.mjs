@@ -7,15 +7,18 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readlinkSync,
+  symlinkSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import YAML from "yaml";
 
 const {
+  findHarnessDir,
   WEB_PROFILE_BUNDLE,
   readTweaks,
   resolveHome,
@@ -467,7 +470,10 @@ writeFileSync(
   ].join("\n"),
 );
 const pkgDir = join(import.meta.dirname ?? ".");
-ensureHeadlessProfile({ home: headlessHome, pkgDir });
+const harnessDir = findHarnessDir(process.env, pkgDir);
+if (harnessDir === null)
+  throw new Error("this check needs a harness checkout next to the launcher");
+await ensureHeadlessProfile({ home: headlessHome, pkgDir, harnessDir });
 const headlessPkgJson = JSON.parse(
   readFileSync(join(headlessHome, "profiles", "headless", "package.json"), "utf8"),
 );
@@ -490,11 +496,12 @@ const webHome = join(root, "web-home");
 const webProfileDir = join(webHome, "profiles", "web");
 mkdirSync(webProfileDir, { recursive: true });
 writeFileSync(join(webProfileDir, "pnpm-workspace.yaml"), "packages:\n  - .\n");
-ensureProfileComposition({
+await ensureProfileComposition({
   home: webHome,
   pkgDir,
   profile: "web",
   bundle: WEB_PROFILE_BUNDLE,
+  harnessDir,
 });
 const webPkgJson = JSON.parse(readFileSync(join(webProfileDir, "package.json"), "utf8"));
 assert.equal(webPkgJson.dependencies[WEB_PROFILE_BUNDLE], "^0.1.0");
@@ -511,16 +518,72 @@ writeFileSync(
   join(webProfileDir, "package.json"),
   `${JSON.stringify({ ...webPkgJson, dependencies: { ...webPkgJson.dependencies, [WEB_PROFILE_BUNDLE]: "workspace:*" } }, null, 2)}\n`,
 );
-ensureProfileComposition({
+await ensureProfileComposition({
   home: webHome,
   pkgDir,
   profile: "web",
   bundle: WEB_PROFILE_BUNDLE,
+  harnessDir,
 });
 const webRerun = JSON.parse(readFileSync(join(webProfileDir, "package.json"), "utf8"));
 assert.equal(webRerun.dependencies[WEB_PROFILE_BUNDLE], "workspace:*");
 assert.equal(webRerun.dsh.profile.bundles.filter((b) => b === WEB_PROFILE_BUNDLE).length, 1);
 console.log("ensureProfileComposition ok");
+
+// A symlink that no longer resolves must be repaired, not accepted. Provisioning
+// used to treat any symlink as valid, so a stale or relative link survived every
+// later pass and the Loader then failed with "cannot resolve profile bundle" — a
+// message that points at the bundle rather than at the link.
+const staleHome = join(root, "stale-home");
+const staleProfileDir = join(staleHome, "profiles", "web");
+mkdirSync(join(staleProfileDir, "node_modules", "@dsh-stack"), { recursive: true });
+writeFileSync(join(staleProfileDir, "package.json"), "{}\n");
+const staleBundle = join(staleProfileDir, "node_modules", "@dsh-stack", "pack-bundle");
+symlinkSync("../../../nowhere/pack-bundle", staleBundle);
+assert.equal(existsSync(staleBundle), false, "the stale link must start out broken");
+await ensureProfileComposition({
+  home: staleHome,
+  pkgDir,
+  profile: "web",
+  bundle: WEB_PROFILE_BUNDLE,
+  harnessDir,
+});
+assert.equal(
+  existsSync(staleBundle),
+  true,
+  "a link that does not resolve must be replaced with one that does",
+);
+assert.ok(isAbsolute(readlinkSync(staleBundle)), "a repaired link must be absolute");
+console.log("broken symlink repaired ok");
+
+// A provisioned profile must carry the harness's own base and application rows,
+// not just the Stack bundle. Seeding only the Stack bundle leaves the Stack
+// entries that inject core services pending, so nothing binds the port and the
+// profile process exits immediately.
+const seededDir = join(join(root, "seeded-home"), "profiles", "web");
+mkdirSync(seededDir, { recursive: true });
+await ensureProfileComposition({
+  home: join(root, "seeded-home"),
+  pkgDir,
+  profile: "web",
+  bundle: WEB_PROFILE_BUNDLE,
+  harnessDir,
+});
+const seeded = JSON.parse(readFileSync(join(seededDir, "package.json"), "utf8"));
+const seededBundles = seeded.dsh.profile.bundles;
+for (const required of ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", WEB_PROFILE_BUNDLE]) {
+  assert.ok(seededBundles.includes(required), `a provisioned web profile must declare ${required}`);
+}
+assert.ok(
+  seededBundles.indexOf("@deepseek-ai/dsh-web-app") < seededBundles.indexOf(WEB_PROFILE_BUNDLE),
+  "application rows must load before the Stack bundle so the Stack can inject into them",
+);
+assert.ok(
+  seededBundles.indexOf("@deepseek-ai/dsh-base") <
+    seededBundles.indexOf("@deepseek-ai/dsh-web-app"),
+  "the shipped template order must be preserved: base mounts before the application row",
+);
+console.log("shipped template seeded ok");
 
 // parseWorktreeList: porcelain parsing, main-checkout flagging, detached entries.
 const porcelain = [

@@ -12,11 +12,16 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  readlinkSync,
+  realpathSync,
   rmSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { createRequire } from "node:module";
+import { isAbsolute, join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 /**
  * Inputs identifying one profile to provision.
@@ -30,6 +35,8 @@ export interface ProfileCompositionOptions {
   profile: string;
   /** Pack bundle the profile composes, e.g. `@dsh-stack/pack-bundle`. */
   bundle: string;
+  /** Harness checkout supplying the shipped profile template; omit in tests. */
+  harnessDir?: string | null;
 }
 
 /** Pack bundle the default `web` profile composes. */
@@ -91,14 +98,69 @@ function readPackageJsonOr(
  * @param profileDir - the profile directory.
  * @param bundle - pack bundle name to declare.
  */
-function ensureBundleDeclaration(profileDir: string, bundle: string): void {
+/**
+ * Read the bundle list the harness ships for `profile`.
+ *
+ * A provisioned profile must declare the same base and application rows a person
+ * would get from `dsh plugin --profile <name> init --from-default-profile <name>`.
+ * Seeding only the Stack bundle produces a profile whose core services
+ * (`commands`, `tools`, `fs`, `llm`, `settings`) and web application row never
+ * mount: the Stack entries that inject them stay pending, nothing binds the
+ * configured port, and the profile process then exits immediately because no
+ * mounted plugin holds the event loop open. The harness owns these templates, so
+ * they are read from it rather than restated here.
+ *
+ * @param harnessDir - the harness checkout, or null when it cannot be located.
+ * @param profile - the profile name.
+ * @returns the shipped bundles, or an empty list when the template is unreadable.
+ */
+async function shippedProfileBundles(
+  harnessDir: string | null,
+  profile: string,
+): Promise<string[]> {
+  if (harnessDir === null) return [];
+  try {
+    const require = createRequire(join(harnessDir, "apps", "cli", "package.json"));
+    const mod = (await import(
+      pathToFileURL(require.resolve("@deepseek-ai/dsh-app-boot")).href
+    )) as {
+      PROFILE_TEMPLATES?: Record<string, { bundles?: string[] }>;
+    };
+    const bundles = mod.PROFILE_TEMPLATES?.[profile]?.bundles;
+    return Array.isArray(bundles) ? [...bundles] : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Declare `bundle` in the profile manifest, creating the manifest when missing and
+ * restoring any shipped rows an earlier manifest left out.
+ *
+ * Reconciliation runs on every pass, not only for a new manifest: a profile
+ * provisioned by an earlier launcher carries just the Stack bundle, and the Stack
+ * cannot activate without the base and application rows underneath it. Re-adding
+ * them is additive, so a person's own bundle choices are preserved.
+ *
+ * @param profileDir - the profile directory.
+ * @param bundle - pack bundle name to declare.
+ * @param profile - the profile name, used to seed a created manifest.
+ * @param harnessDir - the harness checkout supplying the shipped template.
+ */
+async function ensureBundleDeclaration(
+  profileDir: string,
+  bundle: string,
+  profile: string,
+  harnessDir: string | null,
+): Promise<void> {
   const pkgJsonPath = join(profileDir, "package.json");
+  const shipped = await shippedProfileBundles(harnessDir, profile);
   const pkgData = readPackageJsonOr(pkgJsonPath, {
-    name: `dsh-profile-${profileDir.split("/").pop() ?? "profile"}`,
+    name: `dsh-profile-${profile}`,
     version: "0.1.0",
     type: "module",
     dependencies: {},
-    dsh: { profile: { bundles: [] } },
+    dsh: { profile: { bundles: [...shipped] } },
   });
 
   const deps = { ...(pkgData.dependencies as Record<string, string> | undefined) };
@@ -106,22 +168,81 @@ function ensureBundleDeclaration(profileDir: string, bundle: string): void {
   pkgData.dependencies = deps;
 
   const dsh = { ...(pkgData.dsh as Record<string, unknown> | undefined) };
-  const profile = { ...(dsh.profile as Record<string, unknown> | undefined) };
-  const bundles = Array.isArray(profile.bundles) ? [...(profile.bundles as string[])] : [];
+  const profileCfg = { ...(dsh.profile as Record<string, unknown> | undefined) };
+  const existing = Array.isArray(profileCfg.bundles) ? (profileCfg.bundles as string[]) : [];
+  // Template order first: the base row has to mount before the application row that
+  // injects into it. Prepending each missing shipped bundle instead would reverse it.
+  const bundles = [...shipped];
+  for (const declared of existing) {
+    if (declared === bundle) continue;
+    if (!bundles.includes(declared)) bundles.push(declared);
+  }
   if (!bundles.includes(bundle)) bundles.push(bundle);
-  profile.bundles = bundles;
-  dsh.profile = profile;
+  profileCfg.bundles = bundles;
+  dsh.profile = profileCfg;
   pkgData.dsh = dsh;
 
   writeFileSync(pkgJsonPath, `${JSON.stringify(pkgData, null, 2)}\n`, "utf8");
 }
 
 /**
+ * Whether `linkTarget` already resolves to the directory it should.
+ *
+ * A symlink is only acceptable when it is absolute and still resolves: a relative
+ * target is interpreted against the link's own directory, and a stale one points
+ * at a package that has moved or been deleted. Either way the Loader then fails to
+ * resolve the bundle, and the failure surfaces as "cannot resolve profile bundle"
+ * rather than as anything pointing at the link.
+ *
+ * @param linkTarget - the path the link occupies.
+ * @param expected - the directory the link must resolve to.
+ * @returns true when the path is already a symlink resolving to `expected`.
+ */
+function linksTo(linkTarget: string, expected: string): boolean {
+  try {
+    if (!lstatSync(linkTarget).isSymbolicLink()) return false;
+  } catch {
+    return false;
+  }
+  if (!isAbsolute(readlinkSync(linkTarget))) return false;
+  return realpathSync(linkTarget) === realpathSync(expected);
+}
+
+/**
+ * Remove whatever occupies `path` so a link can be created in its place.
+ *
+ * A symlink is unlinked rather than removed recursively: `rmSync` with
+ * `recursive: true` reports a dangling symlink gone through `existsSync` while
+ * leaving its directory entry in place, so the following `symlinkSync` fails with
+ * `EEXIST`. That divergence is node-specific and the launcher runs under node.
+ *
+ * @param path - the path to clear.
+ */
+function clearOccupant(path: string): void {
+  let isLink = false;
+  try {
+    isLink = lstatSync(path).isSymbolicLink();
+  } catch {
+    return;
+  }
+  if (isLink) {
+    try {
+      unlinkSync(path);
+    } catch {
+      // A concurrent provisioning pass won the path.
+    }
+    return;
+  }
+  rmSync(path, { recursive: true, force: true });
+}
+
+/**
  * Link every canonical Stack package into the profile's own `node_modules/@dsh-stack`
  * so the harness Loader resolves `@dsh-stack/*` from the monorepo checkout.
  *
- * Linking is per-package and non-destructive: an existing symlink is left alone and a
- * non-symlink occupant is replaced, because a stale directory shadows the checkout.
+ * Linking is per-package and idempotent: a link that already resolves to the
+ * package is left alone, and anything else occupying the path — a stale or
+ * relative symlink, or a directory left by an older layout — is replaced.
  *
  * @param profileDir - the profile directory.
  * @param pkgDir - the launcher package directory, used to derive the repository root.
@@ -152,17 +273,8 @@ function ensureStackSymlinks(profileDir: string, pkgDir: string): void {
       if (typeof pkgName !== "string" || !pkgName.startsWith("@dsh-stack/")) continue;
 
       const linkTarget = join(scopeDir, pkgName.slice("@dsh-stack/".length));
-      let linked = false;
-      try {
-        if (lstatSync(linkTarget).isSymbolicLink()) {
-          linked = true;
-        } else {
-          rmSync(linkTarget, { recursive: true, force: true });
-        }
-      } catch {
-        // Nothing occupies the path yet.
-      }
-      if (linked) continue;
+      if (linksTo(linkTarget, entryPath)) continue;
+      clearOccupant(linkTarget);
       try {
         symlinkSync(entryPath, linkTarget, "dir");
       } catch {
@@ -192,11 +304,11 @@ function removeRetiredWorkspaceManifests(profileDir: string): void {
  *
  * @param options - the profile identity and its pack bundle.
  */
-export function ensureProfileComposition(options: ProfileCompositionOptions): void {
-  const { home, pkgDir, profile, bundle } = options;
+export async function ensureProfileComposition(options: ProfileCompositionOptions): Promise<void> {
+  const { home, pkgDir, profile, bundle, harnessDir } = options;
   const profileDir = join(home, "profiles", profile);
   mkdirSync(profileDir, { recursive: true });
-  ensureBundleDeclaration(profileDir, bundle);
+  await ensureBundleDeclaration(profileDir, bundle, profile, harnessDir ?? null);
   removeRetiredWorkspaceManifests(profileDir);
   ensureStackSymlinks(profileDir, pkgDir);
 }
