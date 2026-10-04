@@ -55,7 +55,7 @@ writeFileSync(
   [
     "ui-theme:",
     "  preference: dark",
-    "dsh-tweaks:",
+    "tweaks:",
     `  homeRoot: "${join(root, "home-b")}"`,
     "  command: 'status --json'",
     "permission:",
@@ -69,8 +69,57 @@ assert.equal(tweaks.command, "status --json");
 assert.deepEqual(readTweaks(join(root, "missing.yaml")), {});
 const homePlain = join(root, "home-plain");
 mkdirSync(homePlain, { recursive: true });
-writeFileSync(join(homePlain, "settings.yaml"), "dsh-tweaks:\n  other: value\n");
+writeFileSync(join(homePlain, "settings.yaml"), "tweaks:\n  other: value\n");
 assert.deepEqual(readTweaks(join(homePlain, "settings.yaml")), {});
+
+// The legacy `dsh-tweaks` key is migrated to the canonical `tweaks` key on read.
+// This has to happen here rather than in the plugin's mirror because homeRoot is
+// consumed before any plugin exists, so a home stored under the legacy key would
+// already be lost by the time a plugin could move it. The rename is completed, not
+// dual-read: the legacy key is gone from the document afterwards.
+const legacyHome = join(root, "home-legacy");
+mkdirSync(legacyHome, { recursive: true });
+const legacyPath = join(legacyHome, "settings.yaml");
+writeFileSync(
+  legacyPath,
+  [
+    "ui-theme:",
+    "  preference: dark",
+    "dsh-tweaks:",
+    "  homeRoot: /legacy/home",
+    "  command: stop",
+    "",
+  ].join("\n"),
+);
+const migrated = readTweaks(legacyPath);
+assert.equal(migrated.homeRoot, "/legacy/home", "a legacy homeRoot must still resolve");
+assert.equal(migrated.command, "stop");
+const afterMigration = YAML.parse(readFileSync(legacyPath, "utf8"));
+assert.equal(
+  afterMigration.tweaks.homeRoot,
+  "/legacy/home",
+  "the section must be under the canonical key",
+);
+assert.equal(
+  Object.hasOwn(afterMigration, "dsh-tweaks"),
+  false,
+  "the legacy key must be gone, not merely shadowed",
+);
+assert.equal(
+  afterMigration["ui-theme"].preference,
+  "dark",
+  "other sections must survive the rewrite",
+);
+// A document already on the canonical key is left byte-identical, so this is not a
+// standing rewrite of every settings.yaml on every launch.
+const canonicalPath = join(homeA, "settings.yaml");
+const before = readFileSync(canonicalPath, "utf8");
+readTweaks(canonicalPath);
+assert.equal(
+  readFileSync(canonicalPath, "utf8"),
+  before,
+  "a canonical document must not be rewritten",
+);
 console.log("readTweaks ok");
 
 // resolveHome: DSH_HOME wins, else ~/.agents default.
@@ -91,7 +140,7 @@ const notices = [];
 const effective = migrateHome(homeA, homeB, (msg) => notices.push(msg));
 assert.equal(effective, homeB);
 assert.equal(notices.length, 1);
-assert.ok(notices[0].includes("dsh-tweaks.homeRoot moved state"));
+assert.ok(notices[0].includes("tweaks.homeRoot moved state"));
 assert.equal(
   readLogTail(join(homeB, "profiles", "web", "cordis.patch.yml"), 5),
   "- id: webserver\n",

@@ -38,7 +38,7 @@ function volatilePaths(schema, prefix = []) {
 }
 
 const plugin = await import("./lib/index.js");
-const { NS } = await import("./lib/settings.js");
+const { NS, TWEAKS_SETTINGS_KEY } = await import("./lib/settings.js");
 const { readTweaksSection, writeTweaksSection, normalizeSection, sectionsEqual } = await import(
   "./lib/mirror.js"
 );
@@ -46,10 +46,13 @@ const { readTweaksSection, writeTweaksSection, normalizeSection, sectionsEqual }
 assertLoaderShape(plugin, "tweaks");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
-// Since 0.2.0 the namespace a form is addressed by is the Loader entry id, so
-// this plugin's namespace is its own `name` and a second hand-minted namespace
-// has no home: one entry yields exactly one form.
+// Since 0.2.0 the namespace a form is addressed by is the Loader entry id, so the
+// namespace is whatever id the bundles insert this entry under and a second
+// hand-minted namespace has no home: one entry yields exactly one form. The id is
+// `dsh-tweaks` rather than the plugin name because that is the key
+// generated from the package name, so it cannot drift from the document key.
 assert.equal(NS, "tweaks", "the settings namespace must be this plugin's entry id");
+assert.equal(TWEAKS_SETTINGS_KEY, NS, "the mirror and the namespace must address one key");
 console.log("namespace ok:", NS);
 
 // The volatility classification, asserted against the schema tree rather than

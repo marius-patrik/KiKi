@@ -1,5 +1,5 @@
 /**
- * tweaks settings: the `tweaks` entry's own Config schema. Since 0.2.0 the
+ * tweaks settings: the `dsh-tweaks` entry's own Config schema. Since 0.2.0 the
  * settings service projects a plugin's own Config out of the active profile's
  * entries and the namespace is the entry's own id, so this one schema is both
  * the deployment configuration the mirror bootstraps from and the entry's form.
@@ -26,9 +26,20 @@ import type { TweaksSection } from "./mirror.js";
  * own Loader entry id, so the form the service projects and the form a client
  * asks for cannot drift apart.
  */
-export const NS = settingsNamespace("tweaks");
+/**
+ * The top-level settings-document key this entry reads and writes.
+ *
+ * Since 0.2.0 the namespace is the entry's own Loader id, and the bundle generator
+ * derives that id from the package name, so this key is not free to differ from
+ * `tweaks`. It is named here anyway because the launcher has to agree on it when
+ * reading the same document (see `dsh-tweaks` migration in launcher/src/tweaks.ts).
+ */
+export const TWEAKS_SETTINGS_KEY = "tweaks";
 
-/** The `tweaks` entry's configuration, which is also its settings form. */
+/** The `tweaks` entry's settings namespace, which is its own Loader entry id. */
+export const NS = settingsNamespace(TWEAKS_SETTINGS_KEY);
+
+/** The `dsh-tweaks` entry's configuration, which is also its settings form. */
 export type TweaksConfig = TweaksSection;
 
 /**
