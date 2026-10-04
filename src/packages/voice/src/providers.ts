@@ -11,6 +11,7 @@
  */
 
 import type { Volatile } from "@deepseek-ai/cordis";
+import type { TtsConfig } from "./config.js";
 
 /** How the upstream expects its credential: HTTP auth style. */
 export type AuthStyle = "bearer" | "api-key" | "none";
@@ -94,18 +95,14 @@ export const TTS_PROVIDERS: TtsProvider[] = [
  * makes a settings edit take effect without a restart. The three plain fields
  * are deployment facts about the chosen endpoint.
  */
-export interface TtsSettings {
-  provider: Volatile<string>;
-  apiBase: Volatile<string>;
-  path: string;
-  credentialRef: Volatile<string>;
-  model: Volatile<string>;
-  voice: Volatile<string>;
-  speed: Volatile<number>;
-  format: Volatile<string>;
-  instructions: string;
-  timeoutMs: number;
-}
+/**
+ * The speech settings this resolver reads.
+ *
+ * Derived from the entry's own Config rather than redeclared, so a field cannot be
+ * added to one and forgotten in the other. `enabled` is the only field the
+ * resolver does not take, because the route that calls it has already consulted it.
+ */
+export type TtsSettings = Omit<TtsConfig, "enabled">;
 
 /** One fully resolved speech request target. */
 export interface ResolvedTts {
