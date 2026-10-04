@@ -68,3 +68,17 @@ The Stack release always contains the complete plugin/pack catalog. Packs refere
 ## Quality bar
 
 No duplicate implementations, compatibility bridges, migration shims, legacy detectors, placeholder services, checked-in generated output, unchecked unsafe casts, or unfinished markers. CI is the executable quality gate. UI work is considered complete only when it is connected to actual DSH seams and behaves coherently in the real client.
+
+
+## Durable agent identity and environments
+
+The Stack provides a persistent agent kernel independent of conversations, presets and model
+providers.
+
+The kernel persists one stable agent identity and an append-only multi-source event worldline under
+the effective DSH home. Environment integrations can register ordered event sources plus capabilities,
+and restart/replay must not duplicate semantic source events.
+
+The kernel is environment-neutral: DSH remains usable with no Omnis installation, and no environment
+integration becomes the identity of the agent. Further persistent-agent capabilities are tracked by
+epic #300 and are documented here only when their implementations land.

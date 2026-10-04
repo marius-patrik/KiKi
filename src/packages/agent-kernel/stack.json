@@ -1,0 +1,10 @@
+{
+  "id": "stack.agent.kernel",
+  "name": "@dsh-stack/agent-kernel",
+  "version": "0.1.0",
+  "kind": "plugin",
+  "description": "Persistent agent identity, environment contracts, and append-only event worldline.",
+  "files": ["lib", "README.md", "package.json", "stack.json"],
+  "dependencies": [],
+  "optionalDependencies": []
+}
