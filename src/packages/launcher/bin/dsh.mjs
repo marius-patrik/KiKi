@@ -23,8 +23,10 @@ import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import {
+  WEB_PROFILE_BUNDLE,
   attachToServer,
   ensureHeadlessProfile,
+  ensureProfileComposition,
   findHarnessDir,
   findListenerPid,
   followLog,
@@ -213,6 +215,8 @@ async function main() {
     env.DSH_PROFILE !== undefined && env.DSH_PROFILE.length > 0 ? env.DSH_PROFILE : "web";
   if (profile === "headless" || process.argv.includes("headless")) {
     ensureHeadlessProfile({ home, pkgDir });
+  } else {
+    ensureProfileComposition({ home, pkgDir, profile, bundle: WEB_PROFILE_BUNDLE });
   }
   const plan = route(process.argv.slice(2), {
     invokedName: basename(process.argv[1] ?? "dsh"),

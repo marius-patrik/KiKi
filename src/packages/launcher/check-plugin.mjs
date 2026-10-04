@@ -2,12 +2,21 @@
 
 import assert from "node:assert";
 import { createHash, createHmac, randomBytes } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import YAML from "yaml";
 
 const {
+  WEB_PROFILE_BUNDLE,
   readTweaks,
   resolveHome,
   migrateHome,
@@ -27,6 +36,7 @@ const {
   browserSessionCookieHeader,
   loadCredentialEnv,
   ensureHeadlessProfile,
+  ensureProfileComposition,
   normalizeCustomProviders,
   parseWorktreeList,
   decidePrune,
@@ -471,6 +481,46 @@ const piAiEntry = headlessPatch.find((entry) => entry.id === "llm-pi-ai");
 assert.ok(piAiEntry !== undefined);
 assert.equal(piAiEntry.config.providers[0].id, "test-provider");
 console.log("ensureHeadlessProfile ok");
+
+// ensureProfileComposition: a non-headless profile gets the same composition, and a
+// workspace manifest left by the retired package manager is removed rather than left
+// to redirect resolution. The web profile is the launcher's default, so a provisioning
+// step that only covers headless leaves a default boot with no Stack bundle mounted.
+const webHome = join(root, "web-home");
+const webProfileDir = join(webHome, "profiles", "web");
+mkdirSync(webProfileDir, { recursive: true });
+writeFileSync(join(webProfileDir, "pnpm-workspace.yaml"), "packages:\n  - .\n");
+ensureProfileComposition({
+  home: webHome,
+  pkgDir,
+  profile: "web",
+  bundle: WEB_PROFILE_BUNDLE,
+});
+const webPkgJson = JSON.parse(readFileSync(join(webProfileDir, "package.json"), "utf8"));
+assert.equal(webPkgJson.dependencies[WEB_PROFILE_BUNDLE], "^0.1.0");
+assert.ok(webPkgJson.dsh.profile.bundles.includes(WEB_PROFILE_BUNDLE));
+assert.equal(existsSync(join(webProfileDir, "pnpm-workspace.yaml")), false);
+const webScope = join(webProfileDir, "node_modules", "@dsh-stack");
+assert.ok(existsSync(webScope), "web profile must link canonical Stack packages");
+assert.ok(
+  readdirSync(webScope).includes("pack-bundle"),
+  "web profile must resolve the pack bundle it declares",
+);
+// Re-running must not duplicate the bundle or clobber a pinned range.
+writeFileSync(
+  join(webProfileDir, "package.json"),
+  `${JSON.stringify({ ...webPkgJson, dependencies: { ...webPkgJson.dependencies, [WEB_PROFILE_BUNDLE]: "workspace:*" } }, null, 2)}\n`,
+);
+ensureProfileComposition({
+  home: webHome,
+  pkgDir,
+  profile: "web",
+  bundle: WEB_PROFILE_BUNDLE,
+});
+const webRerun = JSON.parse(readFileSync(join(webProfileDir, "package.json"), "utf8"));
+assert.equal(webRerun.dependencies[WEB_PROFILE_BUNDLE], "workspace:*");
+assert.equal(webRerun.dsh.profile.bundles.filter((b) => b === WEB_PROFILE_BUNDLE).length, 1);
+console.log("ensureProfileComposition ok");
 
 // parseWorktreeList: porcelain parsing, main-checkout flagging, detached entries.
 const porcelain = [
