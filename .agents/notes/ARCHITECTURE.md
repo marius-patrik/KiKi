@@ -23,3 +23,19 @@ Profiles select a graph of plugins and packs. They do not fork implementations. 
 ## Verification
 
 The verifier checks package contract, unique package/plugin IDs, namespace rules, tracked generated-output absence, duplicate source bodies, unfinished markers, unsafe casts, broken workspace links, and truthful pack/plugin metadata. CI executes typecheck, build, verify, and tests on every PR.
+
+
+## Persistent agent runtime target
+
+The Stack is evolving from a feature extension set into a persistent agent environment while
+remaining on DSH/Cordis as the initial runtime substrate. The accepted architecture is
+`.agents/notes/decisions/persistent-agent-runtime-and-omnis.md`.
+
+The persistent agent substrate is separate from personas, actions, providers and conversations:
+events become a durable worldline; memory is evidence-linked and revisable; context is compiled per
+activation; cognition selects zero or more intentions including null; durable workers/workflows
+execute through existing tools/providers and feed results back as events.
+
+Omnis is the reference machine integration, not the agent runtime. Its three core surfaces
+(OmnisOS, OmnisManager and OmnisControl) plus graph/event stream enter through `integration-omnis`
+using the same external interfaces available to any agent.

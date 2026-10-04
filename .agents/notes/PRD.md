@@ -68,3 +68,37 @@ The Stack release always contains the complete plugin/pack catalog. Packs refere
 ## Quality bar
 
 No duplicate implementations, compatibility bridges, migration shims, legacy detectors, placeholder services, checked-in generated output, unchecked unsafe casts, or unfinished markers. CI is the executable quality gate. UI work is considered complete only when it is connected to actual DSH seams and behaves coherently in the real client.
+
+
+## Persistent agent runtime
+
+DSH Stack is the reference persistent agent environment for Omnis while remaining independently
+usable.
+
+The product gains a durable event/memory/cognition substrate beneath existing conversations,
+personas, actions, tools and providers. A session is a projection of the agent, not the agent's
+identity. Models are replaceable resources rather than the owner of the execution loop.
+
+Required product capabilities:
+- append-only multi-source agent worldline;
+- evidence-linked long-term memory and rebuildable retrieval indexes;
+- per-activation context compilation;
+- deterministic-first event judgement;
+- candidate-intention scheduling with null/no-work support;
+- durable workers and composable workflows;
+- endogenous events/consolidation/learning;
+- procedure induction and competence tracking;
+- clean recovery across model/provider/session/server replacement.
+
+The full accepted design is
+`.agents/notes/decisions/persistent-agent-runtime-and-omnis.md`.
+
+## Omnis integration
+
+Omnis integration is an independent external-service extension. It must expose the complete
+OmnisOS/OmnisManager/OmnisControl/graph surfaces to the DSH agent, ingest the complete Omnis core
+event journal losslessly, and use direct structural Control mutations rather than screenshot
+automation where typed operations exist.
+
+DSH owns cognition and memory. Omnis owns machine/control truth. Neither product depends on the other
+for correctness.

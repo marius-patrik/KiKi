@@ -12,7 +12,7 @@ still-open decision (#60).
 
 ## Repository mission
 
-`dsh-stack` is a distributable extension stack for DeepSeek Harness. The upstream `harness/` submodule is pinned and pristine. Stack owns the complete implementation catalog in `src/packages/` and the composed plugin tree in `publish/plugins/`.
+`dsh-stack` is a distributable persistent-agent extension stack for DeepSeek Harness and the reference agent environment for Omnis. The upstream `harness/` submodule is pinned and pristine. Stack owns the complete implementation catalog in `src/packages/` and the composed plugin tree in `publish/plugins/`.
 
 ## Canonical structure
 
@@ -154,3 +154,18 @@ An action that cannot proceed says so rather than returning as though it succeed
 ## Verification standard
 
 Completion requires workspace typecheck, workspace build, package-contract verification, duplicate-source verification, placeholder/unchecked-cast/unfinished-code verification, package tests, release packaging/manifest generation, and real user-visible UI wiring. Never weaken a verifier to make CI green; fix the implementation or repository structure.
+
+
+## Persistent agent runtime boundary
+
+The accepted target architecture is
+`.agents/notes/decisions/persistent-agent-runtime-and-omnis.md`.
+
+- DSH owns its worldline, memory, context compilation, cognition, workers/workflows and learning.
+- Omnis is an external integration exposing OS/Manager/Control/graph/events; it is never a runtime
+  dependency of the agent kernel.
+- Do not put persistent-agent identity into personas, conversations, actions, providers or tools.
+- Do not add a second event/memory/workflow implementation when the owning agent package exists.
+- The current `loops` scaffold is superseded by the target `agent-workflows` owner; do not expand
+  `loops` into a parallel implementation.
+- First-party Omnis behavior is controlled through typed operations/events, not screen scraping.
