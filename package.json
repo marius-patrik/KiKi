@@ -34,7 +34,8 @@
     "verify:reachability": "node src/scripts/verify-package-reachability.mjs",
     "verify:non-cordis-exclusions": "node src/scripts/verify-non-cordis-exclusions.mjs",
     "verify:stateful-client-packages": "node src/scripts/verify-stateful-client-packages.mjs",
-    "verify:jscpd-exemptions": "node src/scripts/verify-jscpd-exemptions.mjs"
+    "verify:jscpd-exemptions": "node src/scripts/verify-jscpd-exemptions.mjs",
+    "browser:check": "node src/scripts/browser-check.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
@@ -43,6 +44,7 @@
     "@types/node": "^22.15.0",
     "jscpd": "5.0.16",
     "knip": "6.32.2",
+    "playwright": "1.61.1",
     "tsdown": "^0.22.14",
     "typescript": "^6.0.3"
   }
