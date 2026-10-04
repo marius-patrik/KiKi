@@ -1,14 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreBinaries": [
-    "script",
-    "dns-sd",
-    "sips",
-    "tailscale"
-  ],
-  "ignore": [
-    "harness/**"
-  ],
+  "ignoreBinaries": ["script", "dns-sd", "sips", "tailscale"],
+  "ignore": ["harness/**"],
   "rules": {
     "duplicates": "warn"
   },
@@ -19,9 +12,7 @@
         "src/scripts/**/*.test.mjs",
         "src/scripts/client-runtime/*.js"
       ],
-      "project": [
-        "src/scripts/**/*.{mjs,js}"
-      ]
+      "project": ["src/scripts/**/*.{mjs,js}"]
     },
     "src/packages/*": {
       "entry": [
@@ -31,11 +22,7 @@
         "*.mjs",
         "bin/*.mjs"
       ],
-      "project": [
-        "src/**/*.{ts,tsx}",
-        "*.mjs",
-        "bin/*.mjs"
-      ]
+      "project": ["src/**/*.{ts,tsx}", "*.mjs", "bin/*.mjs"]
     },
     "src/packages/providers": {
       "entry": [
@@ -45,78 +32,32 @@
         "*.mjs",
         "bin/*.mjs"
       ],
-      "project": [
-        "src/**/*.{ts,tsx}",
-        "*.mjs",
-        "bin/*.mjs"
-      ],
-      "ignoreDependencies": [
-        "@dsh-stack/sidebar-preferences"
-      ]
+      "project": ["src/**/*.{ts,tsx}", "*.mjs", "bin/*.mjs"],
+      "ignoreDependencies": ["@dsh-stack/sidebar-preferences"]
     },
     "publish/extensions/skin-claude": {
-      "entry": [
-        "src/index.{ts,tsx,mjs,js}",
-        "src/client.{ts,tsx}",
-        "*.mjs"
-      ],
-      "project": [
-        "src/**/*.{ts,tsx}",
-        "*.mjs"
-      ],
-      "ignoreDependencies": [
-        "@types/react"
-      ]
+      "entry": ["src/index.{ts,tsx,mjs,js}", "src/client.{ts,tsx}", "*.mjs"],
+      "project": ["src/**/*.{ts,tsx}", "*.mjs"],
+      "ignoreDependencies": ["@types/react"]
     },
     "publish/extensions/skin-codex": {
-      "entry": [
-        "src/index.{ts,tsx,mjs,js}",
-        "src/client.{ts,tsx}",
-        "*.mjs"
-      ],
-      "project": [
-        "src/**/*.{ts,tsx}",
-        "*.mjs"
-      ],
-      "ignoreDependencies": [
-        "@types/react"
-      ]
+      "entry": ["src/index.{ts,tsx,mjs,js}", "src/client.{ts,tsx}", "*.mjs"],
+      "project": ["src/**/*.{ts,tsx}", "*.mjs"],
+      "ignoreDependencies": ["@types/react"]
     },
     "publish/extensions/*": {
-      "entry": [
-        "src/index.{ts,tsx,mjs,js}",
-        "src/client.{ts,tsx}",
-        "bin/*.mjs"
-      ],
-      "project": [
-        "src/**/*.{ts,tsx}",
-        "bin/*.mjs"
-      ]
+      "entry": ["src/index.{ts,tsx,mjs,js}", "src/client.{ts,tsx}", "bin/*.mjs"],
+      "project": ["src/**/*.{ts,tsx}", "bin/*.mjs"]
     },
     "publish/packs/*": {
-      "entry": [
-        "src/index.{ts,tsx,mjs,js}",
-        "*.mjs"
-      ],
-      "project": [
-        "src/**/*.{ts,tsx}",
-        "*.mjs"
-      ],
-      "ignoreDependencies": [
-        "@dsh-stack/*"
-      ]
+      "entry": ["src/index.{ts,tsx,mjs,js}", "*.mjs"],
+      "project": ["src/**/*.{ts,tsx}", "*.mjs"],
+      "ignoreDependencies": ["@dsh-stack/*"]
     },
     "publish/plugins/**": {
-      "entry": [
-        "src/index.{mjs,ts}",
-        "check-plugin.mjs"
-      ],
-      "project": [
-        "src/**/*.{ts,mjs}"
-      ]
+      "entry": ["src/index.{mjs,ts}", "check-plugin.mjs"],
+      "project": ["src/**/*.{ts,mjs}"]
     }
   },
-  "ignoreDependencies": [
-    "@deepseek-ai/dsh-client-ui-slots"
-  ]
+  "ignoreDependencies": ["@deepseek-ai/dsh-client-ui-slots"]
 }
