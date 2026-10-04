@@ -4,7 +4,7 @@
   "version": "0.4.0",
   "kind": "pack",
   "description": "Composable agent capability pack over canonical Stack agent plugins.",
-  "files": ["package.json","stack.json","README.md"],
+  "files": ["package.json", "stack.json", "README.md"],
   "dependencies": [
     "stack.agent.actions",
     "stack.agent.agents",
