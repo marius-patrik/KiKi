@@ -19,20 +19,11 @@ export * from "./github-actions-runner.js";
 export { VirtualDomainManager, type VirtualDomainConfig } from "./virtual-domain.js";
 
 export const name = "hosts";
-export const inject = ["webServer", "loader"];
-
-interface CordisLoaderEntry {
-  name: string;
-}
-
-interface CordisLoaderService {
-  create(entry: CordisLoaderEntry): Promise<unknown>;
-}
+export const inject = ["webServer"];
 
 declare module "@deepseek-ai/cordis" {
   interface Context {
     hosts: HostsService;
-    loader?: CordisLoaderService;
   }
 }
 
@@ -67,14 +58,6 @@ export class HostsService extends Service implements IHostsService {
     // gateway port — Tailscale serve and every external consumer need this
     // one. ports.ts prefers this line over the harness banner when present.
     console.log(`dsh gateway: http://127.0.0.1:${access.gatewayPort}`);
-
-    const loader = ctx.get("loader") as CordisLoaderService | undefined;
-    if (loader && typeof loader.create === "function") {
-      void loader.create({ name: "@deepseek-ai/dsh-host-directory-picker-browse" }).catch(() => {});
-      void loader
-        .create({ name: "@deepseek-ai/dsh-client-ui-directory-picker-browse" })
-        .catch(() => {});
-    }
 
     const server = ctx.get("webServer");
     if (server) {
