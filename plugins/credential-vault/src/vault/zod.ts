@@ -186,13 +186,11 @@ export const z: ZodStatic = Object.assign(_z, { strictObject, enum: enumOf }) as
 
 export namespace z {
   /** The output type of a schema, as zod's `z.infer` exposes it. */
-  export type infer<S extends Schema = Schema> = S extends Schema<infer _In, infer Out>
-    ? Out
-    : never;
+  export type infer<S extends Schema = Schema> =
+    S extends Schema<infer _In, infer Out> ? Out : never;
   /** Alias of `infer`, for readers used to zod's `TypeOf`. */
-  export type TypeOf<S extends Schema = Schema> = S extends Schema<infer _In, infer Out>
-    ? Out
-    : never;
+  export type TypeOf<S extends Schema = Schema> =
+    S extends Schema<infer _In, infer Out> ? Out : never;
 }
 
 /* -------------------------------------------------------------------------- */

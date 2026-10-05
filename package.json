@@ -18,8 +18,8 @@
   "scripts": {
     "build": "bun run --filter '*' --if-present build",
     "typecheck": "bun run --filter '*' --if-present typecheck",
-    "format": "bunx @biomejs/biome@2.2.0 format --write .",
-    "format:check": "bunx @biomejs/biome@2.2.0 format --write . && git diff --exit-code",
+    "format": "biome format --write .",
+    "format:check": "biome format --write . && git diff --exit-code",
     "verify:plugin-readmes": "node scripts/verify-plugin-readmes.mjs",
     "verify:jsdocs": "node scripts/verify-jsdocs.mjs",
     "verify:duplicates": "jscpd plugins bundles scripts",
