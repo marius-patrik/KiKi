@@ -374,8 +374,8 @@ function ensureStackSymlinks(profileDir: string, pkgDir: string): Set<string> {
         // A concurrent provisioning pass won the path.
       }
     }
-  }  return shipped;
-
+  }
+  return shipped;
 }
 
 /**
