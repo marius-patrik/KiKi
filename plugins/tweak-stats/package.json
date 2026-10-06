@@ -1,0 +1,53 @@
+{
+  "name": "@dsh-stack/tweak-stats",
+  "version": "0.1.0",
+  "description": "Session observability: the tweaks-stats settings section and the dsh stats/dsh sessions verbs over the projection cache.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "bin",
+    "README.md",
+    "package.json",
+    "stack.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "stack": {
+    "kind": "plugin",
+    "id": "stack.tweaks.stats"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node check-plugin.mjs"
+  },
+  "bin": {
+    "stats": "bin/stats.mjs",
+    "sessions": "bin/sessions.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/schemastery": "*",
+    "@deepseek-ai/dsh-settings": "0.2.0-rc.2"
+  },
+  "dependencies": {
+    "@dsh-stack/tweaks": "workspace:*",
+    "@dsh-stack/plugin-kit": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/schemastery": "*",
+    "@deepseek-ai/dsh-settings": "0.2.0-rc.2"
+  }
+}

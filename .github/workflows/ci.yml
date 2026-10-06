@@ -49,10 +49,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            src/packages/*/lib
-            publish/plugins/*/lib
-            publish/extensions/*/lib
-            publish/packs/*/lib
+            plugins/*/lib
+            /*/lib
+            plugins/*/lib
+            bundles/*/lib
             **/*.tsbuildinfo
           key: ts-build-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ github.sha }}
           restore-keys: |
@@ -69,7 +69,7 @@ jobs:
       # state), which alone is enough for actions/cache to materialize the
       # directory even with no lib/ present at all -- confirmed by CI: the
       # lib/ prune alone still left a bare
-      # src/packages/workspace-tabs/tsconfig.tsbuildinfo, which
+      # plugins/workspace-tabs/tsconfig.tsbuildinfo, which
       # verify-stack.mjs read as a broken package rather than a stale
       # artifact.
       #
@@ -82,7 +82,7 @@ jobs:
       # absence alone would silently hide it instead.
       - name: Prune orphaned build cache
         run: |
-          for canonicalRoot in src/packages publish/plugins publish/extensions publish/packs; do
+          for canonicalRoot in plugins  plugins bundles; do
             [ -d "$canonicalRoot" ] || continue
             for pkg in "$canonicalRoot"/*/; do
               pkg="${pkg%/}"
@@ -144,10 +144,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            src/packages/*/lib
-            publish/plugins/*/lib
-            publish/extensions/*/lib
-            publish/packs/*/lib
+            plugins/*/lib
+            /*/lib
+            plugins/*/lib
+            bundles/*/lib
             **/*.tsbuildinfo
           key: ts-build-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ github.sha }}
           restore-keys: |
@@ -164,7 +164,7 @@ jobs:
       # state), which alone is enough for actions/cache to materialize the
       # directory even with no lib/ present at all -- confirmed by CI: the
       # lib/ prune alone still left a bare
-      # src/packages/workspace-tabs/tsconfig.tsbuildinfo, which
+      # plugins/workspace-tabs/tsconfig.tsbuildinfo, which
       # verify-stack.mjs read as a broken package rather than a stale
       # artifact.
       #
@@ -177,7 +177,7 @@ jobs:
       # absence alone would silently hide it instead.
       - name: Prune orphaned build cache
         run: |
-          for canonicalRoot in src/packages publish/plugins publish/extensions publish/packs; do
+          for canonicalRoot in plugins  plugins bundles; do
             [ -d "$canonicalRoot" ] || continue
             for pkg in "$canonicalRoot"/*/; do
               pkg="${pkg%/}"

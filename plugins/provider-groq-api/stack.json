@@ -1,0 +1,10 @@
+{
+  "id": "stack.ai.provider.groq-api",
+  "name": "@dsh-stack/provider-groq-api",
+  "version": "0.1.0",
+  "kind": "plugin",
+  "description": "groq-api provider-route extension for the Stack `providers` registry.",
+  "files": ["lib", "README.md", "package.json", "stack.json"],
+  "dependencies": ["stack.ai.providers"],
+  "optionalDependencies": []
+}

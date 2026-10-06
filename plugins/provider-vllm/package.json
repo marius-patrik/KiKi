@@ -1,0 +1,40 @@
+{
+  "name": "@dsh-stack/provider-vllm",
+  "version": "0.1.0",
+  "description": "vllm provider-route extension for the Stack `providers` registry.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "README.md",
+    "package.json",
+    "stack.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "stack": {
+    "kind": "plugin",
+    "id": "stack.ai.provider.vllm"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "verify": "node verify.mjs"
+  },
+  "dependencies": {
+    "@dsh-stack/providers": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "@dsh-stack/dialects": "workspace:*"
+  }
+}

@@ -24,17 +24,24 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22.19.0
-          package-manager-cache: false
+          bun-version: 1.4.2
+
+      # The formatter version must be the one the lockfile pins, not one this
+      # workflow names. Naming it here meant CI formatted with 2.2.0 while the
+      # checkout resolved 2.5.15, so a formatting change in a minor release made
+      # CI and a local `bun run format` disagree over the same commit. Installing
+      # from the lockfile makes them the same binary by construction (#297).
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Verify repository formatting
         run: |
-          npx --yes @biomejs/biome@2.2.0 format --write .
+          bun run format
           if ! git diff --quiet; then
-            echo "::error::Repository contains unformatted files. Run 'npx @biomejs/biome format --write .' locally before pushing."
+            echo "::error::Repository contains unformatted files. Run 'bun run format' locally before pushing."
             git diff --stat
             git diff
             exit 1

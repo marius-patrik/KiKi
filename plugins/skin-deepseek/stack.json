@@ -1,0 +1,10 @@
+{
+  "id": "stack.ui.skin.deepseek",
+  "name": "@dsh-stack/skin-deepseek",
+  "version": "0.1.0",
+  "kind": "plugin",
+  "description": "@dsh-stack/skin-deepseek",
+  "files": ["lib", "README.md", "package.json", "stack.json"],
+  "dependencies": [],
+  "optionalDependencies": []
+}

@@ -58,4 +58,4 @@ jobs:
           HYGIENE_REPO_OWNER: ${{ github.repository_owner }}
           HYGIENE_REPO_NAME: ${{ github.event.repository.name }}
           HYGIENE_BRANCH_GRACE_HOURS: "24"
-        run: node src/scripts/sweep-repository-hygiene.mjs
+        run: node scripts/sweep-repository-hygiene.mjs

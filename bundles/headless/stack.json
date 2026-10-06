@@ -1,0 +1,10 @@
+{
+  "id": "stack.bundle.headless",
+  "name": "@dsh-stack/bundle-headless",
+  "version": "0.1.0",
+  "kind": "bundle",
+  "description": "The dsh-stack as a harness-native headless profile bundle: the web bundle's composition filtered to plugins that mount without a web server.",
+  "files": ["cordis.patch.yml", "package.json", "README.md"],
+  "dependencies": [],
+  "optionalDependencies": []
+}

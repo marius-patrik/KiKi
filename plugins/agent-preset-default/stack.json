@@ -1,0 +1,10 @@
+{
+  "id": "stack.agent.preset.default",
+  "name": "@dsh-stack/agent-preset-default",
+  "version": "0.1.0",
+  "kind": "plugin",
+  "description": "Default general-purpose Stack agent preset extension.",
+  "files": ["lib", "README.md", "package.json", "stack.json"],
+  "dependencies": ["stack.agent.agents"],
+  "optionalDependencies": []
+}

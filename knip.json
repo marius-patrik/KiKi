@@ -7,14 +7,10 @@
   },
   "workspaces": {
     ".": {
-      "entry": [
-        "src/scripts/*.mjs",
-        "src/scripts/**/*.test.mjs",
-        "src/scripts/client-runtime/*.js"
-      ],
-      "project": ["src/scripts/**/*.{mjs,js}"]
+      "entry": ["scripts/*.mjs", "scripts/**/*.test.mjs", "scripts/client-runtime/*.js"],
+      "project": ["scripts/**/*.{mjs,js}"]
     },
-    "src/packages/*": {
+    "plugins/*": {
       "entry": [
         "src/index.{ts,tsx,mjs,js}",
         "src/client.{ts,tsx}",
@@ -24,7 +20,7 @@
       ],
       "project": ["src/**/*.{ts,tsx}", "*.mjs", "bin/*.mjs"]
     },
-    "src/packages/providers": {
+    "plugins/providers": {
       "entry": [
         "src/index.{ts,tsx,mjs,js}",
         "src/client.{ts,tsx}",
@@ -35,28 +31,20 @@
       "project": ["src/**/*.{ts,tsx}", "*.mjs", "bin/*.mjs"],
       "ignoreDependencies": ["@dsh-stack/sidebar-preferences"]
     },
-    "publish/extensions/skin-claude": {
+    "plugins/skin-claude": {
       "entry": ["src/index.{ts,tsx,mjs,js}", "src/client.{ts,tsx}", "*.mjs"],
       "project": ["src/**/*.{ts,tsx}", "*.mjs"],
       "ignoreDependencies": ["@types/react"]
     },
-    "publish/extensions/skin-codex": {
+    "plugins/skin-codex": {
       "entry": ["src/index.{ts,tsx,mjs,js}", "src/client.{ts,tsx}", "*.mjs"],
       "project": ["src/**/*.{ts,tsx}", "*.mjs"],
       "ignoreDependencies": ["@types/react"]
     },
-    "publish/extensions/*": {
-      "entry": ["src/index.{ts,tsx,mjs,js}", "src/client.{ts,tsx}", "bin/*.mjs"],
-      "project": ["src/**/*.{ts,tsx}", "bin/*.mjs"]
-    },
-    "publish/packs/*": {
-      "entry": ["src/index.{ts,tsx,mjs,js}", "*.mjs"],
-      "project": ["src/**/*.{ts,tsx}", "*.mjs"],
+    "bundles/*": {
+      "entry": ["*.mjs"],
+      "project": ["*.mjs"],
       "ignoreDependencies": ["@dsh-stack/*"]
-    },
-    "publish/plugins/**": {
-      "entry": ["src/index.{mjs,ts}", "check-plugin.mjs"],
-      "project": ["src/**/*.{ts,mjs}"]
     }
   },
   "ignoreDependencies": ["@deepseek-ai/dsh-client-ui-slots"]

@@ -1,0 +1,10 @@
+{
+  "id": "stack.ui.icons.lucide-animated",
+  "name": "@dsh-stack/lucide-animated",
+  "version": "0.1.0",
+  "kind": "plugin",
+  "description": "@dsh-stack/lucide-animated",
+  "files": ["lib", "README.md", "package.json", "stack.json"],
+  "dependencies": [],
+  "optionalDependencies": []
+}

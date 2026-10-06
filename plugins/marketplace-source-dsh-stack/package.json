@@ -1,0 +1,40 @@
+{
+  "name": "@dsh-stack/marketplace-source-dsh-stack",
+  "version": "0.1.0",
+  "description": "dsh-stack GitHub Releases marketplace-source extension for the Stack `marketplace` registry.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib",
+    "README.md",
+    "package.json",
+    "stack.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "stack": {
+    "kind": "plugin",
+    "id": "stack.core.marketplace-source.dsh-stack"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "verify": "node verify.mjs"
+  },
+  "dependencies": {
+    "@dsh-stack/marketplace": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "@deepseek-ai/cordis": "^4.0.1"
+  }
+}
