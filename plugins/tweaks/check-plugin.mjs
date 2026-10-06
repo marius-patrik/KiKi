@@ -99,10 +99,33 @@ const base = {
 const ctx = new Context();
 const { service: settings, registrations } = stubSettingsService();
 ctx.provide("settings", settings);
+/**
+ * Wait for the mirror to land its write, instead of guessing a duration.
+ *
+ * `apply()` schedules the document write and returns, so a fixed sleep is a race:
+ * it passed in isolation and failed under a concurrent workspace run, where the
+ * write had not landed within 200ms. Polling the document is the condition the
+ * test actually cares about.
+ *
+ * @param {string} settingsPath - settings document to poll.
+ * @param {object} expected - the section the document should reach.
+ */
+async function waitForSection(settingsPath, expected) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const section = await readTweaksSection(settingsPath);
+    if (JSON.stringify(section ?? null) === JSON.stringify(expected)) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(
+    `mirror never wrote ${JSON.stringify(expected)} to ${settingsPath}; ` +
+      `last read ${JSON.stringify(await readTweaksSection(settingsPath))}`,
+  );
+}
+
+const settingsPath = join(home, "settings.yaml");
 plugin.apply(ctx, base);
 
-await new Promise((resolve) => setTimeout(resolve, 200));
-const settingsPath = join(home, "settings.yaml");
+await waitForSection(settingsPath, { homeRoot: "/new/home", command: "web" });
 assert.ok(existsSync(settingsPath), "settings.yaml was not mirrored");
 const text = readFileSync(settingsPath, "utf8");
 assert.ok(text.includes("homeRoot: /new/home"), `homeRoot missing:\n${text}`);
@@ -129,7 +152,8 @@ assert.deepEqual(registrations[0].presentation, { auto: false });
 assert.equal(registrations[0].owner, ctx.fiber);
 console.log("custom settings page declared ok (no second namespace)");
 
-// Idempotent second mirror.
+// Idempotent second mirror. A no-op write resolves without touching the file, so
+// there is nothing to poll for; asserting the section still holds is the check.
 plugin.apply(ctx, base);
 await new Promise((resolve) => setTimeout(resolve, 200));
 const second = await readTweaksSection(settingsPath);
@@ -144,7 +168,7 @@ console.log("idempotent mirror ok");
 // `setSource` callback installed — would keep writing the boot snapshot here and
 // fail this, because the second mount's values never reach its stored source.
 plugin.apply(ctx, { homeRoot: "/other/home", command: "app" });
-await new Promise((resolve) => setTimeout(resolve, 200));
+await waitForSection(settingsPath, { homeRoot: "/other/home", command: "app" });
 const remounted = await readTweaksSection(settingsPath);
 assert.deepEqual(
   remounted,

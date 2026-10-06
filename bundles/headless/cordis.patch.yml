@@ -20,6 +20,14 @@
       name: '@dsh-stack/agents'
     - id: credential-vault
       name: '@dsh-stack/credential-vault'
+    - id: dialect-antigravity
+      name: '@dsh-stack/dialect-antigravity'
+    - id: dialect-claude
+      name: '@dsh-stack/dialect-claude'
+    - id: dialect-code-assist
+      name: '@dsh-stack/dialect-code-assist'
+    - id: dialect-openai
+      name: '@dsh-stack/dialect-openai'
     - id: dialects
       name: '@dsh-stack/dialects'
     - id: formatters
@@ -34,8 +42,48 @@
       name: '@dsh-stack/marketplace-source-dsh-stack'
     - id: profile-ui
       name: '@dsh-stack/profile-ui'
+    - id: provider-anthropic-api
+      name: '@dsh-stack/provider-anthropic-api'
+    - id: provider-antigravity-sub
+      name: '@dsh-stack/provider-antigravity-sub'
+    - id: provider-cerebras-api
+      name: '@dsh-stack/provider-cerebras-api'
+    - id: provider-claude-sub
+      name: '@dsh-stack/provider-claude-sub'
+    - id: provider-deepseek-api
+      name: '@dsh-stack/provider-deepseek-api'
+    - id: provider-gemini-api
+      name: '@dsh-stack/provider-gemini-api'
+    - id: provider-gemini-sub
+      name: '@dsh-stack/provider-gemini-sub'
+    - id: provider-grok-api
+      name: '@dsh-stack/provider-grok-api'
+    - id: provider-grok-sub
+      name: '@dsh-stack/provider-grok-sub'
+    - id: provider-groq-api
+      name: '@dsh-stack/provider-groq-api'
+    - id: provider-kimi-code
+      name: '@dsh-stack/provider-kimi-code'
+    - id: provider-kimi-sub
+      name: '@dsh-stack/provider-kimi-sub'
+    - id: provider-llamacpp
+      name: '@dsh-stack/provider-llamacpp'
+    - id: provider-mistral-api
+      name: '@dsh-stack/provider-mistral-api'
+    - id: provider-ollama
+      name: '@dsh-stack/provider-ollama'
+    - id: provider-openai-api
+      name: '@dsh-stack/provider-openai-api'
+    - id: provider-openrouter-api
+      name: '@dsh-stack/provider-openrouter-api'
     - id: provider-rotation
       name: '@dsh-stack/provider-rotation'
+    - id: provider-vllm
+      name: '@dsh-stack/provider-vllm'
+    - id: provider-zai-api
+      name: '@dsh-stack/provider-zai-api'
+    - id: provider-zen
+      name: '@dsh-stack/provider-zen'
     - id: providers
       name: '@dsh-stack/providers'
     - id: repos
