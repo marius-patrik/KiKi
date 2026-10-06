@@ -233,11 +233,17 @@ async function ensureBundleDeclaration(
 function linksTo(linkTarget: string, expected: string): boolean {
   try {
     if (!lstatSync(linkTarget).isSymbolicLink()) return false;
+    if (!isAbsolute(readlinkSync(linkTarget))) return false;
+    // realpathSync throws ENOENT on a link whose target does not exist, which is
+    // precisely the case this function exists to reject -- moving the tree leaves
+    // every profile link pointing at its old location. Resolving the *target*
+    // rather than the link compares the two paths without dereferencing the link,
+    // so a dangling link answers "not acceptable" instead of throwing and aborting
+    // provisioning with an error that names the link rather than the cause.
+    return realpathSync(readlinkSync(linkTarget)) === realpathSync(expected);
   } catch {
     return false;
   }
-  if (!isAbsolute(readlinkSync(linkTarget))) return false;
-  return realpathSync(linkTarget) === realpathSync(expected);
 }
 
 /**
@@ -332,11 +338,12 @@ function clearOccupant(path: string): void {
  * @param profileDir - the profile directory.
  * @param pkgDir - the launcher package directory, used to derive the repository root.
  */
-function ensureStackSymlinks(profileDir: string, pkgDir: string): void {
+function ensureStackSymlinks(profileDir: string, pkgDir: string): Set<string> {
   const repoRoot = join(pkgDir, "..", "..");
   const scopeDir = join(profileDir, "node_modules", "@dsh-stack");
   mkdirSync(scopeDir, { recursive: true });
 
+  const shipped = new Set<string>();
   for (const sourceDir of packageSourceDirs(repoRoot)) {
     if (!existsSync(sourceDir)) continue;
     let entries: string[] = [];
@@ -358,6 +365,7 @@ function ensureStackSymlinks(profileDir: string, pkgDir: string): void {
       if (typeof pkgName !== "string" || !pkgName.startsWith("@dsh-stack/")) continue;
 
       const linkTarget = join(scopeDir, pkgName.slice("@dsh-stack/".length));
+      shipped.add(pkgName);
       if (linksTo(linkTarget, entryPath)) continue;
       clearOccupant(linkTarget);
       try {
@@ -366,7 +374,8 @@ function ensureStackSymlinks(profileDir: string, pkgDir: string): void {
         // A concurrent provisioning pass won the path.
       }
     }
-  }
+  }  return shipped;
+
 }
 
 /**
@@ -377,6 +386,45 @@ function ensureStackSymlinks(profileDir: string, pkgDir: string): void {
 function removeRetiredWorkspaceManifests(profileDir: string): void {
   for (const manifest of RETIRED_WORKSPACE_MANIFESTS) {
     rmSync(join(profileDir, manifest), { force: true });
+  }
+}
+
+/**
+ * Remove links in the profile's `@dsh-stack` scope that name a package the
+ * repository no longer ships.
+ *
+ * Provisioning otherwise only ever adds or repairs links, so a package deleted
+ * from the tree leaves its link behind forever: dangling, unresolvable, and named
+ * in the profile's dependency surface. Retiring the pack compositions in #308
+ * left exactly that on every existing profile.
+ *
+ * A link is only removed when its own name is absent from the current tree, so
+ * this cannot delete a link that is merely mis-targeted -- that case belongs to
+ * the repair path, which knows the correct target.
+ *
+ * @param profileDir - the profile directory.
+ * @param shipped - every `@dsh-stack/*` name the current tree provides.
+ */
+function removeRetiredPackageLinks(profileDir: string, shipped: Set<string>): void {
+  const scopeDir = join(profileDir, "node_modules", "@dsh-stack");
+  let entries: string[] = [];
+  try {
+    entries = readdirSync(scopeDir);
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const name = `@dsh-stack/${entry}`;
+    if (shipped.has(name)) continue;
+    const link = join(scopeDir, entry);
+    try {
+      // unlink, not rmSync: a dangling symlink is exactly the case here, and
+      // rmSync leaves it on disk -- as does rmSync with recursive, which reports
+      // the path gone through existsSync while the directory entry survives.
+      if (lstatSync(link).isSymbolicLink()) unlinkSync(link);
+    } catch {
+      // Nothing to remove.
+    }
   }
 }
 
@@ -396,5 +444,5 @@ export async function ensureProfileComposition(options: ProfileCompositionOption
   await ensureBundleDeclaration(profileDir, bundle, profile, harnessDir ?? null);
   ensureStackPatchLayer(profileDir);
   removeRetiredWorkspaceManifests(profileDir);
-  ensureStackSymlinks(profileDir, pkgDir);
+  removeRetiredPackageLinks(profileDir, ensureStackSymlinks(profileDir, pkgDir));
 }

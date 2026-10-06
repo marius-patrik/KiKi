@@ -6,6 +6,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  lstatSync,
   readdirSync,
   readlinkSync,
   symlinkSync,
@@ -657,6 +658,50 @@ assert.equal(
 );
 assert.ok(isAbsolute(readlinkSync(staleBundle)), "a repaired link must be absolute");
 console.log("broken symlink repaired ok");
+
+// A link naming a package the tree no longer ships must be removed, not left
+// dangling: provisioning only ever added or repaired links, so every package
+// deleted from the tree left its link behind on every existing profile.
+const retiredHome = join(root, "retired-home");
+const retiredScope = join(retiredHome, "profiles", "web", "node_modules", "@dsh-stack");
+mkdirSync(retiredScope, { recursive: true });
+writeFileSync(join(retiredHome, "profiles", "web", "package.json"), "{}\n");
+symlinkSync(
+  join(pkgDir, "..", "a-package-that-no-longer-exists"),
+  join(retiredScope, "a-package-that-no-longer-exists"),
+);
+await ensureProfileComposition({
+  home: retiredHome,
+  pkgDir,
+  profile: "web",
+  bundle: WEB_PROFILE_BUNDLE,
+  harnessDir,
+});
+// lstatSync, not existsSync: a dangling symlink is invisible to existsSync, so
+// an existsSync assertion here passes whether or not the removal happened.
+assert.throws(
+  () => lstatSync(join(retiredScope, "a-package-that-no-longer-exists")),
+  { code: "ENOENT" },
+  "a link naming a package the tree no longer ships must be removed, not left dangling",
+);
+// A link the tree does ship must survive, even when it is mis-targeted.
+const keptScope = join(root, "kept-home", "profiles", "web", "node_modules", "@dsh-stack");
+mkdirSync(keptScope, { recursive: true });
+writeFileSync(join(root, "kept-home", "profiles", "web", "package.json"), "{}\n");
+const kept = join(keptScope, WEB_PROFILE_BUNDLE.replace("@dsh-stack/", ""));
+symlinkSync(join(pkgDir, "..", "elsewhere"), kept);
+await ensureProfileComposition({
+  home: join(root, "kept-home"),
+  pkgDir,
+  profile: "web",
+  bundle: WEB_PROFILE_BUNDLE,
+  harnessDir,
+});
+assert.ok(
+  existsSync(kept),
+  "a shipped package that is merely mis-targeted must be repaired, not removed",
+);
+console.log("retired package links removed ok");
 
 // A provisioned profile must carry the harness's own base and application rows,
 // not just the Stack bundle. Seeding only the Stack bundle leaves the Stack
