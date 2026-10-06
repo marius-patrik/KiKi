@@ -4,7 +4,42 @@ import * as dialects from "@dsh-stack/dialects";
 import { Context } from "@deepseek-ai/cordis";
 import { LlmError } from "@deepseek-ai/dsh-llm";
 import assert from "node:assert";
-import { assertLoaderShape } from "../../scripts/plugin-check-kit.mjs";
+import { assertLoaderShape, stubSettingsService } from "../../scripts/plugin-check-kit.mjs";
+
+// The harness' own projection rule, imported rather than reimplemented: the
+// settings service decides what is editable from `volatileForm` /
+// `isVolatilePath` / `projectForm` (dsh-settings `lib/types/schema.js`), and a
+// local copy of that rule could drift from the harness and turn the guards below
+// into a tautology. It is not in the package's `exports` map, so it is loaded by
+// file.
+const { isVolatilePath, plainConfig, projectForm, volatileForm } = await import(
+  new URL("./node_modules/@deepseek-ai/dsh-settings/lib/types/schema.js", import.meta.url).href
+);
+
+/**
+ * Commit a value into a live config reference, the way the Loader does.
+ *
+ * The reference protocol is a global symbol shared across cosmokit copies, so the
+ * write needs no import of the runtime that owns it. The committed value is
+ * frozen exactly as the runtime freezes a committed snapshot, which is what keeps
+ * a plugin that tries to mutate it honest.
+ *
+ * @param {object} reference - the `Volatile` reference handed to `apply`.
+ * @param {unknown} value - the next immutable value for that reference.
+ */
+function commitVolatile(reference, value) {
+  /**
+   * Deep-freeze a committed value, matching what a settings write hands a volatile field.
+   * @param {unknown} node - the value to freeze.
+   * @returns {unknown} the same value, frozen.
+   */
+  const freeze = (node) => {
+    if (node === null || typeof node !== "object") return node;
+    for (const child of Object.values(node)) freeze(child);
+    return Object.freeze(node);
+  };
+  reference[Symbol.for("cosmokit.volatile.write")](freeze(value));
+}
 
 // Every route now lives in its own `@dsh-stack/provider-<id>` extension (see
 // extensions/provider-<id>); this package only owns the registry and dispatch
@@ -68,15 +103,112 @@ function applyDialects(ctx) {
   for (const extension of dialectExtensions.values()) extension.apply(ctx);
 }
 
-/** Apply the providers plugin, then every provider extension's route registration. */
-function applyProviders(ctx, config) {
+/**
+ * Apply the providers plugin, then every provider extension's route registration.
+ *
+ * The config is built through the plugin's own `Config` schema exactly as the
+ * Loader builds it, because `baseURLs`, `mode` and `liveCatalog` are volatile
+ * fields: what `apply` receives is a set of live references, not the object that
+ * was configured. Handing it a literal — as this script used to — would typecheck
+ * against the schema's input type and then fail at the first `.get()`.
+ *
+ * @param {object} ctx - the context to apply into.
+ * @param {object} [raw] - the configured fields, as a user would write them.
+ * @returns {object} the resolved Config `apply` was handed.
+ */
+function applyProviders(ctx, raw = {}) {
+  const config = providers.Config["~standard"].validate(raw).value;
   providers.apply(ctx, config);
   for (const extension of extensions.values()) extension.apply(ctx);
+  return config;
 }
 
 assertLoaderShape(providers, "providers");
 
 console.log("loader shape ok:", providers.name, "inject=", JSON.stringify(providers.inject));
+
+// The namespace is this plugin's own Loader entry id, so the form the service
+// projects and the form a client asks for cannot name different entries.
+assert.equal(providers.NS, providers.name, "the settings namespace must be the plugin entry id");
+console.log("namespace ok:", providers.NS);
+
+// The settings service this plugin declares its page against. `stubSettingsService`
+// records the policies registered through it and answers `describe()` with the
+// empty list a service with no projected entry returns.
+const { service: settings, registrations: settingsPolicies } = stubSettingsService();
+
+// ── The 0.2.0 settings contract ──────────────────────────────────────────────
+// Since 0.2.0 a plugin registers no settings form: the service projects the
+// volatile Config fields of the active profile's entries, and the namespace is
+// the entry's own id. Both gates below are the harness' own, so this asserts
+// against them rather than against a copy of the rule.
+assert.ok(
+  volatileForm(providers.Config) !== undefined,
+  "providers: Config declares no volatile field, so describe() omits this entry and write() refuses it",
+);
+
+/**
+ * Every leaf path in the schema, so a newly added field is classified too.
+ * @param {object} schema - the schemastery node to walk.
+ * @param {string[]} [prefix] - the path walked to reach this node.
+ * @returns {string[][]} one path per leaf.
+ */
+function leafPaths(schema, prefix = []) {
+  if (schema.dict === undefined) return [prefix];
+  return Object.entries(schema.dict).flatMap(([key, child]) => leafPaths(child, [...prefix, key]));
+}
+
+const volatileLeaves = leafPaths(providers.Config)
+  .filter((path) => isVolatilePath(providers.Config, path))
+  .map((path) => path.join("."))
+  .sort();
+assert.deepEqual(
+  volatileLeaves,
+  ["baseURLs", "liveCatalog", "mode"],
+  "the volatile/deployment-fact split has drifted from the intended one",
+);
+console.log("volatile marking ok:", volatileLeaves.join(", "));
+
+// The deployment facts stay plain, so no form write may address them and an edit
+// restarts the entry instead of landing under the user's cursor.
+for (const fact of ["catalogTtlMs", "retryPolicy", "streamIdleTimeoutMs"]) {
+  assert.equal(
+    isVolatilePath(providers.Config, [fact]),
+    false,
+    `${fact} is a deployment fact and must not be projected as a form field`,
+  );
+}
+
+// The form is the volatile projection of a real config: the user choices are
+// present and the deployment facts absent.
+const form = volatileForm(providers.Config);
+const projected = projectForm(
+  form,
+  plainConfig(providers.Config({ mode: "all", liveCatalog: false })),
+);
+assert.equal(projected.mode, "all");
+assert.equal(projected.liveCatalog, false);
+assert.deepEqual(projected.baseURLs, {});
+assert.equal(projected.catalogTtlMs, undefined, "a deployment fact must not reach the form");
+assert.equal(projected.retryPolicy, undefined, "a deployment fact must not reach the form");
+assert.equal(projected.streamIdleTimeoutMs, undefined, "a deployment fact must not reach the form");
+console.log("form projection ok (user choices in, deployment facts out)");
+
+// This plugin ships its own page for that form — `client.js` builds the whole
+// Providers UI against `/vault/api` and `/quotas/api` and writes no Config field
+// — so the service's generated schema page is turned off rather than left to
+// render over fields nothing edits.
+const ctxPage = new Context();
+ctxPage.provide("settings", settings);
+providers.apply(ctxPage, providers.Config["~standard"].validate({}).value);
+await new Promise((resolve) => setTimeout(resolve, 50));
+assert.equal(
+  settingsPolicies.length,
+  1,
+  `expected one settings page policy, got ${settingsPolicies.length}`,
+);
+assert.equal(settingsPolicies[0].presentation.auto, false);
+console.log("boot ok (custom settings page declared)");
 
 const ctx = new Context();
 applyDialects(ctx);
@@ -141,12 +273,6 @@ const llm = {
   },
 };
 ctx.provide("llm", llm);
-const settings = {
-  /** register implementation. */
-  register(_ns, _schema, opts) {
-    return { get: () => opts.base, watch: () => undefined };
-  },
-};
 ctx.provide("settings", settings);
 const credentialsMin = {
   /**
@@ -1064,6 +1190,167 @@ console.log("403 quota classification ok");
   assert.equal((await built[0].read({ aborted: true })).status, "unknown");
 
   console.log("configured-route status lights ok");
+}
+
+// ---- a committed volatile write is observed without a remount ----
+{
+  // A volatile write is committed into the running references and announced on
+  // `loader/volatile-update`; it does NOT re-run `apply`. So this context counts
+  // `registerAdapter` calls — the thing a remount would repeat and a commit
+  // cannot — and every assertion below holds with that count still at one.
+  let adapterRegistrations = 0;
+  let directoryRegistrations = 0;
+  let lastReplacedWith = null;
+  const volatileCtx = new Context();
+  applyDialects(volatileCtx);
+  volatileCtx.provide("llm", {
+    configurable: [],
+    /** registerConfigurableProviders implementation. */
+    registerConfigurableProviders(entries) {
+      directoryRegistrations += 1;
+      this.configurable = [...entries];
+      /** handle implementation. */
+      const handle = () => {};
+      handle.replace = (next) => {
+        this.configurable = [...next];
+      };
+      return handle;
+    },
+    /** registerAdapter implementation. */
+    registerAdapter(registered, adapter) {
+      adapterRegistrations += 1;
+      this.adapter = adapter;
+      this.registeredProviders = [...registered];
+      /** handle implementation. */
+      const handle = () => {};
+      handle.replace = (next) => {
+        lastReplacedWith = [...next];
+        this.registeredProviders = [...next];
+      };
+      handle.dispose = () => {};
+      return handle;
+    },
+  });
+  volatileCtx.provide("settings", stubSettingsService().service);
+  volatileCtx.provide("credentials", {
+    /** resolve implementation. */
+    async resolve(ref) {
+      if (ref.endsWith("_API_KEY")) return { value: `test-${ref.toLowerCase()}`, source: "test" };
+      return undefined;
+    },
+  });
+
+  // The stub is installed *before* `apply`: `ModelCatalog` captures `fetch` by
+  // reference in its constructor, so a stub swapped in afterwards would leave the
+  // catalog dialling the real endpoint. It separates a model listing from a chat
+  // stream, so the catalog cache and the connection's base URL are each
+  // observable, and it counts listings.
+  let listingFetches = 0;
+  let liveUrl;
+  const liveFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    liveUrl = String(url);
+    if (liveUrl.endsWith("/models")) {
+      listingFetches += 1;
+      return new Response(JSON.stringify({ data: [{ id: "discovered", context_length: 4096 }] }), {
+        status: 200,
+      });
+    }
+    return new Response(openaiBody, {
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+    });
+  };
+
+  // One commit per field, so a failure names the field that stopped being live.
+  let volatileConfig;
+  try {
+    volatileConfig = applyProviders(volatileCtx, {});
+    assert.equal(adapterRegistrations, 1, "a remount would register the adapter twice");
+    assert.equal(directoryRegistrations, 1, "a remount would register the directory twice");
+
+    // `mode`: the pay-as-you-go block is what a widened filter lifts, and the
+    // adapter registration is what makes the selector ask again.
+    assert.equal(
+      (await volatileCtx.dshProviders.gate("openai-api"))?.reason.code,
+      "PROVIDER_DISABLED",
+    );
+    // Cleared first: boot-time route registrations already went through `replace`,
+    // so leaving the last value in place would make the assertion below a
+    // tautology that passes whether or not the commit reached the listener.
+    lastReplacedWith = null;
+    commitVolatile(volatileConfig.mode, "all");
+    volatileCtx.emit("loader/volatile-update", [["mode"]]);
+    assert.equal(
+      await volatileCtx.dshProviders.gate("openai-api"),
+      undefined,
+      "the committed mode must lift the pay-as-you-go block",
+    );
+    assert.deepEqual(
+      lastReplacedWith,
+      EXTENSION_IDS,
+      "a mode commit must replace the adapter registration so the selector re-asks",
+    );
+    assert.equal(
+      adapterRegistrations,
+      1,
+      "the mode commit replaced routes on the live registration, it did not remount",
+    );
+
+    // `liveCatalog`: a listing fetched under the old answer must be dropped, not
+    // served. Turning the toggle off stops the fetch; turning it back on must
+    // refetch, which it only does if the commit cleared the cache.
+    const discovered = await volatileCtx.llm.adapter.listModels("openrouter-api");
+    assert.ok(
+      discovered.some((m) => m.id === "discovered"),
+      "liveCatalog is on by default, so the listing must be discovered",
+    );
+    assert.equal(listingFetches, 1);
+    commitVolatile(volatileConfig.liveCatalog, false);
+    volatileCtx.emit("loader/volatile-update", [["liveCatalog"]]);
+    assert.ok(
+      !(await volatileCtx.llm.adapter.listModels("openrouter-api")).some(
+        (m) => m.id === "discovered",
+      ),
+      "a liveCatalog=false commit must drop the discovered listing",
+    );
+    commitVolatile(volatileConfig.liveCatalog, true);
+    volatileCtx.emit("loader/volatile-update", [["liveCatalog"]]);
+    await volatileCtx.llm.adapter.listModels("openrouter-api");
+    assert.equal(listingFetches, 2, "the commit must have cleared the catalog cache");
+
+    // `baseURLs`: an endpoint override reaches the very next request.
+    for await (const _chunk of volatileCtx.llm.adapter.stream({
+      provider: "openai-api",
+      model: "gpt-5",
+      messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }],
+    }))
+      void _chunk;
+    assert.equal(liveUrl, "https://api.openai.com/v1/chat/completions");
+    commitVolatile(volatileConfig.baseURLs, { "openai-api": "https://proxy.test/v1" });
+    volatileCtx.emit("loader/volatile-update", [["baseURLs"]]);
+    for await (const _chunk of volatileCtx.llm.adapter.stream({
+      provider: "openai-api",
+      model: "gpt-5",
+      messages: [{ role: "user", content: [{ type: "text", text: "hi" }] }],
+    }))
+      void _chunk;
+    assert.equal(
+      liveUrl,
+      "https://proxy.test/v1/chat/completions",
+      "the committed baseURL override must reach the next request",
+    );
+  } finally {
+    globalThis.fetch = liveFetch;
+  }
+
+  assert.equal(
+    adapterRegistrations,
+    1,
+    "a volatile commit must not remount the entry: apply never ran a second time",
+  );
+  assert.equal(directoryRegistrations, 1, "nor must it re-register the directory");
+  console.log("volatile commit ok (mode, liveCatalog and baseURLs honored without a remount)");
 }
 
 console.log("plugin check passed");

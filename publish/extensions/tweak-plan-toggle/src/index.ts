@@ -1,13 +1,13 @@
 /**
- * `tweak-plan-toggle`: the Plan/Build toggle command plus its
- * `tweaks-plan-toggle` settings section. Split out of the bundled `tweaks`
- * package.
+ * `tweak-plan-toggle`: the Plan/Build toggle command plus the settings form
+ * projected from its own `tweak-plan-toggle` entry. Split out of the bundled
+ * `tweaks` package.
  * @module tweak-plan-toggle
  */
 
 import type { Context } from "@deepseek-ai/cordis";
 import type z from "@deepseek-ai/schemastery";
-import { installLiveSettingsSection } from "@dsh-stack/plugin-kit";
+import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
 import { installPlanToggle } from "./plan-toggle.js";
 import {
   NS_PLAN_TOGGLE,
@@ -28,16 +28,18 @@ export type Config = PlanToggleConfigType;
 export const Config: z<Config> = PlanToggleConfig;
 
 /**
- * Applies the plan toggle configuration to the context.
+ * apply implementation.
  *
- * Guarantees that the live settings section for plan toggle is installed if enabled.
- * Fails silently if the configuration is not enabled.
+ * The plan-toggle form is the `PlanToggleConfig` this plugin already declares,
+ * and its namespace is this plugin's entry id, so there is nothing to install.
+ * What remains is to declare that this plugin ships its own page for that form
+ * and, when enabled, to register the `/build` command that leaves plan mode.
  *
- * @param ctx - The context in which to apply the configuration.
- * @param config - The plan toggle configuration.
+ * @param ctx - the plugin's context.
+ * @param config - the plan-toggle configuration; `enabled` defaults to true.
  */
 export function apply(ctx: Context, config: Config): void {
   const session: PlanToggleConfigType = { enabled: config?.enabled ?? true };
-  installLiveSettingsSection(ctx, NS_PLAN_TOGGLE, PlanToggleConfig, session, undefined, () => {});
+  declareCustomSettingsPage(ctx);
   if (session.enabled) void installPlanToggle(ctx);
 }

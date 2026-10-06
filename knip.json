@@ -59,9 +59,5 @@
       "project": ["src/**/*.{ts,mjs}"]
     }
   },
-  "ignoreDependencies": [
-    "@biomejs/biome",
-    "@deepseek-ai/dsh-client-ui-slots",
-    "@deepseek-ai/dsh-client-web-react"
-  ]
+  "ignoreDependencies": ["@deepseek-ai/dsh-client-ui-slots"]
 }

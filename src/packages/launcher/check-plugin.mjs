@@ -2,12 +2,24 @@
 
 import assert from "node:assert";
 import { createHash, createHmac, randomBytes } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readlinkSync,
+  symlinkSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import YAML from "yaml";
 
 const {
+  findHarnessDir,
+  WEB_PROFILE_BUNDLE,
   readTweaks,
   resolveHome,
   migrateHome,
@@ -27,6 +39,7 @@ const {
   browserSessionCookieHeader,
   loadCredentialEnv,
   ensureHeadlessProfile,
+  ensureProfileComposition,
   normalizeCustomProviders,
   parseWorktreeList,
   decidePrune,
@@ -42,7 +55,7 @@ writeFileSync(
   [
     "ui-theme:",
     "  preference: dark",
-    "dsh-tweaks:",
+    "tweaks:",
     `  homeRoot: "${join(root, "home-b")}"`,
     "  command: 'status --json'",
     "permission:",
@@ -56,8 +69,57 @@ assert.equal(tweaks.command, "status --json");
 assert.deepEqual(readTweaks(join(root, "missing.yaml")), {});
 const homePlain = join(root, "home-plain");
 mkdirSync(homePlain, { recursive: true });
-writeFileSync(join(homePlain, "settings.yaml"), "dsh-tweaks:\n  other: value\n");
+writeFileSync(join(homePlain, "settings.yaml"), "tweaks:\n  other: value\n");
 assert.deepEqual(readTweaks(join(homePlain, "settings.yaml")), {});
+
+// The legacy `dsh-tweaks` key is migrated to the canonical `tweaks` key on read.
+// This has to happen here rather than in the plugin's mirror because homeRoot is
+// consumed before any plugin exists, so a home stored under the legacy key would
+// already be lost by the time a plugin could move it. The rename is completed, not
+// dual-read: the legacy key is gone from the document afterwards.
+const legacyHome = join(root, "home-legacy");
+mkdirSync(legacyHome, { recursive: true });
+const legacyPath = join(legacyHome, "settings.yaml");
+writeFileSync(
+  legacyPath,
+  [
+    "ui-theme:",
+    "  preference: dark",
+    "dsh-tweaks:",
+    "  homeRoot: /legacy/home",
+    "  command: stop",
+    "",
+  ].join("\n"),
+);
+const migrated = readTweaks(legacyPath);
+assert.equal(migrated.homeRoot, "/legacy/home", "a legacy homeRoot must still resolve");
+assert.equal(migrated.command, "stop");
+const afterMigration = YAML.parse(readFileSync(legacyPath, "utf8"));
+assert.equal(
+  afterMigration.tweaks.homeRoot,
+  "/legacy/home",
+  "the section must be under the canonical key",
+);
+assert.equal(
+  Object.hasOwn(afterMigration, "dsh-tweaks"),
+  false,
+  "the legacy key must be gone, not merely shadowed",
+);
+assert.equal(
+  afterMigration["ui-theme"].preference,
+  "dark",
+  "other sections must survive the rewrite",
+);
+// A document already on the canonical key is left byte-identical, so this is not a
+// standing rewrite of every settings.yaml on every launch.
+const canonicalPath = join(homeA, "settings.yaml");
+const before = readFileSync(canonicalPath, "utf8");
+readTweaks(canonicalPath);
+assert.equal(
+  readFileSync(canonicalPath, "utf8"),
+  before,
+  "a canonical document must not be rewritten",
+);
 console.log("readTweaks ok");
 
 // resolveHome: DSH_HOME wins, else ~/.agents default.
@@ -78,7 +140,7 @@ const notices = [];
 const effective = migrateHome(homeA, homeB, (msg) => notices.push(msg));
 assert.equal(effective, homeB);
 assert.equal(notices.length, 1);
-assert.ok(notices[0].includes("dsh-tweaks.homeRoot moved state"));
+assert.ok(notices[0].includes("tweaks.homeRoot moved state"));
 assert.equal(
   readLogTail(join(homeB, "profiles", "web", "cordis.patch.yml"), 5),
   "- id: webserver\n",
@@ -457,20 +519,237 @@ writeFileSync(
   ].join("\n"),
 );
 const pkgDir = join(import.meta.dirname ?? ".");
-ensureHeadlessProfile({ home: headlessHome, pkgDir });
-const headlessPkgJson = JSON.parse(
-  readFileSync(join(headlessHome, "profiles", "headless", "package.json"), "utf8"),
+// CHECK_HARNESS_UNREADABLE=1 points the launcher at a harness that is not there,
+// which is the shape of the verify job: that job checks out the submodule but
+// never installs it, so the shipped template is unreadable there. Running the
+// suite both ways keeps the refusal path covered without a second CI job.
+const harnessDir =
+  process.env.CHECK_HARNESS_UNREADABLE === "1"
+    ? join(pkgDir, "..", "no-such-harness")
+    : findHarnessDir(process.env, pkgDir);
+if (harnessDir === null)
+  throw new Error("this check needs a harness checkout next to the launcher");
+
+// Provisioning a profile from nothing has two acceptable outcomes: it carries the
+// harness' shipped rows, or it refuses because that template is unreadable.
+// Writing a Stack-only manifest is the one unacceptable outcome: such a profile
+// mounts, exits 0, and never serves a request. Which of the two acceptable ones
+// happens depends on whether the harness is installed where the launcher looks
+// for it -- the verify job does not install it, the browser job does -- so both
+// are asserted here rather than only the seeded one.
+/**
+ * Run a provisioning step, requiring that it either succeeds or refuses outright.
+ *
+ * @param run - the provisioning call to make.
+ * @param label - the profile being provisioned, for the failure message.
+ * @returns true when the profile was provisioned.
+ */
+async function provisionOrRefuse(run, label) {
+  try {
+    await run();
+    return true;
+  } catch (error) {
+    assert.match(
+      String(error?.message ?? error),
+      /refusing to provision a profile/,
+      `${label}: provisioning may only fail by refusing, never by writing a partial profile`,
+    );
+    return false;
+  }
+}
+const headlessProvisioned = await provisionOrRefuse(
+  () => ensureHeadlessProfile({ home: headlessHome, pkgDir, harnessDir }),
+  "headless",
 );
-assert.equal(headlessPkgJson.dependencies["@dsh-stack/pack-bundle-headless"], "^0.1.0");
-assert.ok(headlessPkgJson.dsh.profile.bundles.includes("@dsh-stack/pack-bundle-headless"));
-const headlessPatch = YAML.parse(
-  readFileSync(join(headlessHome, "profiles", "headless", "cordis.patch.yml"), "utf8"),
-);
-assert.ok(Array.isArray(headlessPatch));
-const piAiEntry = headlessPatch.find((entry) => entry.id === "llm-pi-ai");
-assert.ok(piAiEntry !== undefined);
-assert.equal(piAiEntry.config.providers[0].id, "test-provider");
+if (headlessProvisioned) {
+  const headlessPkgJson = JSON.parse(
+    readFileSync(join(headlessHome, "profiles", "headless", "package.json"), "utf8"),
+  );
+  assert.equal(headlessPkgJson.dependencies["@dsh-stack/pack-bundle-headless"], "^0.1.0");
+  assert.ok(headlessPkgJson.dsh.profile.bundles.includes("@dsh-stack/pack-bundle-headless"));
+  const headlessPatch = YAML.parse(
+    readFileSync(join(headlessHome, "profiles", "headless", "cordis.patch.yml"), "utf8"),
+  );
+  assert.ok(Array.isArray(headlessPatch));
+  const piAiEntry = headlessPatch.find((entry) => entry.id === "llm-pi-ai");
+  assert.ok(piAiEntry !== undefined);
+  assert.equal(piAiEntry.config.providers[0].id, "test-provider");
+} else {
+  // A refusal must leave no half-written profile behind.
+  assert.equal(
+    existsSync(join(headlessHome, "profiles", "headless", "package.json")),
+    false,
+    "a refused profile must not be left with a manifest",
+  );
+}
 console.log("ensureHeadlessProfile ok");
+
+// ensureProfileComposition: a non-headless profile gets the same composition, and a
+// workspace manifest left by the retired package manager is removed rather than left
+// to redirect resolution. The web profile is the launcher's default, so a provisioning
+// step that only covers headless leaves a default boot with no Stack bundle mounted.
+const webHome = join(root, "web-home");
+const webProfileDir = join(webHome, "profiles", "web");
+mkdirSync(webProfileDir, { recursive: true });
+writeFileSync(join(webProfileDir, "pnpm-workspace.yaml"), "packages:\n  - .\n");
+const webProvisioned = await provisionOrRefuse(
+  () =>
+    ensureProfileComposition({
+      home: webHome,
+      pkgDir,
+      profile: "web",
+      bundle: WEB_PROFILE_BUNDLE,
+      harnessDir,
+    }),
+  "web",
+);
+if (webProvisioned) {
+  const webPkgJson = JSON.parse(readFileSync(join(webProfileDir, "package.json"), "utf8"));
+  assert.equal(webPkgJson.dependencies[WEB_PROFILE_BUNDLE], "^0.1.0");
+  assert.ok(webPkgJson.dsh.profile.bundles.includes(WEB_PROFILE_BUNDLE));
+  assert.equal(existsSync(join(webProfileDir, "pnpm-workspace.yaml")), false);
+  const webScope = join(webProfileDir, "node_modules", "@dsh-stack");
+  assert.ok(existsSync(webScope), "web profile must link canonical Stack packages");
+  assert.ok(
+    readdirSync(webScope).includes("pack-bundle"),
+    "web profile must resolve the pack bundle it declares",
+  );
+  // Re-running must not duplicate the bundle or clobber a pinned range.
+  writeFileSync(
+    join(webProfileDir, "package.json"),
+    `${JSON.stringify({ ...webPkgJson, dependencies: { ...webPkgJson.dependencies, [WEB_PROFILE_BUNDLE]: "workspace:*" } }, null, 2)}\n`,
+  );
+  await ensureProfileComposition({
+    home: webHome,
+    pkgDir,
+    profile: "web",
+    bundle: WEB_PROFILE_BUNDLE,
+    harnessDir,
+  });
+  const webRerun = JSON.parse(readFileSync(join(webProfileDir, "package.json"), "utf8"));
+  assert.equal(webRerun.dependencies[WEB_PROFILE_BUNDLE], "workspace:*");
+  assert.equal(webRerun.dsh.profile.bundles.filter((b) => b === WEB_PROFILE_BUNDLE).length, 1);
+}
+console.log("ensureProfileComposition ok");
+
+// A symlink that no longer resolves must be repaired, not accepted. Provisioning
+// used to treat any symlink as valid, so a stale or relative link survived every
+// later pass and the Loader then failed with "cannot resolve profile bundle" — a
+// message that points at the bundle rather than at the link.
+const staleHome = join(root, "stale-home");
+const staleProfileDir = join(staleHome, "profiles", "web");
+mkdirSync(join(staleProfileDir, "node_modules", "@dsh-stack"), { recursive: true });
+writeFileSync(join(staleProfileDir, "package.json"), "{}\n");
+const staleBundle = join(staleProfileDir, "node_modules", "@dsh-stack", "pack-bundle");
+symlinkSync("../../../nowhere/pack-bundle", staleBundle);
+assert.equal(existsSync(staleBundle), false, "the stale link must start out broken");
+await ensureProfileComposition({
+  home: staleHome,
+  pkgDir,
+  profile: "web",
+  bundle: WEB_PROFILE_BUNDLE,
+  harnessDir,
+});
+assert.equal(
+  existsSync(staleBundle),
+  true,
+  "a link that does not resolve must be replaced with one that does",
+);
+assert.ok(isAbsolute(readlinkSync(staleBundle)), "a repaired link must be absolute");
+console.log("broken symlink repaired ok");
+
+// A provisioned profile must carry the harness's own base and application rows,
+// not just the Stack bundle. Seeding only the Stack bundle leaves the Stack
+// entries that inject core services pending, so nothing binds the port and the
+// profile process exits immediately.
+const seededHome = join(root, "seeded-home");
+const seededDir = join(seededHome, "profiles", "web");
+mkdirSync(seededDir, { recursive: true });
+// A provisioned profile must either carry the harness' shipped rows or refuse
+// outright. Declaring only the Stack bundle is the one unacceptable outcome: it
+// mounts, exits 0, and never serves a request. The two acceptable outcomes depend
+// on whether the harness is installed where the launcher looks for it, which is
+// exactly why both are asserted rather than only the seeded one.
+let seeded;
+try {
+  await ensureProfileComposition({
+    home: seededHome,
+    pkgDir,
+    profile: "web",
+    bundle: WEB_PROFILE_BUNDLE,
+    harnessDir,
+  });
+  seeded = JSON.parse(readFileSync(join(seededDir, "package.json"), "utf8"));
+} catch (error) {
+  assert.match(
+    String(error?.message ?? error),
+    /refusing to provision a profile/,
+    "provisioning may only fail by refusing, never by writing a partial profile",
+  );
+  console.log("shipped template unreadable, provisioning refused ok");
+}
+const seededBundles = seeded?.dsh?.profile?.bundles ?? [];
+for (const required of ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app"]) {
+  if (seededBundles.length > 0) {
+    assert.ok(
+      seededBundles.includes(required),
+      `a provisioned web profile must declare ${required}`,
+    );
+  }
+}
+if (seededBundles.length > 0) {
+  assert.ok(
+    seededBundles.includes(WEB_PROFILE_BUNDLE),
+    "a provisioned profile must declare the Stack bundle",
+  );
+  assert.ok(
+    seededBundles.indexOf("@deepseek-ai/dsh-web-app") < seededBundles.indexOf(WEB_PROFILE_BUNDLE),
+    "application rows must load before the Stack bundle so the Stack can inject into them",
+  );
+  assert.ok(
+    seededBundles.indexOf("@deepseek-ai/dsh-base") <
+      seededBundles.indexOf("@deepseek-ai/dsh-web-app"),
+    "the shipped template order must be preserved: base mounts before the application row",
+  );
+  console.log("shipped template seeded ok");
+}
+
+// The replaced harness shells must be disabled in the provisioned patch layer.
+// Without it the server reports every entry active and still serves HTTP 200, but
+// the browser refuses to boot the client tree: dsh-client-ui-sidebar and
+// @dsh-stack/tweaks both declare the same slot. Only meaningful once a manifest
+// was actually written, since a refusal leaves no profile to patch.
+if (seededBundles.length > 0) {
+  const patchPath = join(seededDir, "cordis.patch.yml");
+  const patchDoc = YAML.parse(readFileSync(patchPath, "utf8"));
+  for (const row of ["ui-sidebar", "ui-settings-general"]) {
+    assert.ok(
+      patchDoc.some((entry) => entry?.id === row && entry.disabled === true),
+      `the provisioned patch layer must disable ${row}`,
+    );
+  }
+  // Reconciling again must not duplicate the rows, and a person's own entries stay.
+  patchDoc.push({ id: "webserver", config: { port: 3081 } });
+  writeFileSync(patchPath, YAML.stringify(patchDoc), "utf8");
+  await ensureProfileComposition({
+    home: seededHome,
+    pkgDir,
+    profile: "web",
+    bundle: WEB_PROFILE_BUNDLE,
+    harnessDir,
+  });
+  const reconciled = YAML.parse(readFileSync(patchPath, "utf8"));
+  assert.equal(
+    reconciled.filter((entry) => entry?.id === "ui-sidebar").length,
+    1,
+    "reconciling must not duplicate a shell row",
+  );
+  assert.ok(
+    reconciled.some((entry) => entry?.id === "webserver"),
+    "a person's own patch entries must survive reconciliation",
+  );
+  console.log("stack patch layer seeded ok");
+}
 
 // parseWorktreeList: porcelain parsing, main-checkout flagging, detached entries.
 const porcelain = [

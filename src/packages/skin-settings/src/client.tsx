@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import type { ClientContext } from "@deepseek-ai/dsh-client-runtime/client";
+import type { Context as ClientContext } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/dsh-client-ui-settings/client";
+// Type-only: pulls the SlotRegistry service merge (ctx.slots).
+import type {} from "@deepseek-ai/dsh-client-ui-renderer/client";
 import {
   SETTINGS_APPEARANCE_TAB_SLOT,
   type SettingsAppearanceTabOwnerProps,

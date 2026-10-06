@@ -22,11 +22,9 @@ import type { Context } from "@deepseek-ai/cordis";
 import { watch } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import z from "@deepseek-ai/schemastery";
-import type {} from "@deepseek-ai/dsh-settings";
-import { installSettingsSection } from "@deepseek-ai/dsh-settings";
+import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
 import { resolveDshHome } from "@deepseek-ai/dsh-home-paths";
 import {
-  NS,
   AgentSettings,
   authoringRoot,
   defaultBase,
@@ -51,8 +49,11 @@ export { materializeAgentPresetPack } from "./presets.js";
 export const name = "agents";
 export const inject: string[] = [];
 
-/** Deployment configuration: the same fields the settings section carries. */
-export const Config: z<AgentSettingsType> = AgentSettings;
+/** Deployment configuration, which is also this entry's settings form: the
+ * authoring root, the default base preset, and the persona a fresh session runs
+ * on. `defaultPersona` is a live reference, so this is declared bare — a
+ * `z<T>` annotation cannot carry a field whose type is invariant. */
+export const Config = AgentSettings;
 
 /** How long a burst of authoring-directory events is debounced before a sync. */
 const WATCH_DEBOUNCE_MS = 250;
@@ -161,31 +162,40 @@ async function syncOnce(
 }
 
 /**
- * Install the plugin: register the `agents` settings section, then (once
- * the settings service is live) resolve the authoring directory, load the
- * runtime catalog, sync once at boot, re-sync debounced whenever the
- * authoring directory changes, and mount the live-persona surface — the
- * `persona:policy` section, the `persona` projection unit, the `/persona`
- * command, and the pending-commit pre-step listener.
+ * Declare this plugin's settings surface and install the live-persona machinery.
+ *
+ * Since 0.2.0 no settings form is registered: the settings service projects the
+ * volatile Config fields of the active profile's entries, so this plugin's own
+ * `AgentSettings` is its form and its namespace is its entry id `agents`. Only
+ * `defaultPersona` is volatile — the one field a user chooses — and it is held
+ * as a live reference the Loader commits every settings write into. All that is
+ * left to declare is that this plugin ships its own page for that form.
+ *
+ * The authoring directory and the default base preset are deployment facts read
+ * once from the `config` this entry was applied with; the fallback persona is
+ * read at each use instead, because a settings write commits into the same
+ * reference without remounting the plugin.
+ *
+ * When the settings service is live, the rest mounts: the runtime catalog, a
+ * sync at boot, a debounced re-sync whenever the authoring directory changes,
+ * and the live-persona surface — the `persona:policy` section, the `persona`
+ * projection unit, the `/persona` command, and the pending-commit pre-step
+ * listener.
+ *
+ * @param ctx - the plugin's context.
+ * @param config - the `agents` profile entry this plugin was applied with: the
+ *   authoring root, the default base preset, and the live fallback persona
+ *   reference.
  */
 export function apply(ctx: Context, config: AgentSettingsType): void {
-  installSettingsSection(
-    ctx,
-    NS,
-    AgentSettings,
-    { root: undefined, defaultBase: undefined, defaultPersona: undefined },
-    {
-      setSource: () => {},
-      onChange: () => {},
-    },
-  );
+  declareCustomSettingsPage(ctx);
 
   ctx.inject(["settings"], (sctx) => {
-    const settings = sctx.settings.get(NS) as AgentSettingsType | undefined;
     const home = resolveDshHome();
-    const root = authoringRoot(home, settings, config);
-    const base = defaultBase(settings, config);
-    const fallback = defaultPersona(settings, config);
+    const root = authoringRoot(home, undefined, config);
+    const base = defaultBase(undefined, config);
+    /** fallbackPersona implementation: read the live reference, never a captured value. */
+    const fallback = (): string | undefined => defaultPersona(undefined, config);
     const baseDir = basePresetDir();
 
     const catalog = new PersonaCatalog({ root });
@@ -230,7 +240,7 @@ export function apply(ctx: Context, config: AgentSettingsType): void {
           systemPrompt.systemPrompt.section({
             name: "persona:policy",
             order: 45,
-            text: (context) => personaPolicyText(context, controller, catalog, fallback),
+            text: (context) => personaPolicyText(context, controller, catalog, fallback()),
           }),
         "agents: persona:policy section",
       );
@@ -286,8 +296,9 @@ export function apply(ctx: Context, config: AgentSettingsType): void {
                 const headerId = agent.session.header?.agentPreset;
                 if (headerId !== undefined && catalog.get(headerId) !== undefined)
                   return { kind: "success", text: `Current persona: ${headerId}` };
-                if (fallback !== undefined && catalog.get(fallback) !== undefined)
-                  return { kind: "success", text: `Current persona: ${fallback}` };
+                const configured = fallback();
+                if (configured !== undefined && catalog.get(configured) !== undefined)
+                  return { kind: "success", text: `Current persona: ${configured}` };
                 return { kind: "success", text: "No persona selected (deployment default)." };
               }
               try {

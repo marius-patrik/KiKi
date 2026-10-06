@@ -1,17 +1,30 @@
 /**
  * The Anthropic Messages API dialect. User text becomes `text` parts and tool
- * results become `tool_result` parts; assistant text becomes `text` parts and
- * tool calls become `tool_use` parts. Reasoning blocks are dropped (thinking
- * is not configured on this route), and core image blocks are rejected because
- * this wire route is text-only.
+ * results become their own `tool_result` user message; assistant text becomes
+ * `text` parts and tool calls become `tool_use` parts. Reasoning blocks are
+ * dropped (thinking is not configured on this route), and core image blocks are
+ * rejected because this wire route is text-only.
  *
  * @module dialects/claude
  */
 
 import { contentHasImage, LlmError } from "@deepseek-ai/dsh-llm";
-import type { ContentBlock, GenerateOptions, Message } from "@deepseek-ai/dsh-llm";
-import type { Dialect, DialectAuth, DialectDefaults, WireRequest } from "@dsh-stack/dialects";
-import { parseSseEvents } from "@dsh-stack/dialects";
+import type {
+  AssistantMessage,
+  ContentBlock,
+  GenerateOptions,
+  RequestUserInput,
+  ToolResultMessage,
+  UserMessage,
+} from "@deepseek-ai/dsh-llm";
+import type {
+  Dialect,
+  DialectAuth,
+  DialectDefaults,
+  RequestTurn,
+  WireRequest,
+} from "@dsh-stack/dialects";
+import { parseSseEvents, splitRequestMessages } from "@dsh-stack/dialects";
 import { translateClaude } from "./translate-claude.js";
 
 /** One Anthropic content part. */
@@ -87,7 +100,7 @@ function parseToolInput(argumentsJson: string): Record<string, unknown> {
  *
  * Fails if the input message contains unsupported block types.
  */
-function serializeAssistant(message: Message): WireMessage {
+function serializeAssistant(message: AssistantMessage): WireMessage {
   const parts: WirePart[] = [];
   for (const block of message.content) {
     if (block.type === "text") parts.push({ type: "text", text: block.text });
@@ -106,25 +119,37 @@ function serializeAssistant(message: Message): WireMessage {
 /**
  * Converts a user message into a serializable wire message format.
  *
- * Guarantees that the returned message is structured as a WireMessage with the role "assistant" and content parts
- * representing the message blocks. If a block is of type "tool-result" with an error, it includes an "is_error" flag.
- *
- * Fails to serialize blocks of unknown types, leaving them out of the resulting message.
+ * Guarantees that the returned message is a WireMessage with the role "user" and content parts
+ * representing the message blocks. Non-text blocks leave the resulting message out.
  */
-function serializeUser(message: Message): WireMessage {
+function serializeUser(message: UserMessage | RequestUserInput): WireMessage {
   const parts: WirePart[] = [];
   for (const block of message.content) {
     if (block.type === "text") parts.push({ type: "text", text: block.text });
-    else if (block.type === "tool-result") {
-      parts.push({
-        type: "tool_result",
-        tool_use_id: block.toolCallId,
-        content: flattenText(block.content) || "(no output)",
-        ...(block.isError === true ? { is_error: true } : {}),
-      });
-    }
   }
   return { role: "user", content: parts };
+}
+
+/**
+ * Converts one tool-result message into a wire user message carrying the
+ * `tool_result` part that answers it.
+ *
+ * Guarantees that the part names the call its harness message answers and, when
+ * the tool failed, marks the result as an error. A result with no model-visible
+ * text still answers, as "(no output)".
+ */
+function serializeToolResult(message: ToolResultMessage): WireMessage {
+  return {
+    role: "user",
+    content: [
+      {
+        type: "tool_result",
+        tool_use_id: message.toolCallId,
+        content: flattenText(message.content) || "(no output)",
+        ...(message.isError === true ? { is_error: true } : {}),
+      },
+    ],
+  };
 }
 
 /**
@@ -138,10 +163,12 @@ function stripTrailingSlash(base: string): string {
 }
 
 /**
- * Build the `system` field. An OAuth subscription request leads with the
- * Claude Code identity and keeps the caller's own prompt after it, so nothing
- * the caller asked for is dropped or reordered.
- * @param system - the caller's system prompt, when set.
+ * Build the `system` field. Anthropic has one system slot, which carries both
+ * the request's rendered prompt (from `GenerateOptions.system` or a leading
+ * `system`-role message, already joined) and, for an OAuth subscription
+ * request, the Claude Code identity ahead of it — so nothing the caller asked
+ * for is dropped or reordered.
+ * @param system - the request's system prompt, when it carries one.
  * @param auth - the resolved credential for this request.
  * @returns the `system` field to spread into the body, or nothing.
  */
@@ -247,14 +274,18 @@ export const claudeDialect: Dialect = {
         "AUTH",
       );
     }
-    const messages: WireMessage[] = [];
-    for (const message of options.messages) {
-      assertTextOnly(message.content);
-      if (message.role === "system") continue;
-      messages.push(
-        message.role === "assistant" ? serializeAssistant(message) : serializeUser(message),
-      );
-    }
+    const { turns, system } = splitRequestMessages("claude", options, options.messages);
+    for (const turn of turns) assertTextOnly(turn.content);
+    const messages: WireMessage[] = turns.map((turn) => {
+      switch (turn.role) {
+        case "assistant":
+          return serializeAssistant(turn);
+        case "tool":
+          return serializeToolResult(turn);
+        case "user":
+          return serializeUser(turn);
+      }
+    });
 
     const maxTokens = options.maxTokens ?? defaults.maxTokens;
     const thinking = serializeThinking(options.reasoningEffort, maxTokens);
@@ -263,7 +294,7 @@ export const claudeDialect: Dialect = {
       messages,
       stream: true,
       max_tokens: maxTokens,
-      ...serializeSystem(options.system, auth),
+      ...serializeSystem(system, auth),
       ...(options.tools !== undefined && options.tools.length > 0
         ? {
             tools: options.tools.map((tool) => ({

@@ -1,16 +1,23 @@
 /**
  * The Gemini dialect. Serialization covers text-only conversation plus tool
  * calls and results (a `functionCall`/`functionResponse` round trip); reasoning
- * and image blocks are unsupported on this route. Tool results resolve their
- * tool name from the request's own assistant tool-call history.
+ * and image blocks are unsupported on this route. A tool result is its own
+ * `tool`-role turn whose wire part resolves the tool name from the request's
+ * assistant tool-call history.
  *
  * @module dialects/gemini
  */
 
 import { contentHasImage, LlmError } from "@deepseek-ai/dsh-llm";
-import type { CallId, ContentBlock, GenerateOptions, Message } from "@deepseek-ai/dsh-llm";
-import type { Dialect, DialectAuth, DialectDefaults, WireRequest } from "@dsh-stack/dialects";
-import { parseNdjson } from "@dsh-stack/dialects";
+import type { ContentBlock, GenerateOptions, ToolCallId } from "@deepseek-ai/dsh-llm";
+import type {
+  Dialect,
+  DialectAuth,
+  DialectDefaults,
+  RequestTurn,
+  WireRequest,
+} from "@dsh-stack/dialects";
+import { parseNdjson, splitRequestMessages } from "@dsh-stack/dialects";
 import { translateGemini } from "./translate-gemini.js";
 
 /** One Gemini content part. */
@@ -78,11 +85,11 @@ function parseToolArgs(argumentsJson: string): Record<string, unknown> {
 /**
  * Build the call-id → tool-name index from the request's assistant tool-call
  * history, so `functionResponse` parts can name the function they answer.
- * @param messages - the harness conversation.
+ * @param messages - the conversation turns.
  * @returns the name lookup for every tool call in the conversation.
  */
-export function buildToolNameIndex(messages: Message[]): Map<CallId, string> {
-  const index = new Map<CallId, string>();
+export function buildToolNameIndex(messages: readonly RequestTurn[]): Map<ToolCallId, string> {
+  const index = new Map<ToolCallId, string>();
   for (const message of messages) {
     if (message.role !== "assistant") continue;
     for (const block of message.content) {
@@ -92,40 +99,49 @@ export function buildToolNameIndex(messages: Message[]): Map<CallId, string> {
   return index;
 }
 
-/** Serialize the conversation into Gemini contents; empty parts are dropped. */
-export function serializeContents(messages: Message[]): WireContent[] {
+/**
+ * Serialize the conversation turns into Gemini contents; a turn with no parts is
+ * dropped. A tool result becomes the `functionResponse` answering its call.
+ * @param messages - the conversation turns, in order.
+ * @returns the wire contents, roles `user`/`model`.
+ */
+export function serializeContents(messages: readonly RequestTurn[]): WireContent[] {
   const toolNames = buildToolNameIndex(messages);
   const contents: WireContent[] = [];
   for (const message of messages) {
-    assertTextOnly(message.content);
-    if (message.role === "system") continue;
     const parts: WirePart[] = [];
-    if (message.role === "assistant") {
-      for (const block of message.content) {
-        if (block.type === "text") parts.push({ text: block.text });
-        else if (block.type === "tool-call") {
-          parts.push({ functionCall: { name: block.name, args: parseToolArgs(block.arguments) } });
-        }
-      }
-    } else {
-      for (const block of message.content) {
-        if (block.type === "text") parts.push({ text: block.text });
-        else if (block.type === "tool-result") {
-          const name = toolNames.get(block.toolCallId);
-          if (name === undefined) {
-            throw new LlmError(
-              `tool result for call "${block.toolCallId}" has no tool call in the conversation`,
-              "UNSUPPORTED",
-            );
+    switch (message.role) {
+      case "assistant":
+        for (const block of message.content) {
+          if (block.type === "text") parts.push({ text: block.text });
+          else if (block.type === "tool-call") {
+            parts.push({
+              functionCall: { name: block.name, args: parseToolArgs(block.arguments) },
+            });
           }
-          parts.push({
-            functionResponse: {
-              name,
-              response: { result: flattenText(block.content) || "(no output)" },
-            },
-          });
         }
+        break;
+      case "tool": {
+        const name = toolNames.get(message.toolCallId);
+        if (name === undefined) {
+          throw new LlmError(
+            `tool result for call "${message.toolCallId}" has no tool call in the conversation`,
+            "UNSUPPORTED",
+          );
+        }
+        parts.push({
+          functionResponse: {
+            name,
+            response: { result: flattenText(message.content) || "(no output)" },
+          },
+        });
+        break;
       }
+      case "user":
+        for (const block of message.content) {
+          if (block.type === "text") parts.push({ text: block.text });
+        }
+        break;
     }
     if (parts.length > 0) {
       contents.push({ role: message.role === "assistant" ? "model" : "user", parts });
@@ -178,11 +194,11 @@ export const geminiDialect: Dialect = {
       throw new LlmError("no cookies or API key supplied for a gemini dialect request", "AUTH");
     }
     // jscpd:ignore-start -- structurally similar to claude.ts's request-shaping block but encodes Gemini-specific wire semantics; forcing a shared helper would blur real per-dialect differences
+    const { turns, system } = splitRequestMessages("gemini", options, options.messages);
+    for (const turn of turns) assertTextOnly(turn.content);
     const body: WireRequestBody = {
-      contents: serializeContents(options.messages),
-      ...(options.system !== undefined
-        ? { systemInstruction: { parts: [{ text: options.system }] } }
-        : {}),
+      contents: serializeContents(turns),
+      ...(system !== undefined ? { systemInstruction: { parts: [{ text: system }] } } : {}),
       ...(options.tools !== undefined && options.tools.length > 0
         ? {
             tools: [

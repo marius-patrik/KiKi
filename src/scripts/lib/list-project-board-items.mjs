@@ -23,22 +23,39 @@ import { runGh } from "./run-gh.mjs";
  *   derive a Status for them.
  */
 export function listProjectBoardItems({ owner, number, token, limit = 500 }) {
-  const { items } = JSON.parse(
-    runGh(
-      [
-        "project",
-        "item-list",
-        String(number),
-        "--owner",
-        owner,
-        "--limit",
-        String(limit),
-        "--format",
-        "json",
-      ],
-      token,
-    ),
-  );
+  let items;
+  try {
+    ({ items } = JSON.parse(
+      runGh(
+        [
+          "project",
+          "item-list",
+          String(number),
+          "--owner",
+          owner,
+          "--limit",
+          String(limit),
+          "--format",
+          "json",
+        ],
+        token,
+      ),
+    ));
+  } catch (error) {
+    // `gh project` resolves the owner type through the API before it does anything
+    // else, and an unusable token makes that lookup fail, so it reports
+    // "unknown owner type" -- which reads like a project-ownership problem and is
+    // not one. Reproduced byte-for-byte with a deliberately invalid token. Naming
+    // the credential here is the difference between a fixable report and a hunt.
+    throw new Error(
+      `cannot read project ${number} owned by ${owner}: ${error instanceof Error ? error.message : String(error)}. ` +
+        'If that says "unknown owner type", the token cannot authenticate at all -- check PROJECTS_TOKEN ' +
+        "(it is a classic PAT holding the `project` scope; an expired or revoked one fails this way). " +
+        "Rotate it, then confirm with: gh project item-list " +
+        `${number} --owner ${owner} --limit 1`,
+      { cause: error },
+    );
+  }
 
   const byNumber = new Map();
   for (const item of items) {

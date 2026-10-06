@@ -23,8 +23,10 @@ import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import {
+  WEB_PROFILE_BUNDLE,
   attachToServer,
   ensureHeadlessProfile,
+  ensureProfileComposition,
   findHarnessDir,
   findListenerPid,
   followLog,
@@ -211,14 +213,23 @@ async function main() {
   loadCredentialEnv(join(home, ".credentials.yaml"), env);
   const profile =
     env.DSH_PROFILE !== undefined && env.DSH_PROFILE.length > 0 ? env.DSH_PROFILE : "web";
+  const harnessDir = findHarnessDir(env, pkgDir);
   if (profile === "headless" || process.argv.includes("headless")) {
-    ensureHeadlessProfile({ home, pkgDir });
+    await ensureHeadlessProfile({ home, pkgDir, harnessDir });
+  } else {
+    await ensureProfileComposition({
+      home,
+      pkgDir,
+      profile,
+      bundle: WEB_PROFILE_BUNDLE,
+      harnessDir,
+    });
   }
   const plan = route(process.argv.slice(2), {
     invokedName: basename(process.argv[1] ?? "dsh"),
     command: tweaks.command,
   });
-  await execute(plan, { home, profile, pkgDir, harnessDir: findHarnessDir(env, pkgDir) });
+  await execute(plan, { home, profile, pkgDir, harnessDir });
 }
 
 main().catch((err) => {

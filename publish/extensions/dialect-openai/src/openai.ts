@@ -10,9 +10,15 @@
  */
 
 import { contentHasImage, LlmError } from "@deepseek-ai/dsh-llm";
-import type { ContentBlock, GenerateOptions, Message } from "@deepseek-ai/dsh-llm";
-import type { Dialect, DialectAuth, DialectDefaults, WireRequest } from "@dsh-stack/dialects";
-import { parseSseData } from "@dsh-stack/dialects";
+import type { AssistantMessage, ContentBlock, GenerateOptions } from "@deepseek-ai/dsh-llm";
+import type {
+  Dialect,
+  DialectAuth,
+  DialectDefaults,
+  RequestTurn,
+  WireRequest,
+} from "@dsh-stack/dialects";
+import { parseSseData, splitRequestMessages } from "@dsh-stack/dialects";
 import { translateOpenAi } from "./translate-openai.js";
 
 /** A request `messages` entry, discriminated on `role`. */
@@ -72,7 +78,7 @@ function assertTextOnly(blocks: readonly ContentBlock[]): void {
 }
 
 /** Serialize one assistant message (text + reasoning + tool calls). */
-function serializeAssistant(message: Message): WireMessage {
+function serializeAssistant(message: AssistantMessage): WireMessage {
   const text = flattenText(message.content);
   const reasoning = message.content
     .filter((block) => block.type === "reasoning")
@@ -94,38 +100,27 @@ function serializeAssistant(message: Message): WireMessage {
 }
 
 /**
- * Serialize the conversation. `tool-result` blocks become standalone
- * `{role: 'tool'}` messages; a mixed user message contributes its text first
- * and its tool results as separate wire messages after.
- * @param messages - the harness conversation, in order.
- * @returns the wire messages; order preserved, each tool result expanded into its own entry.
+ * Serialize the conversation turns. A tool result is a first-class `tool`-role
+ * message on this wire, keyed by the `toolCallId` its harness message carries,
+ * so one turn becomes exactly one wire message.
+ * @param messages - the conversation turns, in order.
+ * @returns the wire messages; order preserved.
  */
-export function serializeMessages(messages: Message[]): WireMessage[] {
-  const wire: WireMessage[] = [];
-  for (const message of messages) {
-    assertTextOnly(message.content);
-    if (message.role === "system") {
-      wire.push({ role: "system", content: flattenText(message.content) });
-      continue;
+export function serializeMessages(messages: readonly RequestTurn[]): WireMessage[] {
+  return messages.map((message) => {
+    switch (message.role) {
+      case "assistant":
+        return serializeAssistant(message);
+      case "tool":
+        return {
+          role: "tool",
+          tool_call_id: message.toolCallId,
+          content: flattenText(message.content) || "(no output)",
+        };
+      case "user":
+        return { role: "user", content: flattenText(message.content) };
     }
-    if (message.role === "assistant") {
-      wire.push(serializeAssistant(message));
-      continue;
-    }
-    const toolResults = message.content.filter((block) => block.type === "tool-result");
-    const text = flattenText(message.content);
-    if (text.length > 0 || toolResults.length === 0) {
-      wire.push({ role: "user", content: text });
-    }
-    for (const result of toolResults) {
-      wire.push({
-        role: "tool",
-        tool_call_id: result.toolCallId,
-        content: flattenText(result.content) || "(no output)",
-      });
-    }
-  }
-  return wire;
+  });
 }
 
 /** stripTrailingSlash implementation. */
@@ -167,11 +162,13 @@ export const openaiDialect: Dialect = {
         "AUTH",
       );
     }
+    const { turns, system } = splitRequestMessages("openai", options, options.messages);
+    for (const turn of turns) assertTextOnly(turn.content);
     const messages: WireMessage[] = [];
-    if (options.system !== undefined) {
-      messages.push({ role: "system", content: options.system });
+    if (system !== undefined) {
+      messages.push({ role: "system", content: system });
     }
-    messages.push(...serializeMessages(options.messages));
+    messages.push(...serializeMessages(turns));
 
     const body: WireRequestBody = {
       model: options.model,

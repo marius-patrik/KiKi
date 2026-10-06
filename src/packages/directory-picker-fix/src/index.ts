@@ -34,6 +34,7 @@
 import type { Context } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/cordis-plugin-loader";
 import type {} from "@deepseek-ai/dsh-host-webserver";
+import type { DirectoryPickerHostFacts } from "@deepseek-ai/dsh-host-directory-picker-auto";
 import {
   BACKEND_PACKAGES,
   canExecute,
@@ -49,20 +50,62 @@ export const name = "directory-picker-fix";
 export const inject = ["webServer", "loader"];
 
 /**
+ * Narrow the webserver's configured host to the two bindings the directory picker
+ * knows how to drive.
+ *
+ * `DirectoryPickerHostFacts.bindHost` is the webserver schema's closed
+ * loopback/all-interfaces union, but the running webserver accepts any host. A
+ * bind that is neither is a cross-origin deployment the native picker cannot be
+ * reached through, so it resolves to all-interfaces and says so rather than being
+ * silently coerced into loopback.
+ *
+ * @param host - the webserver's configured bind host.
+ * @param logger - where an unrecognised bind is reported.
+ * @returns the narrowed bind host.
+ */
+function resolvePickerBindHost(
+  host: string,
+  logger: Context["logger"],
+): DirectoryPickerHostFacts["bindHost"] {
+  if (host === "127.0.0.1" || host === "0.0.0.0") return host;
+  logger.warn(
+    `directory-picker-fix: bind host ${host} is neither loopback nor all-interfaces; ` +
+      "resolving the picker against 0.0.0.0",
+  );
+  return "0.0.0.0";
+}
+
+/**
+ * Whether this process was launched over SSH.
+ *
+ * A remote launch changes which directory-picker interaction is reachable, and it
+ * is a fact about the inherited process layer rather than a `.env` value.
+ *
+ * @returns true when an SSH client variable is present and non-blank.
+ */
+function launchedOverSsh(env: NodeJS.ProcessEnv): boolean {
+  return (
+    env.SSH_CONNECTION !== undefined || env.SSH_TTY !== undefined || env.SSH_CLIENT !== undefined
+  );
+}
+
+/**
  * Resolve the interaction from one boot-time sample, mount its backend as a
  * plain plugin, and mount its client surface as a Loader entry.
  * @param ctx - cordis context carrying the injected `webServer` and `loader`.
  */
 export async function apply(ctx: Context): Promise<void> {
+  const bindHost = resolvePickerBindHost(ctx.webServer.host, ctx.logger);
   const backend = resolveDirectoryPickerBackend({
-    bindHost: ctx.webServer.host,
+    bindHost,
     platform: process.platform,
+    ssh: launchedOverSsh(process.env),
     env: process.env,
     linuxChooser: hasLinuxChooserBinary(process.env.PATH, canExecute),
   });
   ctx.plugin(backend === "native" ? NativeDirectoryPicker : BrowseDirectoryPicker);
   ctx.logger.info(
-    `directory-picker-fix: mounted ${BACKEND_PACKAGES[backend]} statically (bindHost=${ctx.webServer.host})`,
+    `directory-picker-fix: mounted ${BACKEND_PACKAGES[backend]} statically (bindHost=${bindHost})`,
   );
   await ctx.loader.create({ name: SURFACE_PACKAGES[backend] });
 }

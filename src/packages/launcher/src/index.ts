@@ -22,6 +22,12 @@ export {
 } from "./ports.js";
 export type { StartedServer } from "./processes.js";
 export { findListenerPid, startServer, stopServer } from "./processes.js";
+export {
+  HEADLESS_PROFILE_BUNDLE,
+  WEB_PROFILE_BUNDLE,
+  ensureProfileComposition,
+} from "./profile-composition.js";
+export type { ProfileCompositionOptions } from "./profile-composition.js";
 export type { PruneWorktreesOptions } from "./prune-worktrees.js";
 export { originRepo, pruneMergedWorktrees } from "./prune-worktrees.js";
 export type { RouteOptions, RoutePlan } from "./route.js";

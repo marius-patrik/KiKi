@@ -87,7 +87,10 @@ export function makeTtsHandler(current: ConfigSource, accounts: AccountsLike | u
         return;
       }
       const config = current();
-      if (!config.tts.enabled) {
+      // `tts.enabled` is a volatile user choice, so it is read through its
+      // reference: a `Volatile` object is always truthy, so a missing `.get()`
+      // would silently turn this guard into dead code.
+      if (!config.tts.enabled.get()) {
         sendJson(res, 403, { error: "TTS is disabled (voice.tts.enabled)" });
         return;
       }
@@ -176,7 +179,7 @@ export function makeSttHandler(current: ConfigSource, accounts: AccountsLike | u
  * from: engine choices, auto-read, and the TTS voice picker data. Errors in
  * provider resolution surface as `providerError` so the settings UI can show
  * them instead of failing the page.
- * @param current - live voice-config source.
+ * @param current - the voice-config source this handler reads per request.
  * @returns The webServer route handler.
  */
 export function makeConfigHandler(current: ConfigSource) {
@@ -196,21 +199,24 @@ export function makeConfigHandler(current: ConfigSource) {
     } catch (err) {
       providerError = err instanceof Error ? err.message : String(err);
     }
+    // The published picker data is read from the live user-choice references,
+    // so the browser is answered with the values now committed, not the ones
+    // this handler closure was built with.
     sendJson(res, 200, {
       tts: {
-        enabled: config.tts.enabled,
-        provider: config.tts.provider,
-        model: config.tts.model,
-        voice: config.tts.voice,
-        speed: config.tts.speed,
-        format: config.tts.format,
+        enabled: config.tts.enabled.get(),
+        provider: config.tts.provider.get(),
+        model: config.tts.model.get(),
+        voice: config.tts.voice.get(),
+        speed: config.tts.speed.get(),
+        format: config.tts.format.get(),
         voices,
         models,
         providerError,
       },
       providers: TTS_PROVIDERS.map((row) => ({ id: row.id, label: row.label })),
-      stt: { enabled: config.stt.enabled, engine: config.stt.engine },
-      readAloud: { autoRead: config.readAloud.autoRead },
+      stt: { enabled: config.stt.enabled, engine: config.stt.engine.get() },
+      readAloud: { autoRead: config.readAloud.autoRead.get() },
     });
   };
 }

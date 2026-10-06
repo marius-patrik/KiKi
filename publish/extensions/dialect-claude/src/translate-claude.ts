@@ -9,7 +9,7 @@
  * @module dialects/translate-claude
  */
 
-import { CallId, EMPTY_RESPONSE_CODE, LlmError } from "@deepseek-ai/dsh-llm";
+import { EMPTY_RESPONSE_CODE, LlmError, ToolCallId } from "@deepseek-ai/dsh-llm";
 import type { ContentBlock, FinishReason, StreamChunk, TokenUsage } from "@deepseek-ai/dsh-llm";
 import type { SseEvent } from "@dsh-stack/dialects";
 
@@ -114,7 +114,7 @@ function closeBlock(block: OpenBlock): ContentBlock {
     case "tool-call":
       return {
         type: "tool-call",
-        id: CallId(block.callId ?? ""),
+        id: ToolCallId(block.callId ?? ""),
         name: block.name ?? "",
         arguments: block.text,
       };
@@ -188,7 +188,7 @@ export async function* translateClaude(
           yield {
             type: "tool-call-delta",
             index: block.index,
-            id: CallId(block.callId ?? ""),
+            id: ToolCallId(block.callId ?? ""),
             name: block.name,
             argumentsDelta: "",
           };
@@ -212,7 +212,7 @@ export async function* translateClaude(
           yield {
             type: "tool-call-delta",
             index: block.index,
-            id: CallId(block.callId ?? ""),
+            id: ToolCallId(block.callId ?? ""),
             argumentsDelta: delta.partial_json,
           };
         }

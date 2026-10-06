@@ -6,7 +6,8 @@ export {
 } from "./authoring-file.js";
 
 export {
-  installLiveSettingsSection,
+  declareCustomSettingsPage,
+  settingsNamespace,
   type SettingsNamespace,
 } from "./settings-section.js";
 

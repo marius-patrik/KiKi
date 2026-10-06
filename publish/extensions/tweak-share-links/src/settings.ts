@@ -5,10 +5,10 @@
  */
 
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
-/** Namespace of the share-links section. */
-export const NS_SHARE = settingsNamespace("tweaks-share");
+/** Namespace of the share-links section — this plugin's own Loader entry id. */
+export const NS_SHARE = settingsNamespace("tweak-share-links");
 
 /** One self-hosted share-link configuration. */
 export interface ShareConfig {

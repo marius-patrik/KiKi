@@ -1,36 +1,51 @@
 /**
- * Shared settings-section installation for Stack plugins and extensions:
- * registers a schemastery-backed section with the harness settings service
- * and rewires live updates through a change callback. Sections are read live
- * through their source thunks, so the install-time source stays a no-op.
+ * Settings-namespace declarations for Stack plugins and extensions.
+ *
+ * A settings form is not registered. Since 0.2.0 the settings service projects
+ * volatile Config fields from the active profile's entries, so a plugin's own
+ * schemastery `Config` is its form and the namespace is the entry's own id —
+ * the value a plugin exports as `name`. A second hand-minted namespace per plugin
+ * has no home, because one entry yields one form.
+ *
+ * A plugin that ships its own settings page declares that with
+ * `configure({ auto: false }, ctx.fiber)`, registered as an effect inside an
+ * optional `settings` inject child so the plugin still runs when the settings
+ * service is absent.
  * @module plugin-kit/settings-section
  */
 
 import type { Context } from "@deepseek-ai/cordis";
-import type z from "@deepseek-ai/schemastery";
-import { installSettingsSection, settingsNamespace } from "@deepseek-ai/dsh-settings";
+import type { SettingsNamespace } from "@deepseek-ai/dsh-settings";
 
-/** A settings namespace as produced by `settingsNamespace`. */
-export type SettingsNamespace = ReturnType<typeof settingsNamespace>;
+export type { SettingsNamespace };
 
 /**
- * Install one settings section: register `schema` under `ns` seeded with
- * `entry`, run `validate` on candidate values when given, and invoke
- * `onChange` whenever the live value changes.
+ * Brand one Loader entry id as its settings-form namespace.
+ *
+ * The 0.2.0 namespace is the entry id, so this only re-brands a string the
+ * plugin already owns; it does not create, register, or reserve anything. Pass
+ * the same literal the plugin exports as `name`, so the form the service
+ * projects and the form a client asks for cannot drift apart.
+ *
+ * @param entryId - the plugin's own entry id.
+ * @returns the branded namespace for that entry.
  */
-export function installLiveSettingsSection<T>(
-  ctx: Context,
-  ns: SettingsNamespace,
-  schema: z<T>,
-  entry: T,
-  validate: ((value: T) => void) | undefined,
-  onChange: () => void,
-): void {
-  installSettingsSection(ctx, ns, schema, entry, {
-    setSource: () => {
-      /* sections are read live through their source thunks */
-    },
-    onChange,
-    ...(validate === undefined ? {} : { validate }),
+export function settingsNamespace(entryId: string): SettingsNamespace {
+  return entryId as SettingsNamespace;
+}
+
+/**
+ * Declare that the calling plugin ships its own page for the settings form its
+ * Config projects, so a client never generates a schema page over it.
+ *
+ * The policy is registered against the calling plugin's fiber and owned by an
+ * effect, so it is withdrawn with the plugin and re-applied if the settings
+ * service is replaced.
+ *
+ * @param ctx - the calling plugin's context.
+ */
+export function declareCustomSettingsPage(ctx: Context): void {
+  ctx.inject(["settings"], (settingsCtx) => {
+    ctx.effect(() => settingsCtx.settings.configure({ auto: false }, ctx.fiber));
   });
 }

@@ -12,13 +12,17 @@ process.env.DSH_HOME = join(root, ".agents");
 
 const plugin = await import("./lib/index.js");
 const share = await import("./lib/share.js");
+const { NS_SHARE } = await import("./lib/settings.js");
 
 assertLoaderShape(plugin, "tweak-share-links");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
 const home = join(root, ".agents");
 
-// Boot the extension over stub settings + webServer services.
+// Boot the extension over stub settings + webServer services. Since 0.2.0 a
+// plugin's Config is its form and the namespace is its entry id, so there is no
+// registration to observe; what this plugin must declare is that it ships its own
+// page for that form, and that it still mounts its share route.
 const ctx = new Context();
 const { service: settings, registrations } = stubSettingsService();
 ctx.provide("settings", settings);
@@ -38,10 +42,13 @@ plugin.apply(ctx, {
 });
 await new Promise((resolve) => setTimeout(resolve, 50));
 
-assert.ok(
-  registrations.some((ns) => String(ns).includes("tweaks-share")),
-  `tweaks-share namespace not registered: ${registrations.join(", ")}`,
+assert.equal(NS_SHARE, "tweak-share-links", "namespace must be this plugin's entry id");
+assert.equal(
+  registrations.length,
+  1,
+  `expected one settings page policy, got ${registrations.length}`,
 );
+assert.equal(registrations[0].presentation.auto, false);
 console.log("boot ok");
 
 // Share renderer.

@@ -7,11 +7,10 @@
 
 import type { Context } from "@deepseek-ai/cordis";
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
-import { installLiveSettingsSection } from "@dsh-stack/plugin-kit";
+import { declareCustomSettingsPage, settingsNamespace } from "@dsh-stack/plugin-kit";
 
-/** Namespace of the drag-drop section. */
-export const NS_DRAG_DROP = settingsNamespace("tweaks-drag-drop");
+/** Namespace of the drag-drop section — this plugin's own Loader entry id. */
+export const NS_DRAG_DROP = settingsNamespace("tweak-drag-drop");
 
 /** Drag-drop knobs. */
 interface DragDropConfig {
@@ -37,11 +36,17 @@ export type Config = DragDropConfig;
 
 export const Config: z<Config> = DragDropSchema;
 
-/** apply implementation. */
+/**
+ * Declare this plugin's settings surface as its own page.
+ *
+ * The drag-drop form is the `DragDropSchema` this plugin already declares, and
+ * its namespace is this plugin's entry id, so there is nothing to install. The
+ * knobs carry their defaults in the schema, and the settings service validates a
+ * write against that schema alone, so no server-side wiring is needed.
+ *
+ * @param ctx - the calling plugin's context.
+ * @param config - the active profile's projected drag-drop fields.
+ */
 export function apply(ctx: Context, config: Config): void {
-  const dragDrop: DragDropConfig = {
-    enabled: config?.enabled ?? true,
-    maxImageBytes: config?.maxImageBytes ?? 8 * 1024 * 1024,
-  };
-  installLiveSettingsSection(ctx, NS_DRAG_DROP, DragDropSchema, dragDrop, undefined, () => {});
+  declareCustomSettingsPage(ctx);
 }

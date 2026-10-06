@@ -6,19 +6,82 @@ import assert from "node:assert";
 import {
   assertClientInjectIsPackageIds,
   assertLoaderShape,
+  stubSettingsService,
 } from "../../scripts/plugin-check-kit.mjs";
 
 const root = mkdtempSync(join(tmpdir(), "tweaks-"));
 process.env.HOME = root;
 process.env.DSH_HOME = join(root, ".agents");
 
+/**
+ * Every schema path whose node carries `meta.volatile`, in declaration order.
+ *
+ * This mirrors the harness settings service's own `volatileForm`: a marked node
+ * is itself the form, and an unmarked object recurses into its `dict`, so a
+ * schema with no marked node anywhere projects no form at all. The walk also
+ * follows `inner`, so a marker nested inside a `z.dict()` value is reported
+ * rather than silently invisible — the service would not act on such a marker,
+ * and this check must not pretend it would.
+ *
+ * @param {object} schema - a schemastery schema node.
+ * @param {string[]} [prefix] - the path walked to reach `schema`.
+ * @returns {string[]} the dotted paths of every volatile node, `[]` when none.
+ */
+function volatilePaths(schema, prefix = []) {
+  if (schema.meta?.volatile === true) return [prefix.join(".") || "<root>"];
+  const dict = Object.entries(schema.dict ?? {}).flatMap(([key, child]) =>
+    volatilePaths(child, [...prefix, key]),
+  );
+  const inner =
+    schema.inner === undefined ? [] : volatilePaths(schema.inner, [...prefix, "<value>"]);
+  return [...dict, ...inner];
+}
+
 const plugin = await import("./lib/index.js");
+const { NS, TWEAKS_SETTINGS_KEY } = await import("./lib/settings.js");
 const { readTweaksSection, writeTweaksSection, normalizeSection, sectionsEqual } = await import(
   "./lib/mirror.js"
 );
 
 assertLoaderShape(plugin, "tweaks");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
+
+// Since 0.2.0 the namespace a form is addressed by is the Loader entry id, so the
+// namespace is whatever id the bundles insert this entry under and a second
+// hand-minted namespace has no home: one entry yields exactly one form. The id is
+// `dsh-tweaks` rather than the plugin name because that is the key
+// generated from the package name, so it cannot drift from the document key.
+assert.equal(NS, "tweaks", "the settings namespace must be this plugin's entry id");
+assert.equal(TWEAKS_SETTINGS_KEY, NS, "the mirror and the namespace must address one key");
+console.log("namespace ok:", NS);
+
+// The volatility classification, asserted against the schema tree rather than
+// by eye. 0.2.0 projects a form from an entry's volatile fields alone:
+// `volatileForm` (harness settings/src/schema.ts) returns the node itself when
+// `meta.volatile` is set and otherwise recurses only through object nodes,
+// yielding `undefined` when no descendant is marked. So this walk reproduces
+// that predicate, and an empty result means describe() omits this entry and
+// write() refuses it.
+//
+// The empty result is the decision: client.js is this package's settings shell
+// and persists every control it offers to localStorage, naming neither field,
+// and both fields are read by launcher/bin/dsh.mjs before this process exists.
+// Marking either volatile would put an uneditable-by-anyone control in the form
+// whose write could never reach the launcher. Removing the marking is therefore
+// not the failure this guards; adding one is, and the assertion fails on it.
+assert.deepEqual(
+  volatilePaths(plugin.Config),
+  [],
+  "no Config field may be volatile: neither homeRoot nor command is a user choice, " +
+    "and a stray .volatile() would project a form for a field the launcher reads " +
+    "before this process exists",
+);
+// The positive half: the schema must still declare both launcher-visible fields,
+// so the assertion above cannot be satisfied by deleting the form's subject.
+assert.deepEqual(Object.keys(plugin.Config.dict).sort(), ["command", "homeRoot"]);
+assert.equal(plugin.Config.dict.homeRoot.meta.volatile, undefined);
+assert.equal(plugin.Config.dict.command.meta.volatile, undefined);
+console.log("volatile classification ok (deployment facts stay plain)");
 
 const manifest = JSON.parse(readFileSync(join(import.meta.dirname, "package.json"), "utf8"));
 assertClientInjectIsPackageIds(manifest.dsh.client.inject, manifest.name);
@@ -30,22 +93,11 @@ const base = {
   command: "web",
 };
 
-// Boot the plugin over a stub settings service.
+// Boot the plugin over a stub settings service. Since 0.2.0 there is no
+// registration to observe — a plugin's own Config is its form — so what this
+// plugin must declare is that it ships its own page for that form.
 const ctx = new Context();
-const settingsRegistrations = [];
-const settings = {
-  /**
-   * Registers a settings namespace.
-   *
-   * Guarantees that the provided namespace (`ns`) is added to `settingsRegistrations`.
-   * Returns an object with `get` that returns the base option and `watch` that returns undefined.
-   * Fails if the namespace is not added to `settingsRegistrations`.
-   */
-  register(ns, _schema, opts) {
-    settingsRegistrations.push(ns);
-    return { get: () => opts.base, watch: () => undefined };
-  },
-};
+const { service: settings, registrations } = stubSettingsService();
 ctx.provide("settings", settings);
 plugin.apply(ctx, base);
 
@@ -59,12 +111,23 @@ const section = await readTweaksSection(settingsPath);
 assert.deepEqual(section, { homeRoot: "/new/home", command: "web" });
 console.log("boot mirror ok:\n" + text.trim());
 
-// The ui-onboarding namespace ui-settings-general used to own is registered.
-assert.ok(
-  settingsRegistrations.some((ns) => String(ns).includes("ui-onboarding")),
-  `ui-onboarding namespace not registered: ${settingsRegistrations.join(", ")}`,
+// One page policy, owned by this fiber, and nothing else registered: since 0.2.0
+// there is no `settings.register` to call, and the `ui-onboarding` namespace this
+// plugin used to hand-mint is gone rather than folded into the tweaks form. Its
+// only field, `welcomeNoticeVersion`, is a notice version stamp rather than a
+// user choice, and the harness's own writer addresses it under the
+// `ui-settings-general` entry id, which this package's client shadows at the
+// `settings.onboarding` step below (asserted further down) and answers from
+// localStorage instead. A second namespace would be unroutable anyway: write()
+// resolves it through configEditor.entries() and would refuse every call.
+assert.equal(
+  registrations.length,
+  1,
+  `expected exactly one settings page policy, got ${registrations.length}`,
 );
-console.log("ui-onboarding registration ok");
+assert.deepEqual(registrations[0].presentation, { auto: false });
+assert.equal(registrations[0].owner, ctx.fiber);
+console.log("custom settings page declared ok (no second namespace)");
 
 // Idempotent second mirror.
 plugin.apply(ctx, base);
@@ -72,6 +135,23 @@ await new Promise((resolve) => setTimeout(resolve, 200));
 const second = await readTweaksSection(settingsPath);
 assert.deepEqual(second, { homeRoot: "/new/home", command: "web" });
 console.log("idempotent mirror ok");
+
+// The live-update path, and the reason the deleted `setSource` mirror needed no
+// replacement. Both Config fields are plain, so a settings change carrying new
+// values is an ordinary one: the Loader remounts this entry, `apply` runs again
+// with the new Config, and the mirror rewrites the document. A plugin holding a
+// mutable module-level mirror of its settings — the shape the pre-0.2.0
+// `setSource` callback installed — would keep writing the boot snapshot here and
+// fail this, because the second mount's values never reach its stored source.
+plugin.apply(ctx, { homeRoot: "/other/home", command: "app" });
+await new Promise((resolve) => setTimeout(resolve, 200));
+const remounted = await readTweaksSection(settingsPath);
+assert.deepEqual(
+  remounted,
+  { homeRoot: "/other/home", command: "app" },
+  "a remounted apply must mirror the Config it was handed, not a captured snapshot",
+);
+console.log("remount re-mirrors the handed Config ok");
 
 // Mirror helpers preserve unrelated sections.
 const doc = join(root, "other", "settings.yaml");

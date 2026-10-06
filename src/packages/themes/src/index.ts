@@ -15,10 +15,9 @@
 
 import type { Context } from "@deepseek-ai/cordis";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import z from "@deepseek-ai/schemastery";
 import type {} from "@deepseek-ai/dsh-host-webserver";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
 import { homedir } from "node:os";
+import { declareCustomSettingsPage } from "@dsh-stack/plugin-kit";
 import { join, resolve } from "node:path";
 import { mapTheme, type ThemeSource } from "./theme.js";
 import { mountThemeWeb } from "./web.js";
@@ -28,7 +27,6 @@ import {
   DEFAULT_THEMES_DIR,
   NS,
   ThemesConfig,
-  ThemesSettings,
   type ThemesConfig as ThemesConfigType,
 } from "./settings.js";
 
@@ -63,7 +61,7 @@ export function resolveHome(): string {
   return resolve(process.env["DSH_HOME"] ?? join(homedir(), DEFAULT_HOME_DIR));
 }
 
-export const Config: z<ThemesConfig> = ThemesConfig;
+export const Config = ThemesConfig;
 export const THEMES_ROUTE = "/themes.json";
 
 export interface InstallThemeOptions {
@@ -125,37 +123,48 @@ export async function listInstalled(home: string, root: string): Promise<StoredT
   return listThemes(storeHandle(home, root));
 }
 
-/** activeThemeId implementation. */
-function activeThemeId(ctx: Context): string {
-  const settings = ctx.get("settings");
-  if (settings === undefined) return "";
-  const section = settings.get(NS) as ThemesSettings | undefined;
-  return section?.active ?? "";
+/**
+ * Reads the currently active theme id.
+ *
+ * `ThemesConfig.active` is a live reference the Loader commits every settings
+ * write into, so the current value is read from that reference at each call
+ * rather than from a captured snapshot.
+ *
+ * @param config - the projected Config `apply` received.
+ * @returns the active theme id, or empty for the built-in preference.
+ */
+function activeThemeId(config: ThemesConfigType): string {
+  return config.active?.get() ?? "";
 }
 
-/** apply implementation. */
+/**
+ * apply implementation.
+ *
+ * Since 0.2.0 no settings form is registered: the settings service projects the
+ * volatile Config fields of this plugin's own `themes` entry, so `ThemesConfig`
+ * is the form and its namespace is this plugin's entry id. The active theme is
+ * therefore read from the `config.active` reference handed to `apply` and written
+ * back through `settings.update`, which persists into the profile patch and
+ * commits the new value into that same reference. What remains to declare is that
+ * this plugin ships its own page for the form.
+ *
+ * @param ctx - the plugin's context.
+ * @param config - this entry's projected Config, carrying the live `active` reference.
+ */
 export function apply(ctx: Context, config: ThemesConfigType): void {
   const root = config.root ?? DEFAULT_THEMES_DIR;
   const catalogUrl = config.catalogUrl ?? DEFAULT_CATALOG_URL;
-  let writer: ((id: string) => Promise<void>) | undefined;
-  ctx.inject(["settings"], (settingsCtx) => {
-    const scope = settingsCtx.settings.register(NS, ThemesSettings, { base: { active: "" } });
-    settingsCtx.effect(() => {
-      writer = (id) => scope.update({ active: id });
-      return () => {
-        writer = undefined;
-      };
-    }, "themes: active-theme writer");
-  });
+  declareCustomSettingsPage(ctx);
 
   mountThemeWeb(ctx, {
     home: resolveHome,
     root,
     catalogUrl,
-    active: () => activeThemeId(ctx),
+    active: () => activeThemeId(config),
     setActive: async (id) => {
-      if (writer === undefined) throw new Error("themes: no settings service is mounted");
-      await writer(id);
+      const settings = ctx.get("settings");
+      if (settings === undefined) throw new Error("themes: no settings service is mounted");
+      await settings.update(NS, { active: id });
     },
   });
 
@@ -169,7 +178,7 @@ export function apply(ctx: Context, config: ThemesConfigType): void {
             const home = resolveHome();
             const themes = await listInstalled(home, root);
             const body = JSON.stringify({
-              active: activeThemeId(webCtx),
+              active: activeThemeId(config),
               root,
               catalogUrl,
               themes,

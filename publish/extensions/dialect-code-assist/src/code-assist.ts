@@ -15,8 +15,8 @@ import { randomUUID } from "node:crypto";
 import { contentHasImage, LlmError } from "@deepseek-ai/dsh-llm";
 import type { ContentBlock, GenerateOptions } from "@deepseek-ai/dsh-llm";
 import type { Dialect, DialectAuth, DialectDefaults, WireRequest } from "@dsh-stack/dialects";
-import { parseSseEvents } from "@dsh-stack/dialects";
-import { translateGemini, serializeContents, buildToolNameIndex } from "@dsh-stack/dialect-gemini";
+import { parseSseEvents, splitRequestMessages } from "@dsh-stack/dialects";
+import { translateGemini, serializeContents } from "@dsh-stack/dialect-gemini";
 import type { WireContent } from "@dsh-stack/dialect-gemini";
 
 /** The inner `toVertexGenerateContentRequest` nested under `request`. */
@@ -104,13 +104,12 @@ export const codeAssistDialect: Dialect = {
         "AUTH",
       );
     }
-    for (const message of options.messages) assertTextOnly(message.content);
     // jscpd:ignore-start -- structurally similar to gemini.ts's block but encodes Code Assist's distinct wire semantics; forcing a shared helper would blur real per-dialect differences
+    const { turns, system } = splitRequestMessages("code-assist", options, options.messages);
+    for (const turn of turns) assertTextOnly(turn.content);
     const request: WireCodeAssistRequestBody = {
-      contents: serializeContents(options.messages),
-      ...(options.system !== undefined
-        ? { systemInstruction: { parts: [{ text: options.system }] } }
-        : {}),
+      contents: serializeContents(turns),
+      ...(system !== undefined ? { systemInstruction: { parts: [{ text: system }] } } : {}),
       ...(options.tools !== undefined && options.tools.length > 0
         ? {
             tools: [

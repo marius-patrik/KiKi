@@ -6,34 +6,60 @@ import { spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { Context } from "@deepseek-ai/cordis";
 import assert from "node:assert";
-import { assertLoaderShape, stubSpawnSyncSubprocess } from "../../scripts/plugin-check-kit.mjs";
+import {
+  assertLoaderShape,
+  stubSettingsService,
+  stubSpawnSyncSubprocess,
+} from "../../scripts/plugin-check-kit.mjs";
 
 const root = mkdtempSync(join(tmpdir(), "repos-"));
 const env = { ...process.env };
 
 const plugin = await import("./lib/index.js");
-const { NS, RepoSettings } = await import("./lib/settings.js");
+const { NS, RepoConfig, defaultRemote, defaultBaseBranch } = await import("./lib/settings.js");
 const { runGit, currentBranch, GitCommandError } = await import("./lib/git.js");
 const { resolveGitHubToken, createPullRequest, GITHUB_OAUTH_REF } = await import("./lib/github.js");
 const { ownerRepoFromRemote } = plugin;
 
 assertLoaderShape(plugin, "repos");
-assert.equal(NS, "repos");
+assert.equal(NS, "repos", "namespace must be this plugin's entry id");
 assert.equal(plugin.inject.join(","), "subprocess,tools");
 console.log("loader shape ok:", plugin.name, "inject=", JSON.stringify(plugin.inject));
 
-// settings helpers: remote/base-branch precedence.
-const { defaultRemote, defaultBaseBranch } = await import("./lib/settings.js");
-assert.equal(defaultRemote(undefined, undefined), "origin");
-assert.equal(defaultRemote({ remote: "upstream" }, { remote: "other" }), "upstream");
-assert.equal(defaultRemote(undefined, { remote: "fork" }), "fork");
-assert.equal(defaultBaseBranch(undefined, undefined), "main");
+// The `repos` form is the Config this plugin exports, and the settings service
+// projects only its volatile fields — an entry with none is omitted from
+// `describe()` and refuses writes. Both defaults are the operator's choice, so
+// both must stay declared volatile, and both reads must go through the live
+// reference rather than a value captured at boot.
+const config = RepoConfig({ remote: "upstream", defaultBaseBranch: "trunk" });
+assert.equal(RepoConfig.dict.remote.meta.volatile, true, "remote must be declared volatile");
 assert.equal(
-  defaultBaseBranch({ defaultBaseBranch: "trunk" }, { defaultBaseBranch: "other" }),
-  "trunk",
+  RepoConfig.dict.defaultBaseBranch.meta.volatile,
+  true,
+  "defaultBaseBranch must be declared volatile",
 );
-assert.equal(defaultBaseBranch(undefined, { defaultBaseBranch: "develop" }), "develop");
-console.log("settings helpers ok");
+assert.equal(typeof config.remote.get, "function", "remote must resolve to a live reference");
+assert.equal(
+  typeof config.defaultBaseBranch.get,
+  "function",
+  "defaultBaseBranch must resolve to a live reference",
+);
+assert.equal(defaultRemote(config), "upstream");
+assert.equal(defaultBaseBranch(config), "trunk");
+
+// A settings write is persisted into the profile patch and then committed by the
+// Loader into the very reference `apply` was handed. Reading after that commit
+// must observe the new value, so a boot-time snapshot cannot pass here.
+const commitVolatile = Symbol.for("cosmokit.volatile.write");
+config.remote[commitVolatile]("fork");
+config.defaultBaseBranch[commitVolatile]("develop");
+assert.equal(defaultRemote(config), "fork", "defaultRemote must read the live remote reference");
+assert.equal(
+  defaultBaseBranch(config),
+  "develop",
+  "defaultBaseBranch must read the live defaultBaseBranch reference",
+);
+console.log("settings helpers ok (both defaults volatile and read live)");
 
 // ownerRepoFromRemote parsing across remote shapes.
 assert.equal(
@@ -70,22 +96,12 @@ await assert.rejects(runGit(gitCtx, repo, ["commit", "-m", "nothing-to-commit"])
 console.log("git helpers ok (init/branch/current/detached failure)");
 
 // apply: registers the five repo tools over a stub settings/tools surface.
+// Since 0.2.0 the plugin's own Config is its form and the namespace is its entry
+// id, so there is no section registration to observe; what this plugin must
+// declare is that it ships its own page for that form.
 const actx = new Context();
-const sections = new Map([[NS, { remote: "origin", defaultBaseBranch: "main" }]]);
-actx.provide("settings", {
-  get: (ns) => sections.get(ns),
-  /**
-   * Registers a new tool definition.
-   *
-   * Guarantees that the tool definition is added to the `registeredTools` array.
-   * Returns a function that can be used to unregister the tool.
-   * Fails silently by not adding the tool if the `sections` map already contains the namespace.
-   */
-  register(_ns, _schema, opts) {
-    if (!sections.has(_ns)) sections.set(_ns, opts.base);
-    return { get: (ns) => sections.get(ns), watch: () => undefined };
-  },
-});
+const { service: settings, registrations } = stubSettingsService();
+actx.provide("settings", settings);
 const registeredTools = [];
 actx.provide("tools", {
   register: (def) => {
@@ -96,11 +112,22 @@ actx.provide("tools", {
 actx.subprocess = gitCtx.subprocess;
 actx.logger = { info: () => {}, warn: (m) => console.log("WARN:", m) };
 actx.on = () => () => {};
-plugin.apply(actx, {});
+plugin.apply(actx, config);
 await new Promise((resolve) => setTimeout(resolve, 50));
+assert.equal(
+  registrations.length,
+  1,
+  `expected one settings page policy, got ${registrations.length}`,
+);
+assert.equal(registrations[0].presentation.auto, false);
+// The tools closed over the very Config object this boot received, so a write
+// committed into it after apply is what `repo-push` and `repo-pr` resolve.
+config.remote[commitVolatile]("origin");
+assert.equal(defaultRemote(config), "origin");
+assert.equal(defaultBaseBranch(config), "develop");
 const names = registeredTools.map((t) => t.name).sort();
 assert.deepEqual(names, ["repo-branch", "repo-commit", "repo-pr", "repo-push", "repo-status"]);
-console.log("apply wiring ok (5 repo tools registered)");
+console.log("apply wiring ok (5 repo tools registered, custom settings page declared)");
 
 // repo-status tool: real git state of the temp repo.
 const statusDef = registeredTools.find((t) => t.name === "repo-status");

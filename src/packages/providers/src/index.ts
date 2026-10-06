@@ -3,28 +3,32 @@
  * claude-sub, grok-sub, gemini-sub, antigravity-sub, openai-api, anthropic-api,
  * gemini-api, grok-api, deepseek-api, mistral-api, groq-api, openrouter-api,
  * cerebras-api, zai-api, zen, ollama, llamacpp, vllm) wired onto dialects.
- * The quotas subpackage provides quota
- * probing, the `/quotas/api/*` web routes, and the `dsh-quotas` settings
- * section — merged from the standalone dsh-quotas plugin to eliminate data
- * duplication. Connection facts resolve per request from the optional
- * `providers` user-settings section, and credential material resolves
- * per request through the account seam (`ctx.accounts`) with the harness
- * credential seam as fallback, so a changed base URL or secret reaches the
- * very next request without restarting anything.
+ * The quotas subpackage provides quota probing and the `/quotas/api/*` web
+ * routes — merged from the standalone dsh-quotas plugin to eliminate data
+ * duplication. Connection facts resolve per request from this entry's own
+ * Config, and credential material resolves per request through the account seam
+ * (`ctx.accounts`) with the harness credential seam as fallback, so a changed
+ * base URL or secret reaches the very next request without restarting anything.
+ *
+ * Since 0.2.0 no settings form is registered: the settings service projects the
+ * volatile Config fields of the active profile's entries, so this plugin's own
+ * `Config` *is* its form and its namespace is this entry's own id. What remains
+ * to declare is that this plugin ships its own page — `client.js` builds the
+ * whole Providers UI (accounts, model catalog, OAuth flows, quota widgets)
+ * against its own `/vault/api` and `/quotas/api` routes, and writes no
+ * Config field at all — so `declareCustomSettingsPage` turns off the service's
+ * generated schema page rather than letting it render over fields the page does
+ * not use.
  * @module providers
  */
 
-import type { Context } from "@deepseek-ai/cordis";
+import type { Context, Volatile } from "@deepseek-ai/cordis";
 import { Service } from "@deepseek-ai/cordis";
 import z from "@deepseek-ai/schemastery";
 import { LlmError, resolveRetryPolicy, RetryPolicySchema } from "@deepseek-ai/dsh-llm";
 import type { RetryPolicyConfig } from "@deepseek-ai/dsh-llm";
 import { credentialRef, type CredentialProvider } from "@deepseek-ai/dsh-credentials";
-import {
-  deepEqualJson,
-  installSettingsSection,
-  settingsNamespace,
-} from "@deepseek-ai/dsh-settings";
+import { declareCustomSettingsPage, settingsNamespace } from "@dsh-stack/plugin-kit";
 import { MAX_TIMER_DELAY_MS } from "@deepseek-ai/dsh-timeout";
 import type { AccountsService } from "@dsh-stack/credential-vault";
 import {
@@ -37,7 +41,7 @@ import type { ProviderConnection, ProviderGate, ProviderRouteAuthSlot } from "./
 import { vendorBaseId, vendorSuffix } from "./providers.js";
 import type { ProviderRoute } from "./providers.js";
 import { ProviderRegistry } from "./registry.js";
-import { applyQuotas, type QuotasConfig } from "./quotas/index.js";
+import { applyQuotas } from "./quotas/index.js";
 import type { DialectAuth, DialectId } from "@dsh-stack/dialects";
 
 export {
@@ -108,7 +112,6 @@ export {
   applyQuotas,
   QUOTAS_PREFIX,
   mountQuotaWeb,
-  NS as QUOTAS_NS,
 } from "./quotas/index.js";
 export {
   createConfiguredProviders,
@@ -243,18 +246,37 @@ export const inject = ["llm", "dialects"];
 // makes cordis run this plugin's `apply` — which creates `ctx.providers` —
 // strictly before any `@dsh-stack/provider-<id>` extension's own `apply`.
 
-const NS = settingsNamespace("providers");
+/**
+ * The settings namespace of the `providers` form — this plugin's own Loader entry
+ * id. Since 0.2.0 the namespace is the entry id, so this only re-brands a string
+ * the plugin already owns and cannot drift from the form the settings service
+ * projects.
+ */
+export const NS = settingsNamespace("providers");
 
 /**
- * Plugin config, validated by the same-named schemastery schema and doubling
- * as the `providers` settings-section shape. Every field is optional:
- * routes carry advisory defaults, per-provider base URL overrides land here,
- * the retry policy defaults to the harness normal policy, and the provider
- * filter defaults to the single-seat subscription-only mode.
+ * Plugin config, validated by the same-named schemastery schema, and since
+ * 0.2.0 also this entry's settings form.
+ *
+ * Every field is classified by the themes principle: a deployment fact stays
+ * plain, a user choice becomes volatile. A plain field is not part of the form,
+ * so no settings write may address it and editing it restarts the entry instead
+ * of landing under the user's cursor; a volatile field is part of the form, and
+ * the Loader commits a write into the same live reference, so every read below
+ * goes through `.get()` and the plugin reacts on `loader/volatile-update`.
  */
 export interface Config {
-  /** Per-provider endpoint overrides keyed by provider id (e.g. `kimi-code`). */
-  baseURLs?: Record<string, string>;
+  /**
+   * Per-provider endpoint overrides keyed by provider id (e.g. `kimi-code`).
+   *
+   * Volatile: which endpoint a route talks to is the answer to "where is my
+   * proxy / my self-hosted gateway", which differs per installation, and this
+   * plugin documents that a changed base URL reaches the very next request
+   * without a restart. The whole dictionary is volatile rather than each of its
+   * entries, because a form write can only address a path lying under a volatile
+   * node — a reference per entry could be neither declared nor edited.
+   */
+  baseURLs: Volatile<Record<string, string>>;
   /** Maximum provider idle time while one stream read is outstanding. */
   streamIdleTimeoutMs?: number;
   /** Provider-owned model-request retry policy; omission uses normal defaults. */
@@ -263,42 +285,98 @@ export interface Config {
    * Provider filter. `subscription-only` hides pay-as-you-go API routes from
    * the model selector and refuses them at dispatch, so conversation traffic
    * can only ever run on subscription providers; `all` offers every route.
+   *
+   * Volatile: whether this seat may spend money per token is the account
+   * holder's decision, not a property of the installation, and flipping it must
+   * not tear down in-flight streams to re-register the adapter.
    */
-  mode?: "subscription-only" | "all";
+  mode: Volatile<"subscription-only" | "all">;
   /**
    * Discover each route's models from the provider's own listing endpoint
    * instead of relying on the static table. Defaults to on: a new model
    * release then reaches the selector without a code change. Set false to pin
    * the selector to the shipped tables.
+   *
+   * Volatile: it is a per-machine preference about whether the selector reaches
+   * the network, and a listing fetched under the old answer must be dropped
+   * rather than served — see the `loader/volatile-update` listener in `apply`.
    */
-  liveCatalog?: boolean;
+  liveCatalog: Volatile<boolean>;
   /** How long a discovered listing is reused before refetching. */
   catalogTtlMs?: number;
-  /** Quota probe configuration forwarded to the quotas subpackage. */
-  quotas?: QuotasConfig;
 }
 
-export const Config: z<Config> = z.object({
-  baseURLs: z.dict(z.string()),
+/**
+ * What the `providers` Config schema accepts before validation: the deployment
+ * facts and user choices, none of them required.
+ */
+export type ProvidersConfigInput = {
+  baseURLs?: Record<string, string>;
+  streamIdleTimeoutMs?: number;
+  retryPolicy?: RetryPolicyConfig;
+  mode?: "subscription-only" | "all";
+  liveCatalog?: boolean;
+  catalogTtlMs?: number;
+};
+
+/**
+ * Not annotated `z<Config>`: a volatile field's output type is `Volatile<T>`,
+ * which `z<T>`'s invariant position cannot hold. The three-parameter schema type
+ * is the annotation that can, and it is required rather than cosmetic — left to
+ * inference, the nested `Volatile` inside the `baseURLs` dictionary has no name
+ * the declaration emitter can write, so the build fails with `TS2742` ("the
+ * inferred type of `Config` cannot be named without a reference to cosmokit").
+ * Both `build` and `typecheck` report it here, because `tsconfig.base.json` sets
+ * `declaration: true` and the diagnostic belongs to the declaration emitter even
+ * under `--noEmit`. `themes`, `repos`, `voice` and `agents` get away with a bare
+ * `z.object({...})` only because their volatile fields are scalar;
+ * `formatters` sidesteps it differently, by naming its table type, and `lsp` and
+ * `agent-tools` each needed an explicit annotation exactly as here.
+ */
+export const Config: z<ProvidersConfigInput, Config, "plain"> = z.object({
+  // User choices: volatile, and the only fields this entry's form projects.
+  baseURLs: z.dict(z.string()).default({}).volatile(),
+  mode: z.union(["subscription-only", "all"]).default("subscription-only").volatile(),
+  liveCatalog: z.boolean().default(true).volatile(),
+  // Deployment facts: the latency and cost budgets an operator sized for this
+  // installation, not preferences a person changes per session. They stay plain
+  // so the form cannot offer them, and changing one restarts the entry — which
+  // re-runs `apply` and re-registers the adapter under the new budgets, so a
+  // budget edit reaches the next request either way.
   streamIdleTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS),
   retryPolicy: RetryPolicySchema,
-  mode: z.union(["subscription-only", "all"]),
-  liveCatalog: z.boolean(),
   catalogTtlMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS),
-  quotas: z.any(),
 });
 
-/** Validated, detached provider facts for the `providers` section. */
+/** Validated, detached provider facts for the `providers` form. */
 export interface ResolvedProvidersOptions {
-  baseURLs: Record<string, string>;
+  /**
+   * Per-provider endpoint overrides. Read-only because it is a committed
+   * volatile snapshot, which the runtime freezes: a settings write replaces the
+   * whole reference rather than editing this object.
+   */
+  baseURLs: Readonly<Record<string, string>>;
   streamIdleTimeoutMs: number;
   retryPolicy: ReturnType<typeof resolveRetryPolicy>;
-  mode: NonNullable<Config["mode"]>;
+  mode: "subscription-only" | "all";
   liveCatalog: boolean;
   catalogTtlMs: number;
 }
 
-/** The one explicit resolve step from raw config to validated provider facts. */
+/**
+ * The one explicit resolve step from the Config to validated provider facts.
+ *
+ * The three volatile fields are read through `.get()` at each call rather than
+ * captured once: the Loader commits a settings write into the same reference
+ * object this function was handed, so a value read at boot would go stale while
+ * the reference kept looking live. The plain fields are read straight off the
+ * Config, which *is* this fiber's boot snapshot — a change to one of them
+ * remounts the entry and `apply` runs again with a new one.
+ *
+ * @param config - this entry's projected Config, carrying the live references.
+ * @returns the validated facts every consumer resolves from.
+ * @throws When a plain budget is out of range.
+ */
 export function resolveProvidersOptions(config: Config): ResolvedProvidersOptions {
   const streamIdleTimeoutMs = config.streamIdleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS;
   if (
@@ -317,11 +395,11 @@ export function resolveProvidersOptions(config: Config): ResolvedProvidersOption
     );
   }
   return {
-    baseURLs: config.baseURLs ?? {},
+    baseURLs: config.baseURLs.get(),
     streamIdleTimeoutMs,
     retryPolicy: resolveRetryPolicy(config.retryPolicy, "providers: retryPolicy"),
-    mode: config.mode ?? "subscription-only",
-    liveCatalog: config.liveCatalog ?? true,
+    mode: config.mode.get(),
+    liveCatalog: config.liveCatalog.get(),
     catalogTtlMs,
   };
 }
@@ -380,22 +458,33 @@ declare module "@deepseek-ai/cordis" {
 /**
  * Applies the configuration to the context by resolving provider options.
  *
- * Ensures that the resolved provider options are up-to-date and logs any errors
- * encountered during resolution.
+ * Declares that this plugin ships its own settings page for the form its Config
+ * projects, resolves the plain budgets once so an invalid one is refused at load
+ * rather than at the first request, and wires everything that has to react to a
+ * committed volatile write.
  *
  * @param ctx - The context containing the logger and providers.
- * @param config - The configuration to be applied and resolved.
+ * @param config - This entry's projected Config, carrying the live volatile references.
  * @throws Will throw an error if resolving the providers fails.
  */
 export function apply(ctx: Context, config: Config): void {
+  declareCustomSettingsPage(ctx);
+
   // The registry: `@dsh-stack/provider-<id>` extensions inject `providers`
   // and call `ctx.providers.register(route)` from their own `apply`, which
   // cordis runs after this one (see the `inject` comment above), so the
   // registry may hold zero routes for the rest of this function's body.
   new ProviderRegistry(ctx);
 
-  let /** current implementation. */ current: () => Config = () => config;
-  let lastRaw: Config | undefined;
+  /**
+   * The volatile snapshots the last resolution was computed from. A volatile
+   * reference hands back the same frozen snapshot object until the Loader commits
+   * a new one, so identity here is exactly a change detector: stable between
+   * commits, different on one. That replaces the removed settings section's
+   * `setSource`, which swapped a captured Config for a newer one — there is no
+   * captured Config left to swap, only references whose `.get()` is already live.
+   */
+  let lastSnapshots: readonly unknown[] | undefined;
   let lastGood: ResolvedProvidersOptions | undefined;
   /**
    * Returns the current resolved configuration of providers options.
@@ -405,18 +494,23 @@ export function apply(ctx: Context, config: Config): void {
    * @returns The resolved providers options or the last good configuration.
    */
   const resolved = (): ResolvedProvidersOptions => {
-    const raw = current();
-    if (raw === lastRaw && lastGood !== undefined) return lastGood;
+    const snapshots = [config.baseURLs.get(), config.mode.get(), config.liveCatalog.get()];
+    if (
+      lastGood !== undefined &&
+      lastSnapshots !== undefined &&
+      snapshots.every((snapshot, index) => snapshot === lastSnapshots?.[index])
+    )
+      return lastGood;
     try {
-      const next = resolveProvidersOptions(raw);
-      lastRaw = raw;
+      const next = resolveProvidersOptions(config);
+      lastSnapshots = snapshots;
       lastGood = next;
       return next;
     } catch (error) {
       if (lastGood === undefined) throw error;
-      lastRaw = raw;
+      lastSnapshots = snapshots;
       ctx.logger.error(
-        "providers: keeping the last good configuration after an invalid settings section",
+        "providers: keeping the last good configuration after an invalid settings write",
       );
       ctx.logger.error(error);
       return lastGood;
@@ -772,40 +866,43 @@ export function apply(ctx: Context, config: Config): void {
   ctx.providers.onChange(syncRegistrations);
   syncRegistrations();
 
-  let registeredPolicy = resolved().retryPolicy;
-  let registeredCatalogFacts = { live: resolved().liveCatalog, ttl: resolved().catalogTtlMs };
-  const /** ensureRegistrationFacts implementation. */
-    ensureRegistrationFacts = (): void => {
-      // Base URLs, the live-catalog toggle and the TTL all change what a listing
-      // would return, so drop the discovered entries and let the next read
-      // refetch rather than serving a catalog from the previous configuration.
-      const catalogFacts = { live: resolved().liveCatalog, ttl: resolved().catalogTtlMs };
-      if (!deepEqualJson(catalogFacts, registeredCatalogFacts)) {
-        modelCatalog.clear();
-        registeredCatalogFacts = catalogFacts;
-      }
-      const policy = resolved().retryPolicy;
-      if (deepEqualJson(policy, registeredPolicy)) return;
-      adapterRegistration?.replace([...ctx.providers.ids()]);
-      registeredPolicy = policy;
-    };
-
-  installSettingsSection(ctx, NS, Config, config, {
-    setSource: (source) => {
-      current = source;
-    },
-    onChange: ensureRegistrationFacts,
+  // A volatile write does NOT re-run `apply`: the Loader commits it into the
+  // running references and notifies the owning fiber here, leaving this plugin
+  // mounted. So this is where the removed settings section's `onChange` hook
+  // lives now, and the event carries the committed paths — one per volatile
+  // field whose value actually moved — which is strictly more than the old hook
+  // had: it names the fields, so there is nothing left to compare and no
+  // deep-equality over resolved facts. `catalogTtlMs` and `retryPolicy` are
+  // absent on purpose: they are plain deployment facts, so editing one remounts
+  // the entry, which re-registers the adapter under the new budgets anyway.
+  //
+  // `loader/volatile-update` is declared by `@deepseek-ai/cordis-plugin-loader`,
+  // which this plugin does not depend on, so the listener's signature is spelled
+  // out here rather than borrowed from that package's `Events` augmentation.
+  const onVolatileUpdate = ctx.on as (
+    event: "loader/volatile-update",
+    listener: (paths: readonly (readonly string[])[]) => void,
+  ) => () => boolean;
+  onVolatileUpdate("loader/volatile-update", (paths) => {
+    const fields = new Set(paths.map((path) => path[0]));
+    // An endpoint override or the live-catalog toggle changes what a listing
+    // would return, so drop the discovered entries and let the next read refetch
+    // rather than serving a catalog resolved under the previous answer.
+    if (fields.has("baseURLs") || fields.has("liveCatalog")) modelCatalog.clear();
+    // The filter is enforced by `gate`, which every catalog, selection and
+    // dispatch already consults live — but the selector only re-asks when the
+    // adapter registration is replaced, which is what re-fires
+    // `llm/adapters-updated`. Without this, widening the mode would leave the
+    // picker showing the routes it hid a moment ago.
+    if (fields.has("mode")) adapterRegistration?.replace([...ctx.providers.ids()]);
   });
 
-  // Wire the quotas subpackage: registry, settings section, web routes,
-  // built-in probe providers, and staggered 15-minute auto-refresh.
+  // Wire the quotas subpackage: registry, web routes, built-in probe providers,
+  // and staggered 15-minute auto-refresh.
   //
   // The probes resolve their credential through the same refreshing path as
   // dispatch. Reading the stored value instead turned every subscription light
   // red as soon as its access token aged out — a status light that reports the
   // token's age rather than whether the credential works is worse than none.
-  applyQuotas(ctx, {
-    providers: config.quotas?.providers,
-    resolveToken: probeToken,
-  });
+  applyQuotas(ctx, { resolveToken: probeToken });
 }

@@ -27,7 +27,7 @@ export function resolveHome(env: NodeJS.ProcessEnv): string {
  */
 export function migrateHome(home: string, homeRoot: string, log: (msg: string) => void): string {
   if (homeRoot.length === 0 || homeRoot === home) return home;
-  log(`dsh: dsh-tweaks.homeRoot moved state ${home} -> ${homeRoot}`);
+  log(`dsh: tweaks.homeRoot moved state ${home} -> ${homeRoot}`);
   mkdirSync(homeRoot, { recursive: true });
   for (const dir of MIGRATED_DIRS) {
     const from = join(home, dir);

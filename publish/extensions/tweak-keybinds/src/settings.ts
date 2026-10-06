@@ -5,10 +5,10 @@
  */
 
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
-/** Namespace of the keybind section. */
-export const NS_KEYBINDS = settingsNamespace("tweaks-keybinds");
+/** Namespace of the keybind section — this plugin's own Loader entry id. */
+export const NS_KEYBINDS = settingsNamespace("tweak-keybinds");
 
 /** One keybind: a named action bound to a key chord. */
 export interface KeybindEntry {

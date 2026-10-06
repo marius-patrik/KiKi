@@ -5,10 +5,10 @@
  */
 
 import z from "@deepseek-ai/schemastery";
-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+import { settingsNamespace } from "@dsh-stack/plugin-kit";
 
-/** Namespace of the slash-command registry section. */
-export const NS_COMMANDS = settingsNamespace("tweaks-commands");
+/** Namespace of the slash-command registry section — this plugin's own Loader entry id. */
+export const NS_COMMANDS = settingsNamespace("tweak-slash-commands");
 
 /** One config-file slash command: name + fixed response (echo/hint bridge). */
 export interface CommandEntry {
