@@ -21,7 +21,7 @@
  * (so the native/browse choice stays exactly as adaptive as before -- this
  * does not hardcode one backend), then mounts it as a plain, eager
  * `ctx.plugin()` composition, the same way any other Stack plugin composes.
- * `harness/` is pinned and must not be modified directly, so this plugin is
+ * `DSH/` is pinned and must not be modified directly, so this plugin is
  * dsh-stack's own composition-level lever, per the issue's own scope note.
  *
  * The client surface (`@deepseek-ai/dsh-client-ui-directory-picker-{native,browse}`)
