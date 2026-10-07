@@ -11,19 +11,12 @@
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { CATALOG_NAMES, listCatalogDirectories, readJson } from "./repo-paths.mjs";
+
+
 
 /**
- * Reads and parses a JSON file.
- *
- * @param {string} path - Absolute path to the JSON file.
- * @throws When the file cannot be read or contains invalid JSON.
- */
-async function readJson(path) {
-  return JSON.parse(await fs.readFile(path, "utf8"));
-}
-
-/**
- * Scans `plugins` and `plugins` for package directories,
+ * Scans `plugins/` and `bundles/` for package directories,
  * returning a Map of package name to `{ dir, manifest }`.
  *
  * Directories without a readable `package.json` or without a string `name`
@@ -33,12 +26,9 @@ async function readJson(path) {
  */
 export async function discoverStackPackages(repositoryRoot) {
   const byName = new Map();
-  for (const catalogRoot of ["plugins", "plugins"]) {
+  for (const catalogRoot of CATALOG_NAMES) {
     const catalogDir = join(repositoryRoot, catalogRoot);
-    const entries = await fs.readdir(catalogDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
-      const dir = join(catalogDir, entry.name);
+    for (const dir of await listCatalogDirectories(catalogDir)) {
       try {
         const manifest = await readJson(join(dir, "package.json"));
         if (typeof manifest.name === "string") byName.set(manifest.name, { dir, manifest });
