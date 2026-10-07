@@ -6,11 +6,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const root = process.cwd();
-const packagesDir = join(root, "plugins");
-const extensionsDir = join(root, "plugins");
-const packsDir = join(root, "bundles");
-const pluginsDir = join(root, "plugins");
+// One implementation tree and one composition tree. Before the plugin-tree
+// restructure these were four separate directories, and the three scans in
+// `componentArchives` stayed separate after the roots collapsed -- so every plugin
+// was discovered twice and archived twice, under two different kinds.
+import { bundlesDir, catalogDirs, pluginsDir, readJson, root } from "./lib/repo-paths.mjs";
 const command = process.argv[2];
 const bumpArg = process.argv[3] ?? "patch";
 const validBumps = new Set(["major", "minor", "patch"]);
@@ -21,11 +21,6 @@ if (!["manifest", "version", "assets"].includes(command)) {
 if (command === "version" && !validBumps.has(bumpArg)) {
   console.error(`invalid version bump: ${bumpArg}`);
   process.exit(2);
-}
-
-/** Read and parse a UTF-8 JSON file. */
-async function readJson(path) {
-  return JSON.parse(await fs.readFile(path, "utf8"));
 }
 
 /** Serialize a value as consistently formatted UTF-8 JSON. */
@@ -52,7 +47,7 @@ function bumpVersion(version, kind) {
 /** Discover package implementations from the canonical packages, extensions, and packs directories. */
 async function discoverPackages() {
   const packages = [];
-  for (const catalogDir of [packagesDir, extensionsDir, packsDir]) {
+  for (const catalogDir of catalogDirs) {
     let entries;
     try {
       entries = await fs.readdir(catalogDir, { withFileTypes: true });
@@ -97,7 +92,7 @@ async function discoverComponentDirectories(baseDir, relativePrefix = "") {
 
 /** Read pack/profile membership from the composition catalog. */
 async function catalogMembership() {
-  const source = await fs.readFile(join(packagesDir, "composition", "src", "catalog.ts"), "utf8");
+  const source = await fs.readFile(join(pluginsDir, "composition", "src", "catalog.ts"), "utf8");
   const packs = {};
   const profiles = {};
   let section = null;
@@ -196,7 +191,7 @@ async function resolveComponentVersion(component, kind) {
   if (kind !== "plugin" || (component.pkg?.version ?? undefined) !== undefined) {
     return component.pkg?.version ?? "0.0.0";
   }
-  for (const canonicalDir of [packagesDir, extensionsDir]) {
+  for (const canonicalDir of [pluginsDir]) {
     try {
       const canonicalPkg = await readJson(
         join(canonicalDir, component.relativePath, "package.json"),
@@ -231,18 +226,13 @@ async function componentArchives(outputDir) {
   await fs.mkdir(stageDir, { recursive: true });
 
   const pluginComponents = await discoverComponentDirectories(pluginsDir);
-  const extensionComponents = await discoverComponentDirectories(extensionsDir);
-  const packComponents = await discoverComponentDirectories(packsDir);
+  const bundleComponents = await discoverComponentDirectories(bundlesDir);
   const archives = [];
 
   for (const component of pluginComponents) {
-    if (component.relativePath === "packs" || component.relativePath.startsWith("packs/")) continue;
     archives.push(await zipComponent(component, outputDir, "plugin", stageDir));
   }
-  for (const component of extensionComponents) {
-    archives.push(await zipComponent(component, outputDir, "extension", stageDir));
-  }
-  for (const component of packComponents) {
+  for (const component of bundleComponents) {
     archives.push(await zipComponent(component, outputDir, "pack", stageDir));
   }
 
@@ -263,11 +253,10 @@ async function assets() {
     plugins: archives
       .filter((file) => file.includes("/plugin-") || file.startsWith(join(outputDir, "plugin-")))
       .map((file) => relative(outputDir, file)),
-    extensions: archives
-      .filter(
-        (file) => file.includes("/extension-") || file.startsWith(join(outputDir, "extension-")),
-      )
-      .map((file) => relative(outputDir, file)),
+    // There is no separate extension kind: `stack.kind` is plugin | bundle |
+    // library, and every implementation folder ships as a plugin. Kept as an
+    // empty array so the inventory's shape does not change under consumers.
+    extensions: [],
     packs: archives
       .filter((file) => file.includes("/pack-") || file.startsWith(join(outputDir, "pack-")))
       .map((file) => relative(outputDir, file)),

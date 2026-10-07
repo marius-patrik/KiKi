@@ -18,6 +18,7 @@
  * @module @dsh-stack/scripts/verify-package-reachability
  */
 import { promises as fs } from "node:fs";
+import { listCatalogDirectories, readJsonOrNull } from "./lib/repo-paths.mjs";
 import { join, relative } from "node:path";
 import { resolveRepoRoot } from "./lib/resolve-repo-root.mjs";
 import { walkSourceTree } from "./lib/walk-source-tree.mjs";
@@ -33,8 +34,13 @@ const PACKAGE_ROOTS = ["plugins"];
 
 /**
  * Source roots searched for imports of one package by another.
+ *
+ * `""` used to be here, which walked the whole checkout including the pinned
+ * `harness/` submodule -- 20 seconds of the gate spent reading upstream code
+ * that cannot import an `@dsh-stack/*` package. Nothing outside these three
+ * roots holds our source.
  */
-const IMPORT_SEARCH_ROOTS = ["plugins", "plugins", "", "scripts"];
+const IMPORT_SEARCH_ROOTS = ["plugins", "bundles", "scripts"];
 
 /**
  * Roots whose `package.json` dependency lists compose extensions into packs.
@@ -51,16 +57,7 @@ const COMPOSITION_ROOTS = ["bundles"];
  * the directory-walk shape exists once.
  */
 async function* readPackageManifests(rootName) {
-  const base = join(root, rootName);
-  let entries;
-  try {
-    entries = await fs.readdir(base, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const dir = join(base, entry.name);
+  for (const dir of await listCatalogDirectories(join(root, rootName))) {
     const manifest = await readJsonOrNull(join(dir, "package.json"));
     if (manifest?.name) yield { dir, manifest };
   }
@@ -191,15 +188,6 @@ const ALLOWED_UNREACHABLE = new Map([
   ["@dsh-stack/trading-market-data", "pre-existing dead plugin, tracked by #123"],
   ["@dsh-stack/trading-optimizer", "pre-existing dead plugin, tracked by #123"],
 ]);
-
-/** Reads and parses one JSON file, returning null when it does not exist. */
-async function readJsonOrNull(path) {
-  try {
-    return JSON.parse(await fs.readFile(path, "utf8"));
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Every package name mounted by the generated bundle patch. Absent patch file

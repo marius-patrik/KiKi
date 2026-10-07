@@ -37,6 +37,7 @@ import {
   rowIdFor,
   sortMountability,
 } from "./lib/stack-bundle-discovery.mjs";
+import { readJson } from "./lib/repo-paths.mjs";
 
 const mode = process.argv[2] ?? "write";
 if (!["write", "check", "list"].includes(mode)) {
@@ -59,7 +60,7 @@ const outputPath = join(repositoryRoot, "bundles", "web", "cordis.patch.yml");
  *
  * - `@dsh-stack/agent-skills` registers the `SkillRegistry` cordis service
  *   under the same key `@deepseek-ai/dsh-skill` (mounted by every profile's
- *   `dsh-base` layer, see `DSH/packages/bundle/base/cordis.patch.yml`)
+ *   `dsh-base` layer, see `harness/packages/bundle/base/cordis.patch.yml`)
  *   already provides, so mounting both aborts the boot with `service
  *   "skills" has been registered`. Does `@dsh-stack/agent-skills` replace
  *   the base row, extend it, or need a distinct service key?
@@ -106,16 +107,6 @@ const KNOWN_CORDIS_MOUNT_INCOMPATIBILITIES = new Set([
  *   around the dynamic Loader-entry path that races.
  */
 const STATIC_DISABLE_ROWS = ["directory-picker"];
-
-/**
- * Reads and parses a JSON file.
- *
- * @param {string} path - Absolute path to the JSON file.
- * @throws When the file cannot be read or contains invalid JSON.
- */
-async function readJson(path) {
-  return JSON.parse(await fs.readFile(path, "utf8"));
-}
 
 /**
  * Resolves the dependency union across all domain packs, probes each candidate

@@ -4,10 +4,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const root = process.cwd();
-const pluginsDir = join(root, "plugins");
-const extensionsDir = join(root, "plugins");
-const packsDir = join(root, "bundles");
+// One implementation tree, one composition tree. This verifier previously
+// pointed `extensionsDir` at the same directory as `pluginsDir`, so it expected
+// exactly the duplication the generator produced -- the gate agreed with the bug
+// instead of catching it, and a release shipped all 81 plugins twice.
+import { bundlesDir, pluginsDir, root } from "./lib/repo-paths.mjs";
 const releaseDir = join(root, ".release");
 
 /** Recursively discover plugin or pack directories, including symlinked component directories. */
@@ -44,16 +45,28 @@ async function verifyArchive(archive) {
   }
 }
 
-/** Verify that the release contains one valid ZIP for every plugin, extension and pack. */
+/**
+ * Verify that the release contains one valid ZIP for every plugin and bundle.
+ *
+ * The per-bucket comparisons below are exact list comparisons, so any component
+ * appearing under two kinds fails one of them -- there is no separate
+ * cross-kind check because it would be unreachable behind these.
+ *
+ * Worth recording why this gate did not catch the duplication it now rules out:
+ * `extensionsDir` pointed at the same directory as `pluginsDir`, so the verifier
+ * expected exactly what the generator produced. A gate derived from the same
+ * wrong assumption agrees with the bug. The fix was correcting both roots, not
+ * adding a check.
+ */
 async function main() {
   const inventory = JSON.parse(
     await fs.readFile(join(releaseDir, "component-assets.json"), "utf8"),
   );
-  const expectedPlugins = (await discoverComponents(pluginsDir)).filter(
-    (path) => !path.startsWith("packs/"),
-  );
-  const expectedExtensions = await discoverComponents(extensionsDir);
-  const expectedPacks = await discoverComponents(packsDir);
+  const expectedPlugins = await discoverComponents(pluginsDir);
+  // There is no separate extension kind: `stack.kind` is plugin | bundle |
+  // library, and every implementation folder ships as a plugin.
+  const expectedExtensions = [];
+  const expectedPacks = await discoverComponents(bundlesDir);
   const versionSuffix = /-\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\.zip$/;
   const pluginZips = inventory.plugins
     .map((name) => name.replace(/^plugin-/, "").replace(versionSuffix, ""))
