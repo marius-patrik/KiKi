@@ -41,3 +41,7 @@
 	path = migrate/paes-old
 	url = https://github.com/marius-patrik/paes-old.git
 	branch = main
+[submodule "migrate/omnix-transpiler"]
+	path = migrate/omnix-transpiler
+	url = https://github.com/marius-patrik/UniversalTranspiler.git
+	branch = main
