@@ -41,3 +41,7 @@
 	path = migrate/paes-old
 	url = https://github.com/marius-patrik/paes-old.git
 	branch = main
+[submodule "migrate/InvariantOrientedEngineering"]
+	path = migrate/InvariantOrientedEngineering
+	url = https://github.com/marius-patrik/InvariantOrientedEngineering.git
+	branch = main
