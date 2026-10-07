@@ -20,10 +20,12 @@ const sourceHashes = new Map();
 function fail(message) {
   errors.push(message);
 }
+/** Record a repository verification error when a condition is falsy. */
 function assert(condition, message) {
   if (!condition) fail(message);
 }
 
+/** Return whether a path is accessible. */
 async function exists(path) {
   try {
     await fs.access(path);
@@ -33,6 +35,7 @@ async function exists(path) {
   }
 }
 
+/** Read and parse JSON while recording malformed documents as verification failures. */
 async function readJson(path, label) {
   try {
     return JSON.parse(await fs.readFile(path, "utf8"));
@@ -42,6 +45,7 @@ async function readJson(path, label) {
   }
 }
 
+/** Recursively yield source files while skipping generated/dependency directories. */
 async function* walk(dir) {
   for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
     if (ignoredDirs.has(entry.name)) continue;
@@ -51,6 +55,7 @@ async function* walk(dir) {
   }
 }
 
+/** Enumerate canonical package directories under every logical plugin group. */
 async function nativePackageDirs() {
   const dirs = [];
   for (const group of groups) {
@@ -74,6 +79,7 @@ async function nativePackageDirs() {
   return dirs.sort();
 }
 
+/** Return tracked generated outputs that must not be committed. */
 async function trackedGeneratedFiles() {
   try {
     const { stdout } = await execFileAsync(
@@ -93,6 +99,7 @@ async function trackedGeneratedFiles() {
   }
 }
 
+/** Validate one canonical native package against KiKi's package contract. */
 async function verifyPackage(dir) {
   const packagePath = join(dir, "package.json");
   const stackPath = join(dir, "stack.json");
@@ -160,6 +167,7 @@ async function verifyPackage(dir) {
   }
 }
 
+/** Run all repository-structure, package-contract, dependency, and source invariants. */
 async function main() {
   assert(await exists(pluginsDir), "plugins/ implementation root is missing");
   assert(
