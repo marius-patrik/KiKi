@@ -17,16 +17,26 @@ const stackIds = new Map();
 const publicPackages = new Map();
 const sourceHashes = new Map();
 
-function fail(message) { errors.push(message); }
-function assert(condition, message) { if (!condition) fail(message); }
+function fail(message) {
+  errors.push(message);
+}
+function assert(condition, message) {
+  if (!condition) fail(message);
+}
 
 async function exists(path) {
-  try { await fs.access(path); return true; } catch { return false; }
+  try {
+    await fs.access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function readJson(path, label) {
-  try { return JSON.parse(await fs.readFile(path, "utf8")); }
-  catch (error) {
+  try {
+    return JSON.parse(await fs.readFile(path, "utf8"));
+  } catch (error) {
     fail(`${label} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
     return undefined;
   }
@@ -47,11 +57,17 @@ async function nativePackageDirs() {
     const groupDir = join(pluginsDir, group);
     assert(await exists(groupDir), `plugins/${group}/ logical bundle is missing`);
     if (!(await exists(groupDir))) continue;
-    assert(!(await exists(join(groupDir, "package.json"))), `plugins/${group}/ is organizational only and must not be a package`);
+    assert(
+      !(await exists(join(groupDir, "package.json"))),
+      `plugins/${group}/ is organizational only and must not be a package`,
+    );
     for (const entry of await fs.readdir(groupDir, { withFileTypes: true })) {
       if (!entry.isDirectory() || ignoredDirs.has(entry.name)) continue;
       const dir = join(groupDir, entry.name);
-      assert(await exists(join(dir, "package.json")), `${relative(root, dir)} must contain package.json`);
+      assert(
+        await exists(join(dir, "package.json")),
+        `${relative(root, dir)} must contain package.json`,
+      );
       if (await exists(join(dir, "package.json"))) dirs.push(dir);
     }
   }
@@ -65,9 +81,14 @@ async function trackedGeneratedFiles() {
       ["ls-files", "--", "plugins/**/lib/**", "plugins/**/dist/**", "plugins/**/node_modules/**"],
       { cwd: root },
     );
-    return stdout.split("\n").map((entry) => entry.trim()).filter(Boolean);
+    return stdout
+      .split("\n")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
   } catch (error) {
-    fail(`unable to inspect tracked generated files: ${error instanceof Error ? error.message : String(error)}`);
+    fail(
+      `unable to inspect tracked generated files: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return [];
   }
 }
@@ -84,7 +105,8 @@ async function verifyPackage(dir) {
 
   if (typeof pkg?.name === "string") {
     const previous = packageNames.get(pkg.name);
-    if (previous) fail(`duplicate package name ${pkg.name}: ${previous} and ${relative(root, packagePath)}`);
+    if (previous)
+      fail(`duplicate package name ${pkg.name}: ${previous} and ${relative(root, packagePath)}`);
     else packageNames.set(pkg.name, relative(root, packagePath));
   }
 
@@ -104,14 +126,32 @@ async function verifyPackage(dir) {
     else stackIds.set(id, label);
     publicPackages.set(id, { dir, stack });
   }
-  assert(typeof id === "string" && /^stack\.[a-z0-9][a-z0-9.-]*$/.test(id), `${label} id must be namespaced`);
-  assert(["plugin", "library"].includes(String(stack.kind)), `${label} has invalid kind ${String(stack.kind)}; logical bundles are folders, not packages`);
-  assert(typeof stack.version === "string" && /^\d+\.\d+\.\d+$/.test(stack.version), `${label} must have a semver version`);
+  assert(
+    typeof id === "string" && /^stack\.[a-z0-9][a-z0-9.-]*$/.test(id),
+    `${label} id must be namespaced`,
+  );
+  assert(
+    ["plugin", "library"].includes(String(stack.kind)),
+    `${label} has invalid kind ${String(stack.kind)}; logical bundles are folders, not packages`,
+  );
+  assert(
+    typeof stack.version === "string" && /^\d+\.\d+\.\d+$/.test(stack.version),
+    `${label} must have a semver version`,
+  );
   assert(stack.name === pkg?.name, `${label} name must match package.json`);
-  assert(typeof stack.description === "string" && stack.description.length > 0, `${label} must have a description`);
-  assert(Array.isArray(stack.files) && stack.files.length > 0, `${label} must declare published files`);
+  assert(
+    typeof stack.description === "string" && stack.description.length > 0,
+    `${label} must have a description`,
+  );
+  assert(
+    Array.isArray(stack.files) && stack.files.length > 0,
+    `${label} must declare published files`,
+  );
   assert(Array.isArray(stack.dependencies ?? []), `${label} dependencies must be an array`);
-  assert(Array.isArray(stack.optionalDependencies ?? []), `${label} optionalDependencies must be an array`);
+  assert(
+    Array.isArray(stack.optionalDependencies ?? []),
+    `${label} optionalDependencies must be an array`,
+  );
   const pkgStack = pkg?.stack;
   assert(pkgStack?.id === id, `${relative(root, packagePath)} stack.id does not match stack.json`);
   if (stack.kind === "plugin") {
@@ -122,7 +162,10 @@ async function verifyPackage(dir) {
 
 async function main() {
   assert(await exists(pluginsDir), "plugins/ implementation root is missing");
-  assert(!(await exists(join(root, "bundles"))), "root bundles/ runtime composition tree must not exist");
+  assert(
+    !(await exists(join(root, "bundles"))),
+    "root bundles/ runtime composition tree must not exist",
+  );
   for (const file of await trackedGeneratedFiles()) fail(`${file} is checked-in generated output`);
 
   const dirs = await nativePackageDirs();
@@ -161,7 +204,11 @@ async function main() {
       if (text.length < 400) continue;
       const hash = createHash("sha256").update(text).digest("hex");
       const previous = sourceHashes.get(hash);
-      if (previous && !/\/fixtures\/|\/snapshots\//.test(rel) && !/\/index\.(js|mjs|ts)$/.test(rel)) {
+      if (
+        previous &&
+        !/\/fixtures\/|\/snapshots\//.test(rel) &&
+        !/\/index\.(js|mjs|ts)$/.test(rel)
+      ) {
         fail(`duplicate source implementation: ${previous} and ${rel}`);
       } else if (!previous) {
         sourceHashes.set(hash, rel);
@@ -174,7 +221,9 @@ async function main() {
     console.error(errors.join("\n"));
     process.exit(1);
   }
-  console.log(`Stack verification passed: ${publicPackages.size} public packages across ${groups.length} logical plugin bundles.`);
+  console.log(
+    `Stack verification passed: ${publicPackages.size} public packages across ${groups.length} logical plugin bundles.`,
+  );
 }
 
 await main();

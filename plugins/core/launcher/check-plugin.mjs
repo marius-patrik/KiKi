@@ -632,10 +632,9 @@ mkdirSync(retiredScope, { recursive: true });
 writeFileSync(join(retiredHome, "profiles", "web", "package.json"), "{}\n");
 symlinkSync(join(pkgDir, "nowhere"), join(retiredScope, "a-package-that-no-longer-exists"));
 await ensureProfileComposition({ home: retiredHome, pkgDir, profile: "web", harnessDir });
-assert.throws(
-  () => lstatSync(join(retiredScope, "a-package-that-no-longer-exists")),
-  { code: "ENOENT" },
-);
+assert.throws(() => lstatSync(join(retiredScope, "a-package-that-no-longer-exists")), {
+  code: "ENOENT",
+});
 console.log("retired package links removed ok");
 
 const seededHome = join(root, "seeded-home");

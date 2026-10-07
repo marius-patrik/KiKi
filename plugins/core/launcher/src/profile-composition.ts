@@ -216,7 +216,8 @@ async function ensureProfileManifest(
   const declared = Array.isArray(profileCfg.bundles) ? (profileCfg.bundles as unknown[]) : [];
   const bundles: string[] = [];
   for (const item of [...(shipped ?? []), ...declared]) {
-    if (typeof item !== "string" || LEGACY_STACK_BUNDLES.has(item) || bundles.includes(item)) continue;
+    if (typeof item !== "string" || LEGACY_STACK_BUNDLES.has(item) || bundles.includes(item))
+      continue;
     bundles.push(item);
   }
   profileCfg.bundles = bundles;

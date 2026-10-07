@@ -102,7 +102,9 @@ async function manifest() {
   await fs.mkdir(outputDir, { recursive: true });
   const output = join(outputDir, "stack-release.json");
   await writeJson(output, value);
-  const integrity = createHash("sha256").update(await fs.readFile(output)).digest("hex");
+  const integrity = createHash("sha256")
+    .update(await fs.readFile(output))
+    .digest("hex");
   await fs.writeFile(
     join(outputDir, "stack-release.sha256"),
     `${integrity}  stack-release.json\n`,
@@ -150,7 +152,9 @@ async function assets() {
   const checksums = [];
   for (const file of files.sort()) {
     if (file.endsWith(".sha256")) continue;
-    const digest = createHash("sha256").update(await fs.readFile(join(outputDir, file))).digest("hex");
+    const digest = createHash("sha256")
+      .update(await fs.readFile(join(outputDir, file)))
+      .digest("hex");
     checksums.push(`${digest}  ${file}`);
   }
   await fs.writeFile(join(outputDir, "SHA256SUMS"), `${checksums.join("\n")}\n`, "utf8");
