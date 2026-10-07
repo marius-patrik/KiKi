@@ -56,7 +56,7 @@ export interface SyncReport {
  * undefined when neither resolves, which degrades materialization to the bare
  * persona row.
  *
- * Moved here from `harness/apps/cli/config/agent-presets` by harness commit
+ * Moved here from `DSH/apps/cli/config/agent-presets` by harness commit
  * f94495e527 ("bundle the shipped presets inside dsh-agent-presets"), then
  * again by the 0.2.0 move out of `packages/preset/agent-presets/presets`: a
  * shipped preset is now one `@deepseek-ai/dsh-agent-preset` declaration in the
