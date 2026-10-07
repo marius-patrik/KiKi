@@ -7,7 +7,7 @@ status: active
 
 ## Repository mission
 
-`dsh-stack` is a distributable extension stack for DeepSeek Harness. The upstream `harness/` submodule is pinned and pristine. Stack owns the complete implementation catalog in `plugins/`.
+`KiKi` is the umbrella repository for the DeepSeek Harness-based stack and its adjacent agent infrastructure. The upstream `DSH/` submodule is pinned and pristine. Stack owns the complete implementation catalog in `plugins/`.
 
 ## Canonical structure
 
@@ -16,7 +16,7 @@ status: active
 - `scripts/` is verification and release tooling, plus the `dsh` launcher/service-manager script and its aliases.
 - `.agents/notes/` is the canonical documentation root.
 - `README.md`, `AGENTS.md`, and `CLAUDE.md` at repository root are all symlinks to `.agents/AGENTS.md`.
-- `harness/` is upstream and must not be modified.
+- `DSH/` is upstream and must not be modified.
 - No duplicate implementation tree, compatibility bridge, migration shim, legacy runtime path, or parallel feature owner is allowed.
 
 There is no second tree of wrappers. An earlier layout kept implementations in `src/packages/` and `publish/extensions/` and put 74 re-export shims in `publish/plugins/`, each resolving a canonical package elsewhere; the seven domain packs and the `@dsh-stack/pack-bundle` wrapper composed them. A folder that only re-exports another plugin is an indirection with no owner, and `verify-stack.mjs` fails it.

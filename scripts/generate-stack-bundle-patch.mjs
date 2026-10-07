@@ -59,7 +59,7 @@ const outputPath = join(repositoryRoot, "bundles", "web", "cordis.patch.yml");
  *
  * - `@dsh-stack/agent-skills` registers the `SkillRegistry` cordis service
  *   under the same key `@deepseek-ai/dsh-skill` (mounted by every profile's
- *   `dsh-base` layer, see `harness/packages/bundle/base/cordis.patch.yml`)
+ *   `dsh-base` layer, see `DSH/packages/bundle/base/cordis.patch.yml`)
  *   already provides, so mounting both aborts the boot with `service
  *   "skills" has been registered`. Does `@dsh-stack/agent-skills` replace
  *   the base row, extend it, or need a distinct service key?

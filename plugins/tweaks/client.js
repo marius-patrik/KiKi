@@ -611,7 +611,7 @@ body.dsh-composer-split [data-composer-card] [data-input-scroll] + div > div:fir
 }
 /* Full-Width Conversation: ConversationRoot's own width axis reads
    --dsh-chat-user-width first, ahead of its adaptive clamp, and its width
-   handles publish onto that same property when dragged (harness/packages/
+   handles publish onto that same property when dragged (DSH/packages/
    client/ui-conversation/src/client/skeleton/ConversationRoot.tsx). Setting
    it here reuses that existing override point instead of touching the
    pinned harness CSS module. Targeted at the ConversationRoot instance

@@ -18,7 +18,10 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          submodules: recursive
+          submodules: false
+
+      - name: Checkout pinned DSH
+        run: git submodule update --init --force --depth=1 --recursive DSH
 
       # setup-bun honours BUN_INSTALL, so each self-hosted runner keeps its own
       # bun install directory and its own cache; nothing shared to race on.

@@ -27,7 +27,7 @@ fix_known_install_gaps() {
     echo "bootstrap: resolve.exports missing from harness node_modules AND not present in the pnpm store — dsh will fail to boot (ERR_MODULE_NOT_FOUND from packages/boot/app-boot). See dsh-stack#181." >&2
     return 0
   fi
-  echo "bootstrap: harness/packages/boot/app-boot imports resolve.exports without declaring it (dsh-stack#181) — symlinking from the pnpm store as a workaround" >&2
+  echo "bootstrap: DSH/packages/boot/app-boot imports resolve.exports without declaring it (dsh-stack#181) — symlinking from the pnpm store as a workaround" >&2
   ln -s "$store_pkg/node_modules/resolve.exports" "$target"
 }
 

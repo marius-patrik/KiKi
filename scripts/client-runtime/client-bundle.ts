@@ -1,6 +1,6 @@
 /**
  * Shared tsdown config for stack packages' browser client bundles. Mirrors
- * harness/packages/client/tsdown.client.ts: wraps the bundle in
+ * DSH/packages/client/tsdown.client.ts: wraps the bundle in
  * `window.__ModuleLoader__.load({ id, factory })` so the web shell can mount
  * it through the loader module table instead of a bare ESM/CJS import.
  * @module @dsh-stack/scripts/client-runtime/client-bundle
