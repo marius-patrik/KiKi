@@ -9,6 +9,7 @@ const pluginsDir = join(root, "plugins");
 const releaseDir = join(root, ".release");
 const groups = ["agents", "ai", "core", "integrations", "trading", "ux", "vcs"];
 
+/** Return the expected release-asset slugs for all publishable native plugins. */
 async function expectedPlugins() {
   const result = [];
   for (const group of groups) {
@@ -25,6 +26,7 @@ async function expectedPlugins() {
   return result.sort();
 }
 
+/** Verify that one plugin archive is readable and contains a root package manifest. */
 async function verifyArchive(archive) {
   await execFileAsync("unzip", ["-t", archive]);
   const { stdout } = await execFileAsync("unzip", ["-Z1", archive]);
@@ -33,6 +35,7 @@ async function verifyArchive(archive) {
   }
 }
 
+/** Validate the complete generated plugin release-asset inventory. */
 async function main() {
   const inventory = JSON.parse(
     await fs.readFile(join(releaseDir, "component-assets.json"), "utf8"),
