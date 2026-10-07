@@ -4,8 +4,8 @@
  * `DSH_HOME=<worktree>/.data dsh --profile headless`.
  *
  * Steps:
- *  1. Locate the primary checkout and copy its built harness/ into the worktree
- *     (excluding harness's own .git, so the shared submodule pin is reused).
+ *  1. Locate the primary checkout and copy its built DSH/ into the worktree
+ *     (excluding DSH's own .git, so the shared submodule pin is reused).
  *  2. Install workspace dependencies and build @dsh-stack/launcher.
  *  3. Create .data/ and seed it with settings.yaml + .credentials.yaml from the
  *     primary checkout, rewriting dsh-tweaks.homeRoot to the worktree's .data.
@@ -76,8 +76,8 @@ export async function resolveRepoRoots(targetPath, primaryFromFlag) {
   let primaryRoot;
   if (primaryFromFlag) {
     primaryRoot = resolve(primaryFromFlag);
-    if (!existsSync(join(primaryRoot, "harness"))) {
-      throw new Error(`Primary checkout missing harness/: ${primaryRoot}`);
+    if (!existsSync(join(primaryRoot, "DSH"))) {
+      throw new Error(`Primary checkout missing DSH/: ${primaryRoot}`);
     }
   } else {
     const commonGitDir = await git(absTarget, ["rev-parse", "--git-common-dir"]);
@@ -96,18 +96,18 @@ export function rewriteHomeRoot(settingsYaml, homeRoot) {
   return settingsYaml.replace(/^([ \t]*homeRoot:[ \t]*).+$/m, `$1${homeRoot}`);
 }
 
-/** Copy the primary's built harness/ into the worktree, excluding .git. */
+/** Copy the primary's built DSH/ into the worktree, excluding .git. */
 async function copyHarness(primaryRoot, targetRoot) {
-  const src = join(primaryRoot, "harness");
-  const dest = join(targetRoot, "harness");
+  const src = join(primaryRoot, "DSH");
+  const dest = join(targetRoot, "DSH");
   if (!existsSync(src)) {
-    throw new Error(`Primary harness/ not found at ${src}`);
+    throw new Error(`Primary DSH/ not found at ${src}`);
   }
   if (existsSync(dest)) {
     console.log(`Removing existing ${dest} before copy...`);
     await fs.rm(dest, { recursive: true, force: true });
   }
-  console.log(`Copying harness from ${src} to ${dest}...`);
+  console.log(`Copying DSH from ${src} to ${dest}...`);
   await fs.cp(src, dest, {
     recursive: true,
     preserveTimestamps: true,

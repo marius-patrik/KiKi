@@ -14,6 +14,7 @@ const pluginsDir = join(root, "plugins");
 const packsDir = join(root, "bundles");
 const codeExts = new Set([".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"]);
 const ignoredDirs = new Set(["node_modules", ".git", "dist", "coverage", "lib"]);
+let gitlinkPaths = new Set();
 const generatedFileNames = new Set([
   "package-lock.json",
   "bun.lock",
@@ -209,6 +210,7 @@ async function verifyPluginTree() {
   for (const child of children) {
     if (!child.isDirectory()) continue;
     const dir = join(pluginsDir, child.name);
+    if (gitlinkPaths.has(relative(root, dir))) continue;
     const packagePath = join(dir, "package.json");
     if (!(await exists(packagePath))) continue;
     const manifest = await readJson(packagePath, relative(root, packagePath));
@@ -251,6 +253,19 @@ async function verifyPluginTree() {
  * non-zero when any check fails.
  */
 async function main() {
+  try {
+    const { stdout } = await execFileAsync("git", ["ls-files", "--stage"]);
+    gitlinkPaths = new Set(
+      stdout
+        .split("\n")
+        .filter(Boolean)
+        .filter((line) => line.startsWith("160000 "))
+        .map((line) => line.slice(line.indexOf("\t") + 1)),
+    );
+  } catch {
+    gitlinkPaths = new Set();
+  }
+
   assert(await exists(pluginsDir), "plugins/ implementation root is missing");
   assert(await exists(packsDir), "packs/ bundle root is missing");
   for (const file of await trackedGeneratedFiles()) fail(`${file} is checked-in generated output`);
@@ -260,6 +275,7 @@ async function main() {
     const packageChildren = await fs.readdir(canonicalRoot, { withFileTypes: true });
     for (const child of packageChildren) {
       if (!child.isDirectory() || ignoredDirs.has(child.name)) continue;
+      if (gitlinkPaths.has(relative(root, join(canonicalRoot, child.name)))) continue;
       assert(
         await exists(join(canonicalRoot, child.name, "package.json")),
         `${relative(root, join(canonicalRoot, child.name))} must contain package.json`,

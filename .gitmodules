@@ -13,31 +13,39 @@
 	path = plugins/Memory
 	url = https://github.com/marius-patrik/Memory.git
 	branch = main
+	update = none
 [submodule "plugins/SkyAgent"]
 	path = plugins/SkyAgent
 	url = https://github.com/marius-patrik/SkyAgent.git
 	branch = main
+	update = none
 [submodule "plugins/DarkFactory"]
 	path = plugins/DarkFactory
 	url = https://github.com/marius-patrik/DarkFactory.git
 	branch = main
+	update = none
 [submodule "migrate/Andromeda-OLD"]
 	path = migrate/Andromeda-OLD
 	url = https://github.com/marius-patrik/Andromeda-OLD.git
 	branch = main
+	update = none
 [submodule "migrate/ams-old"]
 	path = migrate/ams-old
 	url = https://github.com/marius-patrik/ams-old.git
 	branch = main
+	update = none
 [submodule "migrate/andromeda-old-2"]
 	path = migrate/andromeda-old-2
 	url = https://github.com/marius-patrik/andromeda-old-2.git
 	branch = main
+	update = none
 [submodule "migrate/genesis-old"]
 	path = migrate/genesis-old
 	url = https://github.com/marius-patrik/genesis-old.git
 	branch = main
+	update = none
 [submodule "migrate/paes-old"]
 	path = migrate/paes-old
 	url = https://github.com/marius-patrik/paes-old.git
 	branch = main
+	update = none

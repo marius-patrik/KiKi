@@ -4,7 +4,7 @@
 # git submodule (core.worktree lives in the common config).
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-harness="$here/../harness"
+harness="$here/../DSH"
 
 # The harness is upstream and keeps its own pnpm workspace: pnpm-workspace.yaml
 # carries patchedDependencies, peerDependencyRules, minimumReleaseAgeExclude and
@@ -13,7 +13,7 @@ harness="$here/../harness"
 #
 # packages/boot/app-boot's compiled output imports "resolve.exports" without
 # declaring it in any package.json dependency list in the chain (upstream
-# harness bug, tracked at dsh-stack#181/#169 — harness/ is pinned and must
+# harness bug, tracked at dsh-stack#181/#169 — DSH/ is pinned and must
 # not be patched directly here). `pnpm install` reports "up to date" while
 # every dsh profile still fails to boot with ERR_MODULE_NOT_FOUND. Symlink
 # it in from the pnpm store as a local workaround until the upstream
