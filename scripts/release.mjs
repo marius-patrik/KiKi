@@ -21,16 +21,20 @@ if (command === "version" && !new Set(["major", "minor", "patch"]).has(bumpArg))
   process.exit(2);
 }
 
+/** Read and parse a UTF-8 JSON file. */
 async function readJson(path) {
   return JSON.parse(await fs.readFile(path, "utf8"));
 }
+/** Serialize a value as consistently formatted UTF-8 JSON. */
 async function writeJson(path, value) {
   await fs.writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
+/** Run a repository command and return trimmed stdout. */
 async function exec(command, args, options = {}) {
   const { stdout } = await execFileAsync(command, args, { cwd: root, ...options });
   return stdout.trim();
 }
+/** Calculate the next semantic version for a requested bump kind. */
 function bumpVersion(version, kind) {
   const [major, minor, patch] = version.split(".").map(Number);
   if (![major, minor, patch].every((value) => Number.isInteger(value) && value >= 0)) {
@@ -41,6 +45,7 @@ function bumpVersion(version, kind) {
   return `${major}.${minor}.${patch + 1}`;
 }
 
+/** Discover publishable native packages beneath the logical plugin groups. */
 async function discoverPackages() {
   const packages = [];
   for (const group of groups) {
@@ -69,6 +74,7 @@ async function discoverPackages() {
   return packages;
 }
 
+/** Build the machine-readable release manifest for all native KiKi packages. */
 async function buildManifest() {
   const rootPackage = await readJson(join(root, "package.json"));
   const packages = await discoverPackages();
@@ -96,6 +102,7 @@ async function buildManifest() {
   };
 }
 
+/** Write the release manifest and its integrity checksum. */
 async function manifest() {
   const value = await buildManifest();
   const outputDir = join(root, ".release");
@@ -113,6 +120,7 @@ async function manifest() {
   console.log(output);
 }
 
+/** Stage and archive one native plugin package for release. */
 async function zipPackage(component, outputDir, stageDir) {
   const slug = component.relativePath.replaceAll("/", "-");
   const version = component.pkg.version ?? component.stack.version ?? "0.0.0";
@@ -129,6 +137,7 @@ async function zipPackage(component, outputDir, stageDir) {
   return archive;
 }
 
+/** Generate all release assets and their checksum inventory. */
 async function assets() {
   const outputDir = join(root, ".release");
   const stageDir = join(outputDir, ".stage");
@@ -161,6 +170,7 @@ async function assets() {
   console.log(`Generated ${archives.length} plugin ZIPs`);
 }
 
+/** Bump the root and changed package versions according to commit history. */
 async function version() {
   const rootPackagePath = join(root, "package.json");
   const rootPackage = await readJson(rootPackagePath);
