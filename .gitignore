@@ -6,10 +6,10 @@ node_modules/
 # git worktrees
 /worktrees/
 
-# harness build output
-harness/apps/*/lib/
-harness/packages/*/lib/
-harness/*/dist/
+# DSH build output
+DSH/apps/*/lib/
+DSH/packages/*/lib/
+DSH/*/dist/
 
 # stack package build output
 

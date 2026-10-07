@@ -10,7 +10,7 @@
       "!**/lib",
       "!**/.turbo",
       "!**/.next",
-      "!harness",
+      "!DSH",
       "!worktrees",
       "!**/worktrees",
       "!.claude"
