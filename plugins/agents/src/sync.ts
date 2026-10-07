@@ -51,7 +51,7 @@ export interface SyncReport {
 
 /**
  * The shipped preset declarations: `DSH_AGENTS_BASE_DIR` when set, else the
- * `harness/packages/bundle/web-app/presets` tree beside this package's checkout
+ * `DSH/packages/bundle/web-app/presets` tree beside this package's checkout
  * (four levels up from `lib/`, since packages live under `src/`). Returns
  * undefined when neither resolves, which degrades materialization to the bare
  * persona row.
@@ -66,7 +66,7 @@ export function basePresetDir(): string | undefined {
   if (process.env.DSH_AGENTS_BASE_DIR !== undefined && process.env.DSH_AGENTS_BASE_DIR !== "") {
     return process.env.DSH_AGENTS_BASE_DIR;
   }
-  return new URL("../../../harness/packages/bundle/web-app/presets", import.meta.url).pathname;
+  return new URL("../../../DSH/packages/bundle/web-app/presets", import.meta.url).pathname;
 }
 
 /** Leading spaces of a line, or the whole line when it carries no other text. */
