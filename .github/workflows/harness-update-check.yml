@@ -24,8 +24,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          pinned_sha=$(git ls-tree HEAD harness | awk '{print $3}')
-          harness_url=$(git config --file .gitmodules --get submodule.harness.url)
+          pinned_sha=$(git ls-tree HEAD DSH | awk '{print $3}')
+          harness_url=$(git config --file .gitmodules --get submodule.DSH.url)
           harness_slug=$(echo "$harness_url" | sed -E 's#^https://github.com/##; s#\.git$##')
           default_branch=$(gh api "repos/$harness_slug" --jq .default_branch)
           upstream_sha=$(gh api "repos/$harness_slug/commits/$default_branch" --jq .sha)
@@ -47,12 +47,12 @@ jobs:
 
           commit_url="https://github.com/$harness_slug/commit/$upstream_sha"
           compare_url="https://github.com/$harness_slug/compare/$pinned_sha...$upstream_sha"
-          body="The pinned harness/ submodule is behind upstream's $default_branch branch.
+          body="The pinned DSH/ submodule is behind upstream's $default_branch branch.
 
           - Pinned commit: $pinned_sha
           - Upstream commit: $upstream_sha ($commit_url)
           - Diff: $compare_url
 
-          Filed automatically by the harness-update-check workflow. Per AGENTS.md, harness/ is pinned and pristine -- bumping it is a deliberate action (update the submodule pointer, verify the Stack still builds/typechecks/verifies/tests against the new pin, and note any upstream breaking changes), not an automatic sync."
+          Filed automatically by the harness-update-check workflow. Per AGENTS.md, DSH/ is pinned and pristine -- bumping it is a deliberate action (update the submodule pointer, verify the Stack still builds/typechecks/verifies/tests against the new pin, and note any upstream breaking changes), not an automatic sync."
 
           gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
