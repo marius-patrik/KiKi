@@ -1,4 +1,4 @@
-// jscpd:ignore-start -- shared release-tooling boilerplate (module header), intentionally mirrored across scripts/*.mjs
+// jscpd:ignore-start -- release tooling
 import { promises as fs } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, relative } from "node:path";
@@ -6,174 +6,103 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-// One implementation tree and one composition tree. Before the plugin-tree
-// restructure these were four separate directories, and the three scans in
-// `componentArchives` stayed separate after the roots collapsed -- so every plugin
-// was discovered twice and archived twice, under two different kinds.
-import { bundlesDir, catalogDirs, pluginsDir, readJson, root } from "./lib/repo-paths.mjs";
+const root = process.cwd();
+const pluginsDir = join(root, "plugins");
+const groups = ["agents", "ai", "core", "integrations", "trading", "ux", "vcs"];
 const command = process.argv[2];
 const bumpArg = process.argv[3] ?? "patch";
-const validBumps = new Set(["major", "minor", "patch"]);
+
 if (!["manifest", "version", "assets"].includes(command)) {
   console.error("usage: node scripts/release.mjs <manifest|version|assets> [major|minor|patch]");
   process.exit(2);
 }
-if (command === "version" && !validBumps.has(bumpArg)) {
+if (command === "version" && !new Set(["major", "minor", "patch"]).has(bumpArg)) {
   console.error(`invalid version bump: ${bumpArg}`);
   process.exit(2);
 }
 
-/** Serialize a value as consistently formatted UTF-8 JSON. */
+async function readJson(path) {
+  return JSON.parse(await fs.readFile(path, "utf8"));
+}
 async function writeJson(path, value) {
   await fs.writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
-
-/** Execute a command and return trimmed stdout. */
 async function exec(command, args, options = {}) {
   const { stdout } = await execFileAsync(command, args, { cwd: root, ...options });
   return stdout.trim();
 }
-
-/** Calculate the next semantic version for the requested release bump. */
 function bumpVersion(version, kind) {
-  const parts = version.split(".").map(Number);
-  if (parts.length !== 3 || parts.some((part) => !Number.isInteger(part) || part < 0))
+  const [major, minor, patch] = version.split(".").map(Number);
+  if (![major, minor, patch].every((value) => Number.isInteger(value) && value >= 0)) {
     throw new Error(`invalid semver: ${version}`);
-  if (kind === "major") return `${parts[0] + 1}.0.0`;
-  if (kind === "minor") return `${parts[0]}.${parts[1] + 1}.0`;
-  return `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
+  }
+  if (kind === "major") return `${major + 1}.0.0`;
+  if (kind === "minor") return `${major}.${minor + 1}.0`;
+  return `${major}.${minor}.${patch + 1}`;
 }
 
-/** Discover package implementations from the canonical packages, extensions, and packs directories. */
 async function discoverPackages() {
   const packages = [];
-  for (const catalogDir of catalogDirs) {
-    let entries;
+  for (const group of groups) {
+    let entries = [];
     try {
-      entries = await fs.readdir(catalogDir, { withFileTypes: true });
+      entries = await fs.readdir(join(pluginsDir, group), { withFileTypes: true });
     } catch {
       continue;
     }
     for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
-      const dir = join(catalogDir, entry.name);
+      if (!entry.isDirectory()) continue;
+      const dir = join(pluginsDir, group, entry.name);
       try {
         const [stack, pkg] = await Promise.all([
           readJson(join(dir, "stack.json")),
           readJson(join(dir, "package.json")),
         ]);
-        if (!stack || typeof stack.id !== "string") continue;
-        packages.push({ dir, stack, pkg });
-      } catch {}
+        if (typeof stack?.id !== "string") continue;
+        packages.push({ dir, stack, pkg, relativePath: `${group}/${entry.name}` });
+      } catch {
+        // Private/non-published packages without stack.json are not release components.
+      }
     }
   }
   packages.sort((a, b) => a.stack.id.localeCompare(b.stack.id));
   return packages;
 }
 
-/** Recursively discover plugin or pack directories containing a package manifest. */
-async function discoverComponentDirectories(baseDir, relativePrefix = "") {
-  const entries = await fs.readdir(baseDir, { withFileTypes: true });
-  const components = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
-    const dir = join(baseDir, entry.name);
-    const relativePath = relativePrefix ? `${relativePrefix}/${entry.name}` : entry.name;
-    try {
-      const pkg = await readJson(join(dir, "package.json"));
-      components.push({ dir, relativePath, pkg });
-      continue;
-    } catch {}
-    components.push(...(await discoverComponentDirectories(dir, relativePath)));
-  }
-  components.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
-  return components;
-}
-
-/** Read pack/profile membership from the composition catalog. */
-async function catalogMembership() {
-  const source = await fs.readFile(join(pluginsDir, "composition", "src", "catalog.ts"), "utf8");
-  const packs = {};
-  const profiles = {};
-  let section = null;
-  let current = null;
-  for (const raw of source.split("\n")) {
-    const line = raw.trim();
-    if (line.startsWith("export const packs")) {
-      section = "packs";
-      continue;
-    }
-    if (line.startsWith("export const profiles")) {
-      section = "profiles";
-      continue;
-    }
-    const objectMatch = line.match(/^id:\s*["']([^"']+)["']/);
-    if (objectMatch) {
-      current = objectMatch[1];
-      if (section === "packs") packs[current] = [];
-      else if (section === "profiles") profiles[current] = [];
-      continue;
-    }
-    const quoted = line.match(/["']([^"']+)["']/g)?.map((value) => value.slice(1, -1)) ?? [];
-    if (current !== null) {
-      if (section === "packs")
-        for (const id of quoted) if (id.startsWith("stack.")) packs[current].push(id);
-      if (section === "profiles")
-        for (const id of quoted) if (id.startsWith("stack.")) profiles[current].push(id);
-    }
-    if (line === "},") current = null;
-  }
-  return { packs, profiles };
-}
-
-/** Build the machine-readable release catalog from package and catalog metadata. */
 async function buildManifest() {
   const rootPackage = await readJson(join(root, "package.json"));
   const packages = await discoverPackages();
   const byId = new Map(packages.map((item) => [item.stack.id, item]));
-  const membership = await catalogMembership();
-  const catalogPackages = packages.map(({ stack, pkg, dir }) => ({
-    id: stack.id,
-    name: stack.name,
-    version: stack.version,
-    kind: stack.kind,
-    dependencies: (stack.dependencies ?? []).map((id) => ({
-      id,
-      version: byId.get(id)?.stack.version ?? null,
-    })),
-    optionalDependencies: (stack.optionalDependencies ?? []).map((id) => ({
-      id,
-      version: byId.get(id)?.stack.version ?? null,
-    })),
-    files: stack.files,
-    packagePath: relative(root, dir),
-    packagePrivate: pkg.private === true,
-    packs: Object.entries(membership.packs)
-      .filter(([, ids]) => ids.includes(stack.id))
-      .map(([id]) => id),
-    profiles: Object.entries(membership.profiles)
-      .filter(([, ids]) => ids.includes(stack.id))
-      .map(([id]) => id),
-  }));
   return {
-    format: 1,
+    format: 2,
     stack: { name: rootPackage.name, version: rootPackage.version },
-    packages: catalogPackages,
-    packs: membership.packs,
-    profiles: membership.profiles,
+    packages: packages.map(({ stack, pkg, dir }) => ({
+      id: stack.id,
+      name: stack.name,
+      version: stack.version,
+      kind: stack.kind,
+      dependencies: (stack.dependencies ?? []).map((id) => ({
+        id,
+        version: byId.get(id)?.stack.version ?? null,
+      })),
+      optionalDependencies: (stack.optionalDependencies ?? []).map((id) => ({
+        id,
+        version: byId.get(id)?.stack.version ?? null,
+      })),
+      files: stack.files,
+      packagePath: relative(root, dir),
+      packagePrivate: pkg.private === true,
+    })),
   };
 }
 
-/** Generate the release catalog and its integrity checksum. */
 async function manifest() {
   const value = await buildManifest();
   const outputDir = join(root, ".release");
   await fs.mkdir(outputDir, { recursive: true });
   const output = join(outputDir, "stack-release.json");
   await writeJson(output, value);
-  const integrity = createHash("sha256")
-    .update(await fs.readFile(output))
-    .digest("hex");
+  const integrity = createHash("sha256").update(await fs.readFile(output)).digest("hex");
   await fs.writeFile(
     join(outputDir, "stack-release.sha256"),
     `${integrity}  stack-release.json\n`,
@@ -182,33 +111,12 @@ async function manifest() {
   console.log(output);
 }
 
-/**
- * A plugin wrapper's own package.json has no version (it's a thin, private
- * composition shim); its real version is the canonical package/extension it
- * wraps, resolved by matching directory name.
- */
-async function resolveComponentVersion(component, kind) {
-  if (kind !== "plugin" || (component.pkg?.version ?? undefined) !== undefined) {
-    return component.pkg?.version ?? "0.0.0";
-  }
-  for (const canonicalDir of [pluginsDir]) {
-    try {
-      const canonicalPkg = await readJson(
-        join(canonicalDir, component.relativePath, "package.json"),
-      );
-      if (typeof canonicalPkg.version === "string") return canonicalPkg.version;
-    } catch {}
-  }
-  return "0.0.0";
-}
-
-/** Create a ZIP archive containing one component with symlinks fully dereferenced. */
-async function zipComponent(component, outputDir, kind, stageDir) {
+async function zipPackage(component, outputDir, stageDir) {
   const slug = component.relativePath.replaceAll("/", "-");
-  const version = await resolveComponentVersion(component, kind);
-  const archive = join(outputDir, `${kind}-${slug}-${version}.zip`);
-  const staged = join(stageDir, kind, slug);
-  await fs.mkdir(join(stageDir, kind), { recursive: true });
+  const version = component.pkg.version ?? component.stack.version ?? "0.0.0";
+  const archive = join(outputDir, `plugin-${slug}-${version}.zip`);
+  const staged = join(stageDir, slug);
+  await fs.mkdir(stageDir, { recursive: true });
   await fs.cp(component.dir, staged, {
     recursive: true,
     dereference: true,
@@ -219,65 +127,36 @@ async function zipComponent(component, outputDir, kind, stageDir) {
   return archive;
 }
 
-/** Build individual ZIP assets for every plugin, extension and pack in the repository. */
-async function componentArchives(outputDir) {
-  const stageDir = join(outputDir, ".stage");
-  await fs.rm(stageDir, { recursive: true, force: true });
-  await fs.mkdir(stageDir, { recursive: true });
-
-  const pluginComponents = await discoverComponentDirectories(pluginsDir);
-  const bundleComponents = await discoverComponentDirectories(bundlesDir);
-  const archives = [];
-
-  for (const component of pluginComponents) {
-    archives.push(await zipComponent(component, outputDir, "plugin", stageDir));
-  }
-  for (const component of bundleComponents) {
-    archives.push(await zipComponent(component, outputDir, "pack", stageDir));
-  }
-
-  await fs.rm(stageDir, { recursive: true, force: true });
-  return archives;
-}
-
-/** Build individual plugin/pack ZIPs and the release integrity manifest. */
 async function assets() {
-  const rootPackage = await readJson(join(root, "package.json"));
   const outputDir = join(root, ".release");
+  const stageDir = join(outputDir, ".stage");
   await fs.rm(outputDir, { recursive: true, force: true });
   await fs.mkdir(outputDir, { recursive: true });
   await manifest();
-  const archives = await componentArchives(outputDir);
-  const assetInventory = {
-    format: 1,
-    plugins: archives
-      .filter((file) => file.includes("/plugin-") || file.startsWith(join(outputDir, "plugin-")))
-      .map((file) => relative(outputDir, file)),
-    // There is no separate extension kind: `stack.kind` is plugin | bundle |
-    // library, and every implementation folder ships as a plugin. Kept as an
-    // empty array so the inventory's shape does not change under consumers.
-    extensions: [],
-    packs: archives
-      .filter((file) => file.includes("/pack-") || file.startsWith(join(outputDir, "pack-")))
-      .map((file) => relative(outputDir, file)),
+
+  const archives = [];
+  for (const component of await discoverPackages()) {
+    archives.push(await zipPackage(component, outputDir, stageDir));
+  }
+  await fs.rm(stageDir, { recursive: true, force: true });
+
+  await writeJson(join(outputDir, "component-assets.json"), {
+    format: 2,
+    plugins: archives.map((file) => relative(outputDir, file)),
     total: archives.length,
-  };
-  await writeJson(join(outputDir, "component-assets.json"), assetInventory);
+  });
+
   const files = await fs.readdir(outputDir);
   const checksums = [];
   for (const file of files.sort()) {
     if (file.endsWith(".sha256")) continue;
-    const digest = createHash("sha256")
-      .update(await fs.readFile(join(outputDir, file)))
-      .digest("hex");
+    const digest = createHash("sha256").update(await fs.readFile(join(outputDir, file))).digest("hex");
     checksums.push(`${digest}  ${file}`);
   }
   await fs.writeFile(join(outputDir, "SHA256SUMS"), `${checksums.join("\n")}\n`, "utf8");
-  console.log(`Generated ${archives.length} component ZIPs for ${rootPackage.version}`);
-  console.log(files.map((file) => join(outputDir, file)).join("\n"));
+  console.log(`Generated ${archives.length} plugin ZIPs`);
 }
 
-/** Apply semantic versioning to the root package and packages changed by the latest commit. */
 async function version() {
   const rootPackagePath = join(root, "package.json");
   const rootPackage = await readJson(rootPackagePath);
@@ -290,8 +169,7 @@ async function version() {
   rootPackage.version = bumpVersion(rootPackage.version, rootBump);
   await writeJson(rootPackagePath, rootPackage);
 
-  const packages = await discoverPackages();
-  for (const item of packages) {
+  for (const item of await discoverPackages()) {
     const relativeDir = relative(root, item.dir);
     const changed = await exec("git", ["diff", "--name-only", "HEAD^", "HEAD", "--", relativeDir]);
     if (!changed) continue;
@@ -313,5 +191,4 @@ async function version() {
 if (command === "manifest") await manifest();
 else if (command === "assets") await assets();
 else await version();
-
 // jscpd:ignore-end

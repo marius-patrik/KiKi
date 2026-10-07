@@ -16,30 +16,25 @@ still-open decision (#60).
 
 ## Canonical structure
 
-- `plugins/` is the canonical implementation layer, and the only one. Every folder under it is one plugin: one concrete implementation, owning its own source. Plugins may import from other plugins; there is no restriction against plugins depending on one another.
-- `bundles/` holds profile compositions as harness-native bundles: a package with `dsh.bundle.patch` and a `cordis.patch.yml`, which is exactly the mechanism the harness' own bundles use. `bundles/web` is the complete Stack; `bundles/headless` is that composition filtered to plugins that mount without a web server. A bundle's membership is the `dependencies` block of its own manifest, and its `cordis.patch.yml` is generated from it, so the two cannot drift.
+- `plugins/<group>/<plugin>/` is the canonical native implementation layer. The first-level folders (`agents`, `ai`, `core`, `integrations`, `trading`, `ux`, `vcs`) are logical bundles for repository organization only; they are not packages or runtime profile compositions.
+- `plugins/Memory/` is staged external source pending migration. `_migrate/` contains migration-only repositories and is never runtime architecture.
+- Profiles are ordinary DSH profiles. KiKi mounts native plugins directly through normal profile configuration and does not inject an aggregate `@dsh-stack/bundle*` package.
 - `scripts/` is verification and release tooling, plus the `dsh` launcher/service-manager script and its aliases.
 - `.agents/notes/` is the canonical documentation root.
-- `README.md`, `AGENTS.md`, and `CLAUDE.md` at repository root are all symlinks to `.agents/AGENTS.md`.
+- `README.md` is a standalone repository overview. Root `AGENTS.md` points to `.agents/AGENTS.md`; `CONTRIBUTING.md` points to `AGENTS.md`; no root `CLAUDE.md` exists.
 - `DSH/` is upstream and must not be modified.
 - No duplicate implementation tree, compatibility bridge, migration shim, legacy runtime path, or parallel feature owner is allowed.
 
 There is no second tree of wrappers. An earlier layout kept implementations in `src/packages/` and `publish/extensions/` and put 74 re-export shims in `publish/plugins/`, each resolving a canonical package elsewhere; the seven domain packs and the `@dsh-stack/pack-bundle` wrapper composed them. A folder that only re-exports another plugin is an indirection with no owner, and `verify-stack.mjs` fails it.
 
-## Plugin and bundle model
+## Plugin grouping model
 
-Two roles, not three:
+- **Plugin** = one concrete package under `plugins/<group>/<plugin>/`.
+- **Logical bundle** = a first-level folder under `plugins/` used only to group related plugins. It has no package manifest, loader entry, or profile semantics.
+- **Profile** = normal DSH profile configuration. Profile membership is independent from logical grouping folders.
+- There is no separate extension tree, pack tree, or aggregate `@dsh-stack/bundle*` runtime package.
 
-- **Plugin** = one folder under `plugins/`, and one concrete implementation. There is no separate "extension" role: a skin, an icon set, an agent preset, a per-language LSP server, a provider adapter, and an abstraction/registry are all plugins. What used to be an "extension of an abstraction" is simply the plugin that implements it.
-- **Bundle** = a composition of plugins for a profile, expressed natively as `dsh.bundle.patch` + `cordis.patch.yml`. There is no per-domain pack: grouping by domain was a second composition axis that had to be kept in sync with the first, and a profile that wanted one provider had to depend on a pack that existed only to name it.
-
-When a plugin's `apply()` registers several distinct, independently-meaningable capabilities (multiple unrelated settings sections, multiple unrelated command families, multiple unrelated bundled features), that is a bundling smell: split them into separate plugins, each owning its own implementation.
-
-## Plugin and bundle contract
-
-Every canonical package follows the common package contract: unique `@dsh-stack/<id>` name, independent semantic version, ESM, explicit exports, publishable files only, appropriate `stack.kind`, globally unique namespaced `stack.id`, explicit required/optional dependencies, and build/typecheck/test/verify scripts. No checked-in generated implementation output is permitted.
-
-A bundle is a composition/distribution unit over plugins. It carries no implementation of its own: a bundle that shipped code would be a second owner for it. `stack.kind` is one of `plugin`, `bundle`, or `library`; there is no `pack` and no `extension` kind.
+Every canonical package follows the common package contract: unique `@dsh-stack/<id>` name, independent semantic version, ESM, explicit exports, publishable files only, appropriate `stack.kind`, globally unique namespaced `stack.id`, explicit required/optional dependencies, and build/typecheck/test/verify scripts. `stack.kind` is `plugin` or `library`; logical bundles are directories, not package kinds.
 
 ## No duplicate or legacy implementations
 
@@ -47,14 +42,14 @@ There is exactly one implementation owner for every feature. Before adding code,
 
 ## Profiles
 
-The Stack profiles compose packages and plugins rather than embedding feature implementations.
+Profiles are ordinary DSH profiles and compose plugins directly. Logical plugin folders do not define profile membership.
 
 | Profile | Purpose |
 | --- | --- |
 | `@dsh-stack/profile-default` | general Stack experience |
-| `@dsh-stack/profile-coding` | coding, repositories, tools, editor/LSP and absorbed DarkFactory capabilities |
+| `@dsh-stack/profile-coding` | coding, repositories, tools and editor/LSP capabilities |
 | `@dsh-stack/profile-trading` | research, backtesting, optimization and absorbed MoneyMaker capabilities |
-| `@dsh-stack/profile-skyblock` | SkyBlock capabilities absorbed from SkyAgent |
+| `@dsh-stack/profile-skyblock` | reserved for native SkyBlock capabilities after migration |
 
 ## UI
 
@@ -115,7 +110,7 @@ Event-driven hooks cannot do this alone, and the reason is structural: GitHub ru
 
 ## Release model
 
-The Stack version increments on every merge to `main`. Releases contain the complete plugin and pack catalog, with exact versions, dependencies, integrity data, and distributable artifacts for every included package.
+The Stack version increments on every merge to `main`. Releases contain the complete native plugin catalog, with exact versions, dependencies, integrity data, and distributable artifacts for every included package.
 
 ## Issue, roadmap, and dispatch policy
 
@@ -139,7 +134,7 @@ Every surface presenting the same concept uses the same components; only the top
 
 ## Reachability
 
-Every package must be reachable by the running system: mounted in the generated bundle patch, shipping a browser half through `dsh.client`, imported by another package's source, or exposed as a CLI. An extension additionally qualifies by being composed into a pack. `bun run verify` enforces this. Before implementing, confirm the code you are about to change actually runs.
+Every package must be reachable by the running system through a normal DSH profile row, `dsh.client`, another package dependency/import, or an exposed CLI. Logical grouping folders do not count as reachability. Before implementing, confirm the code you are about to change actually runs.
 
 ## Destructive actions
 

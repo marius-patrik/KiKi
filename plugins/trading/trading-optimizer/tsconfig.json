@@ -1,0 +1,12 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@dsh-stack/trading-research": ["../trading-research/lib/index.d.ts"],
+      "@dsh-stack/trading-backtest": ["../trading-backtest/lib/index.d.ts"]
+    },
+    "outDir": "lib",
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

@@ -9,33 +9,29 @@
     "bun": ">=1.4.0"
   },
   "workspaces": [
-    "plugins/*",
-    "bundles/*"
+    "plugins/*/*"
   ],
   "trustedDependencies": [
     "koffi"
   ],
   "scripts": {
-    "build": "bun run workspace:prepare && bun run --filter '*' --if-present build",
-    "typecheck": "bun run workspace:prepare && bun run --filter '*' --if-present typecheck",
+    "build": "bun run --filter '*' --if-present build",
+    "typecheck": "bun run --filter '*' --if-present typecheck",
     "format": "biome format --write .",
     "format:check": "biome format --write . && git diff --exit-code",
     "verify:plugin-readmes": "node scripts/verify-plugin-readmes.mjs",
     "verify:jsdocs": "node scripts/verify-jsdocs.mjs",
-    "verify:duplicates": "jscpd plugins bundles scripts",
+    "verify:duplicates": "jscpd plugins scripts",
     "verify:dead-code": "knip --no-progress",
-    "verify": "bun run workspace:prepare && bun run verify:plugin-readmes && bun run verify:jsdocs && bun run verify:duplicates && bun run verify:jscpd-exemptions && bun run verify:dead-code && bun run verify:reachability && bun run verify:non-cordis-exclusions && bun run verify:stateful-client-packages && node scripts/verify-stack.mjs && bun run --filter '*' --if-present verify",
-    "test": "bun run workspace:prepare && node --test 'scripts/**/*.test.mjs' && bun run --filter '*' --if-present test",
+    "verify": "bun run verify:plugin-readmes && bun run verify:jsdocs && bun run verify:duplicates && bun run verify:jscpd-exemptions && bun run verify:dead-code && bun run verify:stateful-client-packages && node scripts/verify-stack.mjs && bun run --filter '*' --if-present verify",
+    "test": "node --test 'scripts/**/*.test.mjs' && bun run --filter '*' --if-present test",
     "release:manifest": "node scripts/release.mjs manifest",
     "release:version": "node scripts/release.mjs version",
     "release:assets": "node scripts/release.mjs assets",
     "release:verify": "node scripts/verify-release-assets.mjs",
-    "verify:reachability": "node scripts/verify-package-reachability.mjs",
-    "verify:non-cordis-exclusions": "node scripts/verify-non-cordis-exclusions.mjs",
     "verify:stateful-client-packages": "node scripts/verify-stateful-client-packages.mjs",
     "verify:jscpd-exemptions": "node scripts/verify-jscpd-exemptions.mjs",
-    "browser:check": "node scripts/browser-check.mjs",
-    "workspace:prepare": "node scripts/prune-uninitialized-plugin-submodules.mjs"
+    "browser:check": "node scripts/browser-check.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",

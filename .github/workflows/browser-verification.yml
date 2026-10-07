@@ -3,7 +3,7 @@ name: Browser verification
 # #82: every UI-touching change has to be seen in a real browser before merge.
 #
 # HTTP 200s and a plugin inventory are preconditions, never the result. A profile
-# whose bundle list omits the harness' base rows serves nothing at all, and one
+# whose profile composition omits the harness' base rows serves nothing at all, and one
 # whose patch layer leaves two clients declaring the same slot serves 200 with
 # every entry active while the browser refuses to boot the client tree. Both
 # happened during the 0.2.0 migration and neither was visible to any other gate.
@@ -12,12 +12,12 @@ on:
     paths:
       # Client bundles and the surfaces they compose into.
       - "plugins/**/client.js"
-      - "plugins/*/src/**/*.{ts,tsx}"
+      - "plugins/*/*/src/**/*.{ts,tsx}"
       - "plugins/**/patches/**"
       - "plugins/**/stack.json"
       - "publish/**"
-      # The composition itself: boot wiring, profiles, harness pin.
-      - "plugins/launcher/**"
+      # Profile boot wiring and harness pin.
+      - "plugins/core/launcher/**"
       - "scripts/browser-check.mjs"
       - ".github/workflows/browser-verification.yml"
       - "DSH"
@@ -100,7 +100,7 @@ jobs:
         env:
           DSH_HOME: ${{ github.workspace }}/.ci-home
         run: |
-          node plugins/launcher/bin/dsh.mjs start
+          node plugins/core/launcher/bin/dsh.mjs start
           # The launcher reports readiness through the log, and the browser needs
           # the session token the server generated for this boot.
           for _ in $(seq 1 60); do
@@ -134,7 +134,7 @@ jobs:
         if: always()
         env:
           DSH_HOME: ${{ github.workspace }}/.ci-home
-        run: node plugins/launcher/bin/dsh.mjs stop || true
+        run: node plugins/core/launcher/bin/dsh.mjs stop || true
 
       - name: Upload screenshots
         if: always()

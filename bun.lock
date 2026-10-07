@@ -16,143 +16,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "bundles/headless": {
-      "name": "@dsh-stack/bundle-headless",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/agent-commands": "workspace:*",
-        "@dsh-stack/agent-loops": "workspace:*",
-        "@dsh-stack/agent-personas": "workspace:*",
-        "@dsh-stack/agent-preset-coding": "workspace:*",
-        "@dsh-stack/agent-preset-default": "workspace:*",
-        "@dsh-stack/agent-skills": "workspace:*",
-        "@dsh-stack/agent-tools": "workspace:*",
-        "@dsh-stack/agents": "workspace:*",
-        "@dsh-stack/composition": "workspace:*",
-        "@dsh-stack/credential-vault": "workspace:*",
-        "@dsh-stack/dialects": "workspace:*",
-        "@dsh-stack/formatters": "workspace:*",
-        "@dsh-stack/icon-engine": "workspace:*",
-        "@dsh-stack/lsp": "workspace:*",
-        "@dsh-stack/lucide-animated": "workspace:*",
-        "@dsh-stack/marketplace": "workspace:*",
-        "@dsh-stack/marketplace-source-dsh-stack": "workspace:*",
-        "@dsh-stack/profile-runtime": "workspace:*",
-        "@dsh-stack/profile-ui": "workspace:*",
-        "@dsh-stack/provider-rotation": "workspace:*",
-        "@dsh-stack/providers": "workspace:*",
-        "@dsh-stack/repos": "workspace:*",
-        "@dsh-stack/sidebar-preferences": "workspace:*",
-        "@dsh-stack/sidebar-settings": "workspace:*",
-        "@dsh-stack/sidebar-shell": "workspace:*",
-        "@dsh-stack/skin-claude": "workspace:*",
-        "@dsh-stack/skin-codex": "workspace:*",
-        "@dsh-stack/skin-deepseek": "workspace:*",
-        "@dsh-stack/skin-host": "workspace:*",
-        "@dsh-stack/skin-runtime": "workspace:*",
-        "@dsh-stack/skin-settings": "workspace:*",
-        "@dsh-stack/themes": "workspace:*",
-        "@dsh-stack/trading-backtest": "workspace:*",
-        "@dsh-stack/trading-market-data": "workspace:*",
-        "@dsh-stack/trading-optimizer": "workspace:*",
-        "@dsh-stack/trading-research": "workspace:*",
-        "@dsh-stack/translator": "workspace:*",
-        "@dsh-stack/tui": "workspace:*",
-        "@dsh-stack/tweak-drag-drop": "workspace:*",
-        "@dsh-stack/tweak-fork-undo": "workspace:*",
-        "@dsh-stack/tweak-keybinds": "workspace:*",
-        "@dsh-stack/tweak-plan-toggle": "workspace:*",
-        "@dsh-stack/tweak-share-links": "workspace:*",
-        "@dsh-stack/tweak-slash-commands": "workspace:*",
-        "@dsh-stack/tweak-stats": "workspace:*",
-        "@dsh-stack/tweaks": "workspace:*",
-        "@dsh-stack/workspace-files": "workspace:*",
-      },
-    },
-    "bundles/web": {
-      "name": "@dsh-stack/bundle",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/agent-actions": "workspace:*",
-        "@dsh-stack/agent-commands": "workspace:*",
-        "@dsh-stack/agent-loops": "workspace:*",
-        "@dsh-stack/agent-personas": "workspace:*",
-        "@dsh-stack/agent-preset-coding": "workspace:*",
-        "@dsh-stack/agent-preset-default": "workspace:*",
-        "@dsh-stack/agent-preset-manager": "workspace:*",
-        "@dsh-stack/agent-skills": "workspace:*",
-        "@dsh-stack/agent-tools": "workspace:*",
-        "@dsh-stack/agents": "workspace:*",
-        "@dsh-stack/composition": "workspace:*",
-        "@dsh-stack/credential-vault": "workspace:*",
-        "@dsh-stack/dialect-antigravity": "workspace:*",
-        "@dsh-stack/dialect-claude": "workspace:*",
-        "@dsh-stack/dialect-code-assist": "workspace:*",
-        "@dsh-stack/dialect-openai": "workspace:*",
-        "@dsh-stack/dialects": "workspace:*",
-        "@dsh-stack/directory-picker-fix": "workspace:*",
-        "@dsh-stack/formatters": "workspace:*",
-        "@dsh-stack/hosts": "workspace:*",
-        "@dsh-stack/icon-engine": "workspace:*",
-        "@dsh-stack/lsp": "workspace:*",
-        "@dsh-stack/lucide-animated": "workspace:*",
-        "@dsh-stack/marketplace": "workspace:*",
-        "@dsh-stack/marketplace-source-dsh-stack": "workspace:*",
-        "@dsh-stack/plugin-kit": "workspace:*",
-        "@dsh-stack/profile-runtime": "workspace:*",
-        "@dsh-stack/profile-ui": "workspace:*",
-        "@dsh-stack/provider-anthropic-api": "workspace:*",
-        "@dsh-stack/provider-antigravity-sub": "workspace:*",
-        "@dsh-stack/provider-cerebras-api": "workspace:*",
-        "@dsh-stack/provider-claude-sub": "workspace:*",
-        "@dsh-stack/provider-deepseek-api": "workspace:*",
-        "@dsh-stack/provider-gemini-api": "workspace:*",
-        "@dsh-stack/provider-gemini-sub": "workspace:*",
-        "@dsh-stack/provider-grok-api": "workspace:*",
-        "@dsh-stack/provider-grok-sub": "workspace:*",
-        "@dsh-stack/provider-groq-api": "workspace:*",
-        "@dsh-stack/provider-kimi-code": "workspace:*",
-        "@dsh-stack/provider-kimi-sub": "workspace:*",
-        "@dsh-stack/provider-llamacpp": "workspace:*",
-        "@dsh-stack/provider-mistral-api": "workspace:*",
-        "@dsh-stack/provider-ollama": "workspace:*",
-        "@dsh-stack/provider-openai-api": "workspace:*",
-        "@dsh-stack/provider-openrouter-api": "workspace:*",
-        "@dsh-stack/provider-rotation": "workspace:*",
-        "@dsh-stack/provider-vllm": "workspace:*",
-        "@dsh-stack/provider-zai-api": "workspace:*",
-        "@dsh-stack/provider-zen": "workspace:*",
-        "@dsh-stack/providers": "workspace:*",
-        "@dsh-stack/repos": "workspace:*",
-        "@dsh-stack/sidebar-preferences": "workspace:*",
-        "@dsh-stack/sidebar-settings": "workspace:*",
-        "@dsh-stack/sidebar-shell": "workspace:*",
-        "@dsh-stack/skin-claude": "workspace:*",
-        "@dsh-stack/skin-codex": "workspace:*",
-        "@dsh-stack/skin-deepseek": "workspace:*",
-        "@dsh-stack/skin-host": "workspace:*",
-        "@dsh-stack/skin-runtime": "workspace:*",
-        "@dsh-stack/skin-settings": "workspace:*",
-        "@dsh-stack/themes": "workspace:*",
-        "@dsh-stack/trading-backtest": "workspace:*",
-        "@dsh-stack/trading-market-data": "workspace:*",
-        "@dsh-stack/trading-optimizer": "workspace:*",
-        "@dsh-stack/trading-research": "workspace:*",
-        "@dsh-stack/translator": "workspace:*",
-        "@dsh-stack/tui": "workspace:*",
-        "@dsh-stack/tweak-drag-drop": "workspace:*",
-        "@dsh-stack/tweak-fork-undo": "workspace:*",
-        "@dsh-stack/tweak-keybinds": "workspace:*",
-        "@dsh-stack/tweak-plan-toggle": "workspace:*",
-        "@dsh-stack/tweak-share-links": "workspace:*",
-        "@dsh-stack/tweak-slash-commands": "workspace:*",
-        "@dsh-stack/tweak-stats": "workspace:*",
-        "@dsh-stack/tweaks": "workspace:*",
-        "@dsh-stack/voice": "workspace:*",
-        "@dsh-stack/workspace-files": "workspace:*",
-      },
-    },
-    "plugins/agent-actions": {
+    "plugins/agents/agent-actions": {
       "name": "@dsh-stack/agent-actions",
       "version": "0.1.0",
       "dependencies": {
@@ -168,7 +32,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/agent-preset-coding": {
+    "plugins/agents/agent-preset-coding": {
       "name": "@dsh-stack/agent-preset-coding",
       "version": "0.1.0",
       "dependencies": {
@@ -178,7 +42,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/agent-preset-default": {
+    "plugins/agents/agent-preset-default": {
       "name": "@dsh-stack/agent-preset-default",
       "version": "0.1.0",
       "dependencies": {
@@ -188,7 +52,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/agent-preset-manager": {
+    "plugins/agents/agent-preset-manager": {
       "name": "@dsh-stack/agent-preset-manager",
       "version": "0.1.0",
       "dependencies": {
@@ -198,7 +62,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/agents": {
+    "plugins/agents/agents": {
       "name": "@dsh-stack/agents",
       "version": "0.1.0",
       "bin": {
@@ -223,7 +87,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/automations": {
+    "plugins/agents/automations": {
       "name": "@dsh-stack/automations",
       "version": "0.1.0",
       "devDependencies": {
@@ -235,7 +99,7 @@
         "@deepseek-ai/cordis": "^4.0.1",
       },
     },
-    "plugins/commands": {
+    "plugins/agents/commands": {
       "name": "@dsh-stack/agent-commands",
       "version": "0.1.0",
       "devDependencies": {
@@ -246,217 +110,7 @@
         "@deepseek-ai/cordis": "^4.0.1",
       },
     },
-    "plugins/composition": {
-      "name": "@dsh-stack/composition",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/plugin-kit": "workspace:*",
-      },
-      "devDependencies": {
-        "typescript": "^6.0.3",
-      },
-    },
-    "plugins/credential-vault": {
-      "name": "@dsh-stack/credential-vault",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-credentials": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-credentials-local": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2",
-        "@types/node": "^22.0.0",
-        "typescript": "^5.7.0",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-credentials": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2",
-        "react": "^18.2.0",
-      },
-    },
-    "plugins/dialect-antigravity": {
-      "name": "@dsh-stack/dialect-antigravity",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/dialects": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-      },
-    },
-    "plugins/dialect-claude": {
-      "name": "@dsh-stack/dialect-claude",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/dialects": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-      },
-    },
-    "plugins/dialect-code-assist": {
-      "name": "@dsh-stack/dialect-code-assist",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/dialect-gemini": "workspace:*",
-        "@dsh-stack/dialects": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-      },
-    },
-    "plugins/dialect-gemini": {
-      "name": "@dsh-stack/dialect-gemini",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/dialects": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-      },
-    },
-    "plugins/dialect-openai": {
-      "name": "@dsh-stack/dialect-openai",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/dialects": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-      },
-    },
-    "plugins/dialects": {
-      "name": "@dsh-stack/dialects",
-      "version": "0.1.0",
-      "dependencies": {
-        "eventsource-parser": "^3.0.0",
-      },
-      "devDependencies": {
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-        "typescript": "^5.9.0",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-        "@deepseek-ai/schemastery": "*",
-      },
-    },
-    "plugins/directory-picker-fix": {
-      "name": "@dsh-stack/directory-picker-fix",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/cordis-plugin-loader": "^1.0.2",
-        "@deepseek-ai/dsh-host-directory-picker-auto": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-host-directory-picker-browse": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-host-directory-picker-native": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/cordis-plugin-loader": "^1.0.2",
-        "@deepseek-ai/dsh-host-directory-picker-auto": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-host-directory-picker-browse": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-host-directory-picker-native": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2",
-      },
-    },
-    "plugins/formatters": {
-      "name": "@dsh-stack/formatters",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/plugin-kit": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-fs": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
-        "@deepseek-ai/schemastery": "^3.0.0",
-        "@types/node": "^22.0.0",
-        "typescript": "^5.9.0",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-fs": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
-        "@deepseek-ai/schemastery": "^3.0.0",
-      },
-    },
-    "plugins/hosts": {
-      "name": "@dsh-stack/hosts",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@types/node": "^22.0.0",
-        "typescript": "^5.7.0",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "react": "^18.2.0",
-      },
-    },
-    "plugins/icon-engine": {
-      "name": "@dsh-stack/icon-engine",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "typescript": "^6.0.3",
-      },
-    },
-    "plugins/launcher": {
-      "name": "@dsh-stack/launcher",
-      "version": "0.1.0",
-      "bin": {
-        "dsh": "./bin/dsh.mjs",
-      },
-      "dependencies": {
-        "yaml": "^2.9.0",
-      },
-      "devDependencies": {
-        "@deepseek-ai/dsh-app-boot": "0.2.0-rc.2",
-        "@types/node": "^22.0.0",
-        "typescript": "^5.9.0",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/dsh-app-boot": "0.2.0-rc.2",
-      },
-    },
-    "plugins/loops": {
+    "plugins/agents/loops": {
       "name": "@dsh-stack/agent-loops",
       "version": "0.1.0",
       "devDependencies": {
@@ -472,70 +126,7 @@
         "@deepseek-ai/schemastery": "^3.0.0",
       },
     },
-    "plugins/lsp": {
-      "name": "@dsh-stack/lsp",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/plugin-kit": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-lsp": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-lsp-stdio": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-tool-lsp": "0.2.0-rc.2",
-        "@deepseek-ai/schemastery": "^3.0.0",
-        "@types/node": "^22.0.0",
-        "typescript": "^5.9.0",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-lsp": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-lsp-stdio": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-tool-lsp": "0.2.0-rc.2",
-        "@deepseek-ai/schemastery": "^3.0.0",
-      },
-    },
-    "plugins/lucide-animated": {
-      "name": "@dsh-stack/lucide-animated",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/icon-engine": "workspace:*",
-        "lucide-react": "^0.468.0",
-      },
-      "devDependencies": {
-        "@types/react": "~18.3.1",
-        "react": "^18.3.1",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "react": "^18.2.0",
-      },
-    },
-    "plugins/marketplace": {
-      "name": "@dsh-stack/marketplace",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-      },
-    },
-    "plugins/marketplace-source-dsh-stack": {
-      "name": "@dsh-stack/marketplace-source-dsh-stack",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/marketplace": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "typescript": "^6.0.3",
-      },
-    },
-    "plugins/personas": {
+    "plugins/agents/personas": {
       "name": "@dsh-stack/agent-personas",
       "version": "0.1.0",
       "devDependencies": {
@@ -546,56 +137,134 @@
         "@deepseek-ai/cordis": "^4.0.1",
       },
     },
-    "plugins/plugin-kit": {
-      "name": "@dsh-stack/plugin-kit",
+    "plugins/agents/skills": {
+      "name": "@dsh-stack/agent-skills",
       "version": "0.1.0",
       "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
         "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
+      },
+    },
+    "plugins/agents/tools": {
+      "name": "@dsh-stack/agent-tools",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/plugin-kit": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/cordis-plugin-loader": "^1.0.2",
+        "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+        "@deepseek-ai/schemastery": "^3.0.0",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.9.0",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/cordis-plugin-loader": "^1.0.2",
+        "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+        "@deepseek-ai/schemastery": "^3.0.0",
+      },
+    },
+    "plugins/ai/dialect-antigravity": {
+      "name": "@dsh-stack/dialect-antigravity",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/dialects": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+      },
+    },
+    "plugins/ai/dialect-claude": {
+      "name": "@dsh-stack/dialect-claude",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/dialects": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+      },
+    },
+    "plugins/ai/dialect-code-assist": {
+      "name": "@dsh-stack/dialect-code-assist",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/dialect-gemini": "workspace:*",
+        "@dsh-stack/dialects": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+      },
+    },
+    "plugins/ai/dialect-gemini": {
+      "name": "@dsh-stack/dialect-gemini",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/dialects": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+      },
+    },
+    "plugins/ai/dialect-openai": {
+      "name": "@dsh-stack/dialect-openai",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/dialects": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+      },
+    },
+    "plugins/ai/dialects": {
+      "name": "@dsh-stack/dialects",
+      "version": "0.1.0",
+      "dependencies": {
+        "eventsource-parser": "^3.0.0",
+      },
+      "devDependencies": {
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
+        "typescript": "^5.9.0",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
         "@deepseek-ai/schemastery": "*",
       },
     },
-    "plugins/profile-runtime": {
-      "name": "@dsh-stack/profile-runtime",
-      "version": "0.1.0",
-      "devDependencies": {
-        "typescript": "^6.0.3",
-      },
-    },
-    "plugins/profile-ui": {
-      "name": "@dsh-stack/profile-ui",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/lucide-animated": "workspace:*",
-        "@dsh-stack/profile-runtime": "workspace:*",
-        "@dsh-stack/settings-panel": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-client-ui-renderer": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-client-ui-sidebar": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
-        "@types/react": "~18.3.1",
-        "react": "^18.3.1",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/dsh-client-locale": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-client-ui-renderer": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-client-ui-sidebar": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
-        "react": "^18.2.0",
-      },
-    },
-    "plugins/provider-anthropic-api": {
+    "plugins/ai/provider-anthropic-api": {
       "name": "@dsh-stack/provider-anthropic-api",
       "version": "0.1.0",
       "dependencies": {
@@ -606,7 +275,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-antigravity-sub": {
+    "plugins/ai/provider-antigravity-sub": {
       "name": "@dsh-stack/provider-antigravity-sub",
       "version": "0.1.0",
       "dependencies": {
@@ -618,7 +287,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-cerebras-api": {
+    "plugins/ai/provider-cerebras-api": {
       "name": "@dsh-stack/provider-cerebras-api",
       "version": "0.1.0",
       "dependencies": {
@@ -629,7 +298,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-claude-sub": {
+    "plugins/ai/provider-claude-sub": {
       "name": "@dsh-stack/provider-claude-sub",
       "version": "0.1.0",
       "dependencies": {
@@ -640,7 +309,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-deepseek-api": {
+    "plugins/ai/provider-deepseek-api": {
       "name": "@dsh-stack/provider-deepseek-api",
       "version": "0.1.0",
       "dependencies": {
@@ -651,7 +320,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-gemini-api": {
+    "plugins/ai/provider-gemini-api": {
       "name": "@dsh-stack/provider-gemini-api",
       "version": "0.1.0",
       "dependencies": {
@@ -662,7 +331,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-gemini-sub": {
+    "plugins/ai/provider-gemini-sub": {
       "name": "@dsh-stack/provider-gemini-sub",
       "version": "0.1.0",
       "dependencies": {
@@ -673,7 +342,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-grok-api": {
+    "plugins/ai/provider-grok-api": {
       "name": "@dsh-stack/provider-grok-api",
       "version": "0.1.0",
       "dependencies": {
@@ -684,7 +353,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-grok-sub": {
+    "plugins/ai/provider-grok-sub": {
       "name": "@dsh-stack/provider-grok-sub",
       "version": "0.1.0",
       "dependencies": {
@@ -695,7 +364,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-groq-api": {
+    "plugins/ai/provider-groq-api": {
       "name": "@dsh-stack/provider-groq-api",
       "version": "0.1.0",
       "dependencies": {
@@ -706,7 +375,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-kimi-code": {
+    "plugins/ai/provider-kimi-code": {
       "name": "@dsh-stack/provider-kimi-code",
       "version": "0.1.0",
       "dependencies": {
@@ -717,7 +386,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-kimi-sub": {
+    "plugins/ai/provider-kimi-sub": {
       "name": "@dsh-stack/provider-kimi-sub",
       "version": "0.1.0",
       "dependencies": {
@@ -728,7 +397,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-llamacpp": {
+    "plugins/ai/provider-llamacpp": {
       "name": "@dsh-stack/provider-llamacpp",
       "version": "0.1.0",
       "dependencies": {
@@ -739,7 +408,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-mistral-api": {
+    "plugins/ai/provider-mistral-api": {
       "name": "@dsh-stack/provider-mistral-api",
       "version": "0.1.0",
       "dependencies": {
@@ -750,7 +419,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-ollama": {
+    "plugins/ai/provider-ollama": {
       "name": "@dsh-stack/provider-ollama",
       "version": "0.1.0",
       "dependencies": {
@@ -761,7 +430,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-openai-api": {
+    "plugins/ai/provider-openai-api": {
       "name": "@dsh-stack/provider-openai-api",
       "version": "0.1.0",
       "dependencies": {
@@ -772,7 +441,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-openrouter-api": {
+    "plugins/ai/provider-openrouter-api": {
       "name": "@dsh-stack/provider-openrouter-api",
       "version": "0.1.0",
       "dependencies": {
@@ -783,7 +452,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-rotation": {
+    "plugins/ai/provider-rotation": {
       "name": "@dsh-stack/provider-rotation",
       "version": "0.1.0",
       "dependencies": {
@@ -799,7 +468,7 @@
         "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
       },
     },
-    "plugins/provider-vllm": {
+    "plugins/ai/provider-vllm": {
       "name": "@dsh-stack/provider-vllm",
       "version": "0.1.0",
       "dependencies": {
@@ -810,7 +479,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-zai-api": {
+    "plugins/ai/provider-zai-api": {
       "name": "@dsh-stack/provider-zai-api",
       "version": "0.1.0",
       "dependencies": {
@@ -821,7 +490,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/provider-zen": {
+    "plugins/ai/provider-zen": {
       "name": "@dsh-stack/provider-zen",
       "version": "0.1.0",
       "dependencies": {
@@ -832,7 +501,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "plugins/providers": {
+    "plugins/ai/providers": {
       "name": "@dsh-stack/providers",
       "version": "0.1.0",
       "dependencies": {
@@ -871,14 +540,109 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/repos": {
-      "name": "@dsh-stack/repos",
+    "plugins/core/credential-vault": {
+      "name": "@dsh-stack/credential-vault",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-credentials": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-credentials-local": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.7.0",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-credentials": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2",
+        "react": "^18.2.0",
+      },
+    },
+    "plugins/core/launcher": {
+      "name": "@dsh-stack/launcher",
+      "version": "0.1.0",
+      "bin": {
+        "dsh": "./bin/dsh.mjs",
+      },
+      "dependencies": {
+        "yaml": "^2.9.0",
+      },
+      "devDependencies": {
+        "@deepseek-ai/dsh-app-boot": "0.2.0-rc.2",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.9.0",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/dsh-app-boot": "0.2.0-rc.2",
+      },
+    },
+    "plugins/core/marketplace": {
+      "name": "@dsh-stack/marketplace",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+      },
+    },
+    "plugins/core/marketplace-source-dsh-stack": {
+      "name": "@dsh-stack/marketplace-source-dsh-stack",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/marketplace": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "typescript": "^6.0.3",
+      },
+    },
+    "plugins/core/plugin-kit": {
+      "name": "@dsh-stack/plugin-kit",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
+        "@deepseek-ai/schemastery": "*",
+      },
+    },
+    "plugins/integrations/directory-picker-fix": {
+      "name": "@dsh-stack/directory-picker-fix",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/cordis-plugin-loader": "^1.0.2",
+        "@deepseek-ai/dsh-host-directory-picker-auto": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-host-directory-picker-browse": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-host-directory-picker-native": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/cordis-plugin-loader": "^1.0.2",
+        "@deepseek-ai/dsh-host-directory-picker-auto": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-host-directory-picker-browse": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-host-directory-picker-native": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2",
+      },
+    },
+    "plugins/integrations/formatters": {
+      "name": "@dsh-stack/formatters",
       "version": "0.1.0",
       "dependencies": {
         "@dsh-stack/plugin-kit": "workspace:*",
       },
       "devDependencies": {
         "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-fs": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
         "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
         "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
         "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
@@ -889,6 +653,8 @@
       },
       "peerDependencies": {
         "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-fs": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-llm": "0.2.0-rc.2",
         "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
         "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
         "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
@@ -896,7 +662,156 @@
         "@deepseek-ai/schemastery": "^3.0.0",
       },
     },
-    "plugins/settings-panel": {
+    "plugins/integrations/hosts": {
+      "name": "@dsh-stack/hosts",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.7.0",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "react": "^18.2.0",
+      },
+    },
+    "plugins/integrations/lsp": {
+      "name": "@dsh-stack/lsp",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/plugin-kit": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-lsp": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-lsp-stdio": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-tool-lsp": "0.2.0-rc.2",
+        "@deepseek-ai/schemastery": "^3.0.0",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.9.0",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-lsp": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-lsp-stdio": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-tool-lsp": "0.2.0-rc.2",
+        "@deepseek-ai/schemastery": "^3.0.0",
+      },
+    },
+    "plugins/integrations/translator": {
+      "name": "@dsh-stack/translator",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.9.0",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+      },
+    },
+    "plugins/trading/trading-backtest": {
+      "name": "@dsh-stack/trading-backtest",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/trading-research": "workspace:*",
+      },
+      "devDependencies": {
+        "typescript": "^6.0.3",
+      },
+    },
+    "plugins/trading/trading-market-data": {
+      "name": "@dsh-stack/trading-market-data",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/trading-research": "workspace:*",
+      },
+      "devDependencies": {
+        "typescript": "^6.0.3",
+      },
+    },
+    "plugins/trading/trading-optimizer": {
+      "name": "@dsh-stack/trading-optimizer",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/trading-backtest": "workspace:*",
+        "@dsh-stack/trading-research": "workspace:*",
+      },
+      "devDependencies": {
+        "typescript": "^6.0.3",
+      },
+    },
+    "plugins/trading/trading-research": {
+      "name": "@dsh-stack/trading-research",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "^6.0.3",
+      },
+    },
+    "plugins/ux/icon-engine": {
+      "name": "@dsh-stack/icon-engine",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "typescript": "^6.0.3",
+      },
+    },
+    "plugins/ux/lucide-animated": {
+      "name": "@dsh-stack/lucide-animated",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/icon-engine": "workspace:*",
+        "lucide-react": "^0.468.0",
+      },
+      "devDependencies": {
+        "@types/react": "~18.3.1",
+        "react": "^18.3.1",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "react": "^18.2.0",
+      },
+    },
+    "plugins/ux/profile-runtime": {
+      "name": "@dsh-stack/profile-runtime",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "^6.0.3",
+      },
+    },
+    "plugins/ux/profile-ui": {
+      "name": "@dsh-stack/profile-ui",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/lucide-animated": "workspace:*",
+        "@dsh-stack/profile-runtime": "workspace:*",
+        "@dsh-stack/settings-panel": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-client-ui-renderer": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-client-ui-sidebar": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
+        "@types/react": "~18.3.1",
+        "react": "^18.3.1",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-client-locale": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-client-ui-renderer": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-client-ui-sidebar": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-client-ui-slots": "0.2.0-rc.2",
+        "react": "^18.2.0",
+      },
+    },
+    "plugins/ux/settings-panel": {
       "name": "@dsh-stack/settings-panel",
       "version": "0.1.0",
       "devDependencies": {
@@ -910,7 +825,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/sidebar-preferences": {
+    "plugins/ux/sidebar-preferences": {
       "name": "@dsh-stack/sidebar-preferences",
       "version": "0.1.0",
       "devDependencies": {
@@ -921,7 +836,7 @@
         "@deepseek-ai/cordis": "^4.0.1",
       },
     },
-    "plugins/sidebar-settings": {
+    "plugins/ux/sidebar-settings": {
       "name": "@dsh-stack/sidebar-settings",
       "version": "0.1.0",
       "dependencies": {
@@ -946,7 +861,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/sidebar-shell": {
+    "plugins/ux/sidebar-shell": {
       "name": "@dsh-stack/sidebar-shell",
       "version": "0.1.0",
       "dependencies": {
@@ -979,18 +894,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/skills": {
-      "name": "@dsh-stack/agent-skills",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-      },
-    },
-    "plugins/skin-claude": {
+    "plugins/ux/skin-claude": {
       "name": "@dsh-stack/skin-claude",
       "version": "0.1.0",
       "dependencies": {
@@ -1004,7 +908,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/skin-codex": {
+    "plugins/ux/skin-codex": {
       "name": "@dsh-stack/skin-codex",
       "version": "0.1.0",
       "dependencies": {
@@ -1018,7 +922,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/skin-deepseek": {
+    "plugins/ux/skin-deepseek": {
       "name": "@dsh-stack/skin-deepseek",
       "version": "0.1.0",
       "dependencies": {
@@ -1033,7 +937,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/skin-host": {
+    "plugins/ux/skin-host": {
       "name": "@dsh-stack/skin-host",
       "version": "0.1.0",
       "dependencies": {
@@ -1061,7 +965,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/skin-runtime": {
+    "plugins/ux/skin-runtime": {
       "name": "@dsh-stack/skin-runtime",
       "version": "0.1.0",
       "devDependencies": {
@@ -1072,7 +976,7 @@
         "@deepseek-ai/cordis": "^4.0.1",
       },
     },
-    "plugins/skin-settings": {
+    "plugins/ux/skin-settings": {
       "name": "@dsh-stack/skin-settings",
       "version": "0.1.0",
       "dependencies": {
@@ -1096,7 +1000,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/themes": {
+    "plugins/ux/themes": {
       "name": "@dsh-stack/themes",
       "version": "0.1.0",
       "dependencies": {
@@ -1118,82 +1022,7 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/tools": {
-      "name": "@dsh-stack/agent-tools",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/plugin-kit": "workspace:*",
-      },
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/cordis-plugin-loader": "^1.0.2",
-        "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
-        "@deepseek-ai/schemastery": "^3.0.0",
-        "@types/node": "^22.0.0",
-        "typescript": "^5.9.0",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@deepseek-ai/cordis-plugin-loader": "^1.0.2",
-        "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
-        "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
-        "@deepseek-ai/schemastery": "^3.0.0",
-      },
-    },
-    "plugins/trading-backtest": {
-      "name": "@dsh-stack/trading-backtest",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/trading-research": "workspace:*",
-      },
-      "devDependencies": {
-        "typescript": "^6.0.3",
-      },
-    },
-    "plugins/trading-market-data": {
-      "name": "@dsh-stack/trading-market-data",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/trading-research": "workspace:*",
-      },
-      "devDependencies": {
-        "typescript": "^6.0.3",
-      },
-    },
-    "plugins/trading-optimizer": {
-      "name": "@dsh-stack/trading-optimizer",
-      "version": "0.1.0",
-      "dependencies": {
-        "@dsh-stack/trading-backtest": "workspace:*",
-        "@dsh-stack/trading-research": "workspace:*",
-      },
-      "devDependencies": {
-        "typescript": "^6.0.3",
-      },
-    },
-    "plugins/trading-research": {
-      "name": "@dsh-stack/trading-research",
-      "version": "0.1.0",
-      "devDependencies": {
-        "typescript": "^6.0.3",
-      },
-    },
-    "plugins/translator": {
-      "name": "@dsh-stack/translator",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-        "@types/node": "^22.0.0",
-        "typescript": "^5.9.0",
-      },
-      "peerDependencies": {
-        "@deepseek-ai/cordis": "^4.0.1",
-      },
-    },
-    "plugins/tui": {
+    "plugins/ux/tui": {
       "name": "@dsh-stack/tui",
       "version": "0.2.0",
       "bin": {
@@ -1204,7 +1033,7 @@
         "typescript": "^5.9.0",
       },
     },
-    "plugins/tweak-drag-drop": {
+    "plugins/ux/tweak-drag-drop": {
       "name": "@dsh-stack/tweak-drag-drop",
       "version": "0.1.0",
       "dependencies": {
@@ -1222,7 +1051,7 @@
         "@deepseek-ai/schemastery": "*",
       },
     },
-    "plugins/tweak-fork-undo": {
+    "plugins/ux/tweak-fork-undo": {
       "name": "@dsh-stack/tweak-fork-undo",
       "version": "0.1.0",
       "dependencies": {
@@ -1244,7 +1073,7 @@
         "@deepseek-ai/schemastery": "*",
       },
     },
-    "plugins/tweak-keybinds": {
+    "plugins/ux/tweak-keybinds": {
       "name": "@dsh-stack/tweak-keybinds",
       "version": "0.1.0",
       "dependencies": {
@@ -1262,7 +1091,7 @@
         "@deepseek-ai/schemastery": "*",
       },
     },
-    "plugins/tweak-plan-toggle": {
+    "plugins/ux/tweak-plan-toggle": {
       "name": "@dsh-stack/tweak-plan-toggle",
       "version": "0.1.0",
       "dependencies": {
@@ -1284,7 +1113,7 @@
         "@deepseek-ai/schemastery": "*",
       },
     },
-    "plugins/tweak-share-links": {
+    "plugins/ux/tweak-share-links": {
       "name": "@dsh-stack/tweak-share-links",
       "version": "0.1.0",
       "bin": {
@@ -1308,7 +1137,7 @@
         "@deepseek-ai/schemastery": "*",
       },
     },
-    "plugins/tweak-slash-commands": {
+    "plugins/ux/tweak-slash-commands": {
       "name": "@dsh-stack/tweak-slash-commands",
       "version": "0.1.0",
       "dependencies": {
@@ -1328,7 +1157,7 @@
         "@deepseek-ai/schemastery": "*",
       },
     },
-    "plugins/tweak-stats": {
+    "plugins/ux/tweak-stats": {
       "name": "@dsh-stack/tweak-stats",
       "version": "0.1.0",
       "bin": {
@@ -1351,7 +1180,7 @@
         "@deepseek-ai/schemastery": "*",
       },
     },
-    "plugins/tweaks": {
+    "plugins/ux/tweaks": {
       "name": "@dsh-stack/tweaks",
       "version": "0.2.0",
       "dependencies": {
@@ -1374,7 +1203,7 @@
         "react-dom": "^18.2.0",
       },
     },
-    "plugins/voice": {
+    "plugins/ux/voice": {
       "name": "@dsh-stack/voice",
       "version": "0.1.0",
       "dependencies": {
@@ -1398,11 +1227,36 @@
         "react": "^18.2.0",
       },
     },
-    "plugins/workspace-files": {
+    "plugins/ux/workspace-files": {
       "name": "@dsh-stack/workspace-files",
       "version": "0.1.0",
       "devDependencies": {
         "typescript": "^6.0.3",
+      },
+    },
+    "plugins/vcs/repos": {
+      "name": "@dsh-stack/repos",
+      "version": "0.1.0",
+      "dependencies": {
+        "@dsh-stack/plugin-kit": "workspace:*",
+      },
+      "devDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+        "@deepseek-ai/schemastery": "^3.0.0",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.9.0",
+      },
+      "peerDependencies": {
+        "@deepseek-ai/cordis": "^4.0.1",
+        "@deepseek-ai/dsh-sandbox": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
+        "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
+        "@deepseek-ai/schemastery": "^3.0.0",
       },
     },
   },
@@ -1622,171 +1476,165 @@
 
     "@deepseek-ai/schemastery": ["@deepseek-ai/schemastery@3.18.4", "", { "dependencies": { "@deepseek-ai/cosmokit": "~1.8.5", "@standard-schema/spec": "^1.1.0" } }, "sha512-SSXO6tYuyrIqKVbmOnIq0s+riUywYzouFMcnBluHF9n4KMo2G8HvEzhCYj6pj2617/glOjbJuVInJ9hfONsjkg=="],
 
-    "@dsh-stack/agent-actions": ["@dsh-stack/agent-actions@workspace:plugins/agent-actions"],
+    "@dsh-stack/agent-actions": ["@dsh-stack/agent-actions@workspace:plugins/agents/agent-actions"],
 
-    "@dsh-stack/agent-commands": ["@dsh-stack/agent-commands@workspace:plugins/commands"],
+    "@dsh-stack/agent-commands": ["@dsh-stack/agent-commands@workspace:plugins/agents/commands"],
 
-    "@dsh-stack/agent-loops": ["@dsh-stack/agent-loops@workspace:plugins/loops"],
+    "@dsh-stack/agent-loops": ["@dsh-stack/agent-loops@workspace:plugins/agents/loops"],
 
-    "@dsh-stack/agent-personas": ["@dsh-stack/agent-personas@workspace:plugins/personas"],
+    "@dsh-stack/agent-personas": ["@dsh-stack/agent-personas@workspace:plugins/agents/personas"],
 
-    "@dsh-stack/agent-preset-coding": ["@dsh-stack/agent-preset-coding@workspace:plugins/agent-preset-coding"],
+    "@dsh-stack/agent-preset-coding": ["@dsh-stack/agent-preset-coding@workspace:plugins/agents/agent-preset-coding"],
 
-    "@dsh-stack/agent-preset-default": ["@dsh-stack/agent-preset-default@workspace:plugins/agent-preset-default"],
+    "@dsh-stack/agent-preset-default": ["@dsh-stack/agent-preset-default@workspace:plugins/agents/agent-preset-default"],
 
-    "@dsh-stack/agent-preset-manager": ["@dsh-stack/agent-preset-manager@workspace:plugins/agent-preset-manager"],
+    "@dsh-stack/agent-preset-manager": ["@dsh-stack/agent-preset-manager@workspace:plugins/agents/agent-preset-manager"],
 
-    "@dsh-stack/agent-skills": ["@dsh-stack/agent-skills@workspace:plugins/skills"],
+    "@dsh-stack/agent-skills": ["@dsh-stack/agent-skills@workspace:plugins/agents/skills"],
 
-    "@dsh-stack/agent-tools": ["@dsh-stack/agent-tools@workspace:plugins/tools"],
+    "@dsh-stack/agent-tools": ["@dsh-stack/agent-tools@workspace:plugins/agents/tools"],
 
-    "@dsh-stack/agents": ["@dsh-stack/agents@workspace:plugins/agents"],
+    "@dsh-stack/agents": ["@dsh-stack/agents@workspace:plugins/agents/agents"],
 
-    "@dsh-stack/automations": ["@dsh-stack/automations@workspace:plugins/automations"],
+    "@dsh-stack/automations": ["@dsh-stack/automations@workspace:plugins/agents/automations"],
 
-    "@dsh-stack/bundle": ["@dsh-stack/bundle@workspace:bundles/web"],
+    "@dsh-stack/credential-vault": ["@dsh-stack/credential-vault@workspace:plugins/core/credential-vault"],
 
-    "@dsh-stack/bundle-headless": ["@dsh-stack/bundle-headless@workspace:bundles/headless"],
+    "@dsh-stack/dialect-antigravity": ["@dsh-stack/dialect-antigravity@workspace:plugins/ai/dialect-antigravity"],
 
-    "@dsh-stack/composition": ["@dsh-stack/composition@workspace:plugins/composition"],
+    "@dsh-stack/dialect-claude": ["@dsh-stack/dialect-claude@workspace:plugins/ai/dialect-claude"],
 
-    "@dsh-stack/credential-vault": ["@dsh-stack/credential-vault@workspace:plugins/credential-vault"],
+    "@dsh-stack/dialect-code-assist": ["@dsh-stack/dialect-code-assist@workspace:plugins/ai/dialect-code-assist"],
 
-    "@dsh-stack/dialect-antigravity": ["@dsh-stack/dialect-antigravity@workspace:plugins/dialect-antigravity"],
+    "@dsh-stack/dialect-gemini": ["@dsh-stack/dialect-gemini@workspace:plugins/ai/dialect-gemini"],
 
-    "@dsh-stack/dialect-claude": ["@dsh-stack/dialect-claude@workspace:plugins/dialect-claude"],
+    "@dsh-stack/dialect-openai": ["@dsh-stack/dialect-openai@workspace:plugins/ai/dialect-openai"],
 
-    "@dsh-stack/dialect-code-assist": ["@dsh-stack/dialect-code-assist@workspace:plugins/dialect-code-assist"],
+    "@dsh-stack/dialects": ["@dsh-stack/dialects@workspace:plugins/ai/dialects"],
 
-    "@dsh-stack/dialect-gemini": ["@dsh-stack/dialect-gemini@workspace:plugins/dialect-gemini"],
+    "@dsh-stack/directory-picker-fix": ["@dsh-stack/directory-picker-fix@workspace:plugins/integrations/directory-picker-fix"],
 
-    "@dsh-stack/dialect-openai": ["@dsh-stack/dialect-openai@workspace:plugins/dialect-openai"],
+    "@dsh-stack/formatters": ["@dsh-stack/formatters@workspace:plugins/integrations/formatters"],
 
-    "@dsh-stack/dialects": ["@dsh-stack/dialects@workspace:plugins/dialects"],
+    "@dsh-stack/hosts": ["@dsh-stack/hosts@workspace:plugins/integrations/hosts"],
 
-    "@dsh-stack/directory-picker-fix": ["@dsh-stack/directory-picker-fix@workspace:plugins/directory-picker-fix"],
+    "@dsh-stack/icon-engine": ["@dsh-stack/icon-engine@workspace:plugins/ux/icon-engine"],
 
-    "@dsh-stack/formatters": ["@dsh-stack/formatters@workspace:plugins/formatters"],
+    "@dsh-stack/launcher": ["@dsh-stack/launcher@workspace:plugins/core/launcher"],
 
-    "@dsh-stack/hosts": ["@dsh-stack/hosts@workspace:plugins/hosts"],
+    "@dsh-stack/lsp": ["@dsh-stack/lsp@workspace:plugins/integrations/lsp"],
 
-    "@dsh-stack/icon-engine": ["@dsh-stack/icon-engine@workspace:plugins/icon-engine"],
+    "@dsh-stack/lucide-animated": ["@dsh-stack/lucide-animated@workspace:plugins/ux/lucide-animated"],
 
-    "@dsh-stack/launcher": ["@dsh-stack/launcher@workspace:plugins/launcher"],
+    "@dsh-stack/marketplace": ["@dsh-stack/marketplace@workspace:plugins/core/marketplace"],
 
-    "@dsh-stack/lsp": ["@dsh-stack/lsp@workspace:plugins/lsp"],
+    "@dsh-stack/marketplace-source-dsh-stack": ["@dsh-stack/marketplace-source-dsh-stack@workspace:plugins/core/marketplace-source-dsh-stack"],
 
-    "@dsh-stack/lucide-animated": ["@dsh-stack/lucide-animated@workspace:plugins/lucide-animated"],
+    "@dsh-stack/plugin-kit": ["@dsh-stack/plugin-kit@workspace:plugins/core/plugin-kit"],
 
-    "@dsh-stack/marketplace": ["@dsh-stack/marketplace@workspace:plugins/marketplace"],
+    "@dsh-stack/profile-runtime": ["@dsh-stack/profile-runtime@workspace:plugins/ux/profile-runtime"],
 
-    "@dsh-stack/marketplace-source-dsh-stack": ["@dsh-stack/marketplace-source-dsh-stack@workspace:plugins/marketplace-source-dsh-stack"],
+    "@dsh-stack/profile-ui": ["@dsh-stack/profile-ui@workspace:plugins/ux/profile-ui"],
 
-    "@dsh-stack/plugin-kit": ["@dsh-stack/plugin-kit@workspace:plugins/plugin-kit"],
+    "@dsh-stack/provider-anthropic-api": ["@dsh-stack/provider-anthropic-api@workspace:plugins/ai/provider-anthropic-api"],
 
-    "@dsh-stack/profile-runtime": ["@dsh-stack/profile-runtime@workspace:plugins/profile-runtime"],
+    "@dsh-stack/provider-antigravity-sub": ["@dsh-stack/provider-antigravity-sub@workspace:plugins/ai/provider-antigravity-sub"],
 
-    "@dsh-stack/profile-ui": ["@dsh-stack/profile-ui@workspace:plugins/profile-ui"],
+    "@dsh-stack/provider-cerebras-api": ["@dsh-stack/provider-cerebras-api@workspace:plugins/ai/provider-cerebras-api"],
 
-    "@dsh-stack/provider-anthropic-api": ["@dsh-stack/provider-anthropic-api@workspace:plugins/provider-anthropic-api"],
+    "@dsh-stack/provider-claude-sub": ["@dsh-stack/provider-claude-sub@workspace:plugins/ai/provider-claude-sub"],
 
-    "@dsh-stack/provider-antigravity-sub": ["@dsh-stack/provider-antigravity-sub@workspace:plugins/provider-antigravity-sub"],
+    "@dsh-stack/provider-deepseek-api": ["@dsh-stack/provider-deepseek-api@workspace:plugins/ai/provider-deepseek-api"],
 
-    "@dsh-stack/provider-cerebras-api": ["@dsh-stack/provider-cerebras-api@workspace:plugins/provider-cerebras-api"],
+    "@dsh-stack/provider-gemini-api": ["@dsh-stack/provider-gemini-api@workspace:plugins/ai/provider-gemini-api"],
 
-    "@dsh-stack/provider-claude-sub": ["@dsh-stack/provider-claude-sub@workspace:plugins/provider-claude-sub"],
+    "@dsh-stack/provider-gemini-sub": ["@dsh-stack/provider-gemini-sub@workspace:plugins/ai/provider-gemini-sub"],
 
-    "@dsh-stack/provider-deepseek-api": ["@dsh-stack/provider-deepseek-api@workspace:plugins/provider-deepseek-api"],
+    "@dsh-stack/provider-grok-api": ["@dsh-stack/provider-grok-api@workspace:plugins/ai/provider-grok-api"],
 
-    "@dsh-stack/provider-gemini-api": ["@dsh-stack/provider-gemini-api@workspace:plugins/provider-gemini-api"],
+    "@dsh-stack/provider-grok-sub": ["@dsh-stack/provider-grok-sub@workspace:plugins/ai/provider-grok-sub"],
 
-    "@dsh-stack/provider-gemini-sub": ["@dsh-stack/provider-gemini-sub@workspace:plugins/provider-gemini-sub"],
+    "@dsh-stack/provider-groq-api": ["@dsh-stack/provider-groq-api@workspace:plugins/ai/provider-groq-api"],
 
-    "@dsh-stack/provider-grok-api": ["@dsh-stack/provider-grok-api@workspace:plugins/provider-grok-api"],
+    "@dsh-stack/provider-kimi-code": ["@dsh-stack/provider-kimi-code@workspace:plugins/ai/provider-kimi-code"],
 
-    "@dsh-stack/provider-grok-sub": ["@dsh-stack/provider-grok-sub@workspace:plugins/provider-grok-sub"],
+    "@dsh-stack/provider-kimi-sub": ["@dsh-stack/provider-kimi-sub@workspace:plugins/ai/provider-kimi-sub"],
 
-    "@dsh-stack/provider-groq-api": ["@dsh-stack/provider-groq-api@workspace:plugins/provider-groq-api"],
+    "@dsh-stack/provider-llamacpp": ["@dsh-stack/provider-llamacpp@workspace:plugins/ai/provider-llamacpp"],
 
-    "@dsh-stack/provider-kimi-code": ["@dsh-stack/provider-kimi-code@workspace:plugins/provider-kimi-code"],
+    "@dsh-stack/provider-mistral-api": ["@dsh-stack/provider-mistral-api@workspace:plugins/ai/provider-mistral-api"],
 
-    "@dsh-stack/provider-kimi-sub": ["@dsh-stack/provider-kimi-sub@workspace:plugins/provider-kimi-sub"],
+    "@dsh-stack/provider-ollama": ["@dsh-stack/provider-ollama@workspace:plugins/ai/provider-ollama"],
 
-    "@dsh-stack/provider-llamacpp": ["@dsh-stack/provider-llamacpp@workspace:plugins/provider-llamacpp"],
+    "@dsh-stack/provider-openai-api": ["@dsh-stack/provider-openai-api@workspace:plugins/ai/provider-openai-api"],
 
-    "@dsh-stack/provider-mistral-api": ["@dsh-stack/provider-mistral-api@workspace:plugins/provider-mistral-api"],
+    "@dsh-stack/provider-openrouter-api": ["@dsh-stack/provider-openrouter-api@workspace:plugins/ai/provider-openrouter-api"],
 
-    "@dsh-stack/provider-ollama": ["@dsh-stack/provider-ollama@workspace:plugins/provider-ollama"],
+    "@dsh-stack/provider-rotation": ["@dsh-stack/provider-rotation@workspace:plugins/ai/provider-rotation"],
 
-    "@dsh-stack/provider-openai-api": ["@dsh-stack/provider-openai-api@workspace:plugins/provider-openai-api"],
+    "@dsh-stack/provider-vllm": ["@dsh-stack/provider-vllm@workspace:plugins/ai/provider-vllm"],
 
-    "@dsh-stack/provider-openrouter-api": ["@dsh-stack/provider-openrouter-api@workspace:plugins/provider-openrouter-api"],
+    "@dsh-stack/provider-zai-api": ["@dsh-stack/provider-zai-api@workspace:plugins/ai/provider-zai-api"],
 
-    "@dsh-stack/provider-rotation": ["@dsh-stack/provider-rotation@workspace:plugins/provider-rotation"],
+    "@dsh-stack/provider-zen": ["@dsh-stack/provider-zen@workspace:plugins/ai/provider-zen"],
 
-    "@dsh-stack/provider-vllm": ["@dsh-stack/provider-vllm@workspace:plugins/provider-vllm"],
+    "@dsh-stack/providers": ["@dsh-stack/providers@workspace:plugins/ai/providers"],
 
-    "@dsh-stack/provider-zai-api": ["@dsh-stack/provider-zai-api@workspace:plugins/provider-zai-api"],
+    "@dsh-stack/repos": ["@dsh-stack/repos@workspace:plugins/vcs/repos"],
 
-    "@dsh-stack/provider-zen": ["@dsh-stack/provider-zen@workspace:plugins/provider-zen"],
+    "@dsh-stack/settings-panel": ["@dsh-stack/settings-panel@workspace:plugins/ux/settings-panel"],
 
-    "@dsh-stack/providers": ["@dsh-stack/providers@workspace:plugins/providers"],
+    "@dsh-stack/sidebar-preferences": ["@dsh-stack/sidebar-preferences@workspace:plugins/ux/sidebar-preferences"],
 
-    "@dsh-stack/repos": ["@dsh-stack/repos@workspace:plugins/repos"],
+    "@dsh-stack/sidebar-settings": ["@dsh-stack/sidebar-settings@workspace:plugins/ux/sidebar-settings"],
 
-    "@dsh-stack/settings-panel": ["@dsh-stack/settings-panel@workspace:plugins/settings-panel"],
+    "@dsh-stack/sidebar-shell": ["@dsh-stack/sidebar-shell@workspace:plugins/ux/sidebar-shell"],
 
-    "@dsh-stack/sidebar-preferences": ["@dsh-stack/sidebar-preferences@workspace:plugins/sidebar-preferences"],
+    "@dsh-stack/skin-claude": ["@dsh-stack/skin-claude@workspace:plugins/ux/skin-claude"],
 
-    "@dsh-stack/sidebar-settings": ["@dsh-stack/sidebar-settings@workspace:plugins/sidebar-settings"],
+    "@dsh-stack/skin-codex": ["@dsh-stack/skin-codex@workspace:plugins/ux/skin-codex"],
 
-    "@dsh-stack/sidebar-shell": ["@dsh-stack/sidebar-shell@workspace:plugins/sidebar-shell"],
+    "@dsh-stack/skin-deepseek": ["@dsh-stack/skin-deepseek@workspace:plugins/ux/skin-deepseek"],
 
-    "@dsh-stack/skin-claude": ["@dsh-stack/skin-claude@workspace:plugins/skin-claude"],
+    "@dsh-stack/skin-host": ["@dsh-stack/skin-host@workspace:plugins/ux/skin-host"],
 
-    "@dsh-stack/skin-codex": ["@dsh-stack/skin-codex@workspace:plugins/skin-codex"],
+    "@dsh-stack/skin-runtime": ["@dsh-stack/skin-runtime@workspace:plugins/ux/skin-runtime"],
 
-    "@dsh-stack/skin-deepseek": ["@dsh-stack/skin-deepseek@workspace:plugins/skin-deepseek"],
+    "@dsh-stack/skin-settings": ["@dsh-stack/skin-settings@workspace:plugins/ux/skin-settings"],
 
-    "@dsh-stack/skin-host": ["@dsh-stack/skin-host@workspace:plugins/skin-host"],
+    "@dsh-stack/themes": ["@dsh-stack/themes@workspace:plugins/ux/themes"],
 
-    "@dsh-stack/skin-runtime": ["@dsh-stack/skin-runtime@workspace:plugins/skin-runtime"],
+    "@dsh-stack/trading-backtest": ["@dsh-stack/trading-backtest@workspace:plugins/trading/trading-backtest"],
 
-    "@dsh-stack/skin-settings": ["@dsh-stack/skin-settings@workspace:plugins/skin-settings"],
+    "@dsh-stack/trading-market-data": ["@dsh-stack/trading-market-data@workspace:plugins/trading/trading-market-data"],
 
-    "@dsh-stack/themes": ["@dsh-stack/themes@workspace:plugins/themes"],
+    "@dsh-stack/trading-optimizer": ["@dsh-stack/trading-optimizer@workspace:plugins/trading/trading-optimizer"],
 
-    "@dsh-stack/trading-backtest": ["@dsh-stack/trading-backtest@workspace:plugins/trading-backtest"],
+    "@dsh-stack/trading-research": ["@dsh-stack/trading-research@workspace:plugins/trading/trading-research"],
 
-    "@dsh-stack/trading-market-data": ["@dsh-stack/trading-market-data@workspace:plugins/trading-market-data"],
+    "@dsh-stack/translator": ["@dsh-stack/translator@workspace:plugins/integrations/translator"],
 
-    "@dsh-stack/trading-optimizer": ["@dsh-stack/trading-optimizer@workspace:plugins/trading-optimizer"],
+    "@dsh-stack/tui": ["@dsh-stack/tui@workspace:plugins/ux/tui"],
 
-    "@dsh-stack/trading-research": ["@dsh-stack/trading-research@workspace:plugins/trading-research"],
+    "@dsh-stack/tweak-drag-drop": ["@dsh-stack/tweak-drag-drop@workspace:plugins/ux/tweak-drag-drop"],
 
-    "@dsh-stack/translator": ["@dsh-stack/translator@workspace:plugins/translator"],
+    "@dsh-stack/tweak-fork-undo": ["@dsh-stack/tweak-fork-undo@workspace:plugins/ux/tweak-fork-undo"],
 
-    "@dsh-stack/tui": ["@dsh-stack/tui@workspace:plugins/tui"],
+    "@dsh-stack/tweak-keybinds": ["@dsh-stack/tweak-keybinds@workspace:plugins/ux/tweak-keybinds"],
 
-    "@dsh-stack/tweak-drag-drop": ["@dsh-stack/tweak-drag-drop@workspace:plugins/tweak-drag-drop"],
+    "@dsh-stack/tweak-plan-toggle": ["@dsh-stack/tweak-plan-toggle@workspace:plugins/ux/tweak-plan-toggle"],
 
-    "@dsh-stack/tweak-fork-undo": ["@dsh-stack/tweak-fork-undo@workspace:plugins/tweak-fork-undo"],
+    "@dsh-stack/tweak-share-links": ["@dsh-stack/tweak-share-links@workspace:plugins/ux/tweak-share-links"],
 
-    "@dsh-stack/tweak-keybinds": ["@dsh-stack/tweak-keybinds@workspace:plugins/tweak-keybinds"],
+    "@dsh-stack/tweak-slash-commands": ["@dsh-stack/tweak-slash-commands@workspace:plugins/ux/tweak-slash-commands"],
 
-    "@dsh-stack/tweak-plan-toggle": ["@dsh-stack/tweak-plan-toggle@workspace:plugins/tweak-plan-toggle"],
+    "@dsh-stack/tweak-stats": ["@dsh-stack/tweak-stats@workspace:plugins/ux/tweak-stats"],
 
-    "@dsh-stack/tweak-share-links": ["@dsh-stack/tweak-share-links@workspace:plugins/tweak-share-links"],
+    "@dsh-stack/tweaks": ["@dsh-stack/tweaks@workspace:plugins/ux/tweaks"],
 
-    "@dsh-stack/tweak-slash-commands": ["@dsh-stack/tweak-slash-commands@workspace:plugins/tweak-slash-commands"],
+    "@dsh-stack/voice": ["@dsh-stack/voice@workspace:plugins/ux/voice"],
 
-    "@dsh-stack/tweak-stats": ["@dsh-stack/tweak-stats@workspace:plugins/tweak-stats"],
-
-    "@dsh-stack/tweaks": ["@dsh-stack/tweaks@workspace:plugins/tweaks"],
-
-    "@dsh-stack/voice": ["@dsh-stack/voice@workspace:plugins/voice"],
-
-    "@dsh-stack/workspace-files": ["@dsh-stack/workspace-files@workspace:plugins/workspace-files"],
+    "@dsh-stack/workspace-files": ["@dsh-stack/workspace-files@workspace:plugins/ux/workspace-files"],
 
     "@emnapi/core": ["@emnapi/core@1.11.2", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.2", "tslib": "^2.4.0" } }, "sha512-TC8MkTuZUtcTSiFeuC0ksCh9QIJ5+F21MvZ4Wn4ORfYaFJ/0dsiudv5tVkejgwZlwQ39jL9WWDe2lz8x0WglOA=="],
 
