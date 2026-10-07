@@ -157,6 +157,7 @@ const HEADLESS_PROFILE_PLUGINS = [
 const PROFILE_PATCH_FILENAME = "cordis.patch.yml";
 const REPLACED_SHELL_ROWS = ["ui-sidebar", "ui-settings-general"] as const;
 
+/** Read the bundle list shipped by DSH for one profile. */
 async function shippedProfileBundles(
   harnessDir: string | null,
   profile: string,
@@ -174,6 +175,7 @@ async function shippedProfileBundles(
   }
 }
 
+/** Read a JSON document, returning null when it cannot be parsed. */
 function readJson(path: string): Record<string, unknown> | null {
   try {
     return JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
@@ -182,6 +184,7 @@ function readJson(path: string): Record<string, unknown> | null {
   }
 }
 
+/** Reconcile a profile manifest with DSH defaults and remove retired KiKi bundle declarations. */
 async function ensureProfileManifest(
   profileDir: string,
   profile: string,
@@ -226,6 +229,7 @@ async function ensureProfileManifest(
   writeFileSync(path, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
 }
 
+/** Return whether a symlink resolves exactly to the expected package directory. */
 function linksTo(linkTarget: string, expected: string): boolean {
   try {
     if (!lstatSync(linkTarget).isSymbolicLink()) return false;
@@ -236,6 +240,7 @@ function linksTo(linkTarget: string, expected: string): boolean {
   }
 }
 
+/** Remove an existing file, directory, or symlink before recreating a profile package link. */
 function clearOccupant(path: string): void {
   try {
     if (lstatSync(path).isSymbolicLink()) unlinkSync(path);
@@ -245,6 +250,7 @@ function clearOccupant(path: string): void {
   }
 }
 
+/** Discover native KiKi packages across the logical plugin groups. */
 function discoverStackPackages(repoRoot: string): Array<{ name: string; dir: string }> {
   const pluginsRoot = join(repoRoot, "plugins");
   const packages: Array<{ name: string; dir: string }> = [];
@@ -261,6 +267,7 @@ function discoverStackPackages(repoRoot: string): Array<{ name: string; dir: str
   return packages;
 }
 
+/** Link every native KiKi package into a profile-local @dsh-stack scope. */
 function ensureStackSymlinks(profileDir: string, pkgDir: string): Set<string> {
   const repoRoot = join(pkgDir, "..", "..", "..");
   const scopeDir = join(profileDir, "node_modules", "@dsh-stack");
@@ -281,6 +288,7 @@ function ensureStackSymlinks(profileDir: string, pkgDir: string): Set<string> {
   return shipped;
 }
 
+/** Remove stale profile-local links for packages no longer shipped by KiKi. */
 function removeRetiredPackageLinks(profileDir: string, shipped: Set<string>): void {
   const scopeDir = join(profileDir, "node_modules", "@dsh-stack");
   let entries: string[] = [];
@@ -300,16 +308,19 @@ function removeRetiredPackageLinks(profileDir: string, shipped: Set<string>): vo
   }
 }
 
+/** Remove package-manager workspace manifests that do not belong inside a DSH profile. */
 function removeRetiredWorkspaceManifests(profileDir: string): void {
   for (const manifest of RETIRED_WORKSPACE_MANIFESTS) {
     rmSync(join(profileDir, manifest), { force: true });
   }
 }
 
+/** Return the KiKi plugin rows mounted directly by a named DSH profile. */
 function profilePlugins(profile: string): readonly string[] {
   return profile === "headless" ? HEADLESS_PROFILE_PLUGINS : WEB_PROFILE_PLUGINS;
 }
 
+/** Reconcile KiKi's direct plugin rows and required shell disables in a profile patch. */
 function ensureProfilePatch(profileDir: string, profile: string): void {
   const patchPath = join(profileDir, PROFILE_PATCH_FILENAME);
   let entries: Record<string, unknown>[] = [];
@@ -347,6 +358,7 @@ function ensureProfilePatch(profileDir: string, profile: string): void {
   writeFileSync(patchPath, YAML.stringify(entries), "utf8");
 }
 
+/** Reconcile one DSH profile for a local KiKi checkout without introducing an aggregate runtime bundle. */
 export async function ensureProfileComposition(options: ProfileCompositionOptions): Promise<void> {
   const { home, pkgDir, profile, harnessDir } = options;
   const profileDir = join(home, "profiles", profile);
