@@ -20,7 +20,7 @@ on:
       - "plugins/launcher/**"
       - "scripts/browser-check.mjs"
       - ".github/workflows/browser-verification.yml"
-      - "harness"
+      - "DSH"
 
 permissions:
   contents: read
