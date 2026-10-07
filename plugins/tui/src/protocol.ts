@@ -1,7 +1,7 @@
 /**
  * Protocol types for the dsh web API wire format.
  *
- * These mirror the shapes defined in harness/packages/host/apiproxy/src/api/
+ * These mirror the shapes defined in DSH/packages/host/apiproxy/src/api/
  * without importing from the harness (standalone client principle).
  *
  * @module dsh-tui/protocol

@@ -33,7 +33,7 @@ above will get priority review.
 
 ## What NOT to contribute
 
-- Changes to the harness (`harness/`) — it's pinned and pristine
+- Changes to the harness (`DSH/`) — it's pinned and pristine
 - Breaking changes without discussion
 - Features that don't align with the project's direction
 - Code that doesn't pass the existing checks

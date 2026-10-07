@@ -41,7 +41,7 @@ import { vendorBaseId, vendorSuffix } from "@dsh-stack/providers";
 const ROTATABLE_CODES: ReadonlySet<string> = new Set(["QUOTA", "RATE_LIMIT"]);
 
 /**
- * `harness/packages/llm/llm-pi-ai`'s classifier (`classifyPiAiError`, pinned,
+ * `DSH/packages/llm/llm-pi-ai`'s classifier (`classifyPiAiError`, pinned,
  * cannot be edited) is purely message-text-based -- the underlying `pi-ai`
  * dependency discards the real HTTP status before it reaches harness -- and
  * has no case for OpenRouter's actual 402 wordings ("requires more credits",

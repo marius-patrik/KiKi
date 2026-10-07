@@ -18,7 +18,7 @@ profile fails to boot with:
 Error: service "directoryPicker" has been registered at <BrowseDirectoryPicker>
 ```
 
-`harness/` is pinned and must not be modified directly. This package is
+`DSH/` is pinned and must not be modified directly. This package is
 dsh-stack's own composition-level lever around the bug: its `apply()` mounts
 the resolved backend as a plain, eager `ctx.plugin()` composition instead of
 a dynamic Loader entry, reusing harness's own exported
