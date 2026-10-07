@@ -9,10 +9,7 @@
     "bun": ">=1.4.0"
   },
   "workspaces": [
-    "plugins/*",
-    "!plugins/Memory",
-    "!plugins/SkyAgent",
-    "!plugins/DarkFactory",
+    "plugins/[a-z]*",
     "bundles/*"
   ],
   "trustedDependencies": [
