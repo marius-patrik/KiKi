@@ -9,7 +9,13 @@
     "bun": ">=1.4.0"
   },
   "workspaces": [
-    "plugins/*/*"
+    "plugins/agents/*",
+    "plugins/ai/*",
+    "plugins/core/*",
+    "plugins/integrations/*",
+    "plugins/trading/*",
+    "plugins/ux/*",
+    "plugins/vcs/*"
   ],
   "trustedDependencies": [
     "koffi"
