@@ -1,83 +1,38 @@
 /**
- * Shared repository paths and JSON reads for the verification and release
- * scripts.
+ * Shared repository paths and JSON reads for verification/release tooling.
  *
- * Recovered from the `wip-jscpd-exemptions-incomplete` branch (#111), retargeted
- * onto the single-plugin tree. That branch's version named `packagesDir`,
- * `extensionsDir`, `packsDir`, and `pluginsDir` as four siblings, which is a
- * layout this repository no longer has; only the two catalog roots and the two
- * helpers were worth keeping, and six scripts each carried their own copy of the
- * JSON reads.
- *
- * @module @dsh-stack/scripts/lib/repo-paths
+ * KiKi's first-level plugin folders are logical groups only; package discovery
+ * happens one level below them.
  */
 
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 
-/** Repository root; every script runs from it. */
 export const root = process.cwd();
 
-/** The single implementation tree: one folder per plugin. */
-export const pluginsDir = join(root, "plugins");
+const pluginGroupNames = ["agents", "ai", "core", "integrations", "trading", "ux", "vcs"];
+const pluginGroupDirs = pluginGroupNames.map((name) => join(root, "plugins", name));
 
-/** The composition tree: harness-native profile bundles. */
-export const bundlesDir = join(root, "bundles");
-
-/**
- * Catalog root names, relative to the repository root.
- *
- * Scripts that resolve the root themselves (from `import.meta.url` rather than
- * `process.cwd()`) join these onto their own root; the absolute `catalogDirs`
- * below is for the ones that do not.
- */
-export const CATALOG_NAMES = ["plugins", "bundles"];
-
-/** The absolute catalog roots, in the order composition depends on them. */
-export const catalogDirs = CATALOG_NAMES.map((name) => join(root, name));
-
-/**
- * Read and parse a UTF-8 JSON file.
- *
- * @param {string} path - Absolute path to the JSON file.
- * @returns The parsed value.
- * @throws When the file cannot be read or contains invalid JSON.
- */
+/** Read and parse a UTF-8 JSON file. */
 export async function readJson(path) {
   return JSON.parse(await fs.readFile(path, "utf8"));
 }
 
-/**
- * Read and parse a UTF-8 JSON file, returning null when it cannot be read.
- *
- * For the scanners that walk a catalog and skip anything without a readable
- * manifest, where an unparseable file is a skip rather than a failure.
- *
- * @param {string} path - Absolute path to the JSON file.
- * @returns The parsed value, or null.
- */
-export async function readJsonOrNull(path) {
-  try {
-    return JSON.parse(await fs.readFile(path, "utf8"));
-  } catch {
-    return null;
+/** List native package directories under all logical plugin groups. */
+export async function listPluginPackageDirs() {
+  const dirs = [];
+  for (const groupDir of pluginGroupDirs) {
+    let entries = [];
+    try {
+      entries = await fs.readdir(groupDir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.startsWith(".")) {
+        dirs.push(join(groupDir, entry.name));
+      }
+    }
   }
-}
-
-/**
- * List the package directories in a catalog root, tolerating a missing root.
- *
- * @param {string} catalogDir - the catalog directory to list.
- * @returns absolute package directories, hidden entries excluded.
- */
-export async function listCatalogDirectories(catalogDir) {
-  let entries;
-  try {
-    entries = await fs.readdir(catalogDir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  return entries
-    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
-    .map((entry) => join(catalogDir, entry.name));
+  return dirs.sort();
 }

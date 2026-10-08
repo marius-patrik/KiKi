@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 
-const roots = [join(process.cwd(), "plugins"), join(process.cwd(), "bundles")];
+const roots = [join(process.cwd(), "plugins")];
 const missing = [];
 
 /**
@@ -36,7 +36,7 @@ async function walk(dir) {
 await Promise.all(roots.map(walk));
 missing.sort();
 if (missing.length) {
-  console.error(`Every package/plugin package must contain README.md. Missing ${missing.length}:`);
+  console.error(`Every native plugin package must contain README.md. Missing ${missing.length}:`);
   for (const dir of missing) console.error(`- ${dir}/README.md`);
   process.exit(1);
 }

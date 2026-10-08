@@ -12,10 +12,7 @@ DSH/packages/*/lib/
 DSH/*/dist/
 
 # stack package build output
-
-plugins/*/lib/
-plugins/*/lib/
-bundles/*/lib/
+plugins/*/*/lib/
 
 # repo .agents/ (docs, hooks, rules, requests, notes) is an ordinary
 # tracked directory — do not confuse it with ~/.agents, the user-home

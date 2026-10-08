@@ -1,5 +1,5 @@
 ---
-date: 2026-08-27
+date: 2026-10-07
 status: active
 ---
 
@@ -7,26 +7,25 @@ status: active
 
 ## Repository mission
 
-`KiKi` is the umbrella repository for the DeepSeek Harness-based stack and its adjacent agent infrastructure. The upstream `DSH/` submodule is pinned and pristine. Stack owns the complete implementation catalog in `plugins/`.
+KiKi is the umbrella repository for the DSH-based agent platform and adjacent infrastructure. The upstream DSH submodule is pinned and pristine.
 
 ## Canonical structure
 
-- `plugins/` is the canonical implementation layer, and the only one. Every folder under it is one plugin: one concrete implementation, owning its own source. Plugins may import from other plugins; there is no restriction against plugins depending on one another.
-- `bundles/` holds profile compositions as harness-native bundles: a package with `dsh.bundle.patch` and a `cordis.patch.yml`, which is exactly the mechanism the harness' own bundles use. `bundles/web` is the complete Stack; `bundles/headless` is that composition filtered to plugins that mount without a web server. A bundle's membership is the `dependencies` block of its own manifest, and its `cordis.patch.yml` is generated from it, so the two cannot drift.
-- `scripts/` is verification and release tooling, plus the `dsh` launcher/service-manager script and its aliases.
+- `plugins/<group>/<plugin>/` is the single native implementation tree.
+- `plugins/{agents,ai,core,integrations,trading,ux,vcs}/` are logical bundles: organizational folders only. They are not packages, runtime bundles, or profile compositions.
+- `plugins/Memory/` is staged external source until it is migrated into the native tree.
+- `_migrate/` contains temporary source repositories retained only for migration work. Nothing there is runtime architecture.
+- Profiles are ordinary DSH profiles. KiKi mounts its plugins directly through each profile's normal patch layer and does not inject an aggregate `@dsh-stack/bundle*` package.
+- `scripts/` contains verification, release, and bootstrap tooling.
 - `.agents/notes/` is the canonical documentation root.
-- `README.md`, `AGENTS.md`, and `CLAUDE.md` at repository root are all symlinks to `.agents/AGENTS.md`.
+- `README.md` is a standalone repository overview.
+- Root `AGENTS.md` points to `.agents/AGENTS.md`; `CONTRIBUTING.md` points to `AGENTS.md`; there is no root `CLAUDE.md`.
 - `DSH/` is upstream and must not be modified.
-- No duplicate implementation tree, compatibility bridge, migration shim, legacy runtime path, or parallel feature owner is allowed.
 
-There is no second tree of wrappers. An earlier layout kept implementations in `src/packages/` and `publish/extensions/` and put 74 re-export shims in `publish/plugins/`, each resolving a canonical package elsewhere; the seven domain packs and the `@dsh-stack/pack-bundle` wrapper composed them. A folder that only re-exports another plugin is an indirection with no owner, and `verify-stack.mjs` fails it.
+No duplicate implementation tree, compatibility bridge, migration shim, legacy runtime path, or parallel feature owner is allowed.
 
-## Plugin and bundle model
+## Plugin grouping model
 
-Two roles, not three:
+A plugin is one concrete package under `plugins/<group>/<plugin>/`. The first-level group is a human/navigation boundary only; moving a plugin between groups does not change its package identity or runtime behavior.
 
-- **Plugin** = one folder under `plugins/`, and one concrete implementation. There is no separate "extension" role: a skin, an icon set, an agent preset, a per-language LSP server, a provider adapter, and an abstraction/registry are all plugins. What used to be an "extension of an abstraction" is simply the plugin that implements it.
-- **Bundle** = a composition of plugins for a profile, expressed natively as `dsh.bundle.patch` + `cordis.patch.yml`. There is no per-domain pack: grouping by domain was a second composition axis that had to be kept in sync with the first, and a profile that wanted one provider had to depend on a pack that existed only to name it.
-
-When a plugin's `apply()` registers several distinct, independently-meaningable capabilities (multiple unrelated settings sections, multiple unrelated command families, multiple unrelated bundled features), that is a bundling smell: split them into separate plugins, each owning its own implementation.
-
+Runtime profile membership is independent of those folders. Profile composition belongs to DSH profile configuration, not to logical grouping folders.

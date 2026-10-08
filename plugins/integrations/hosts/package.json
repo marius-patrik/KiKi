@@ -1,0 +1,54 @@
+{
+  "name": "@dsh-stack/hosts",
+  "description": "Multi-node device and cluster manager: discovers local and Tailnet devices, manages access gateways, and enables distributed node deployment",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "slots",
+        "locale"
+      ],
+      "platform": "web",
+      "immediately": false
+    }
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "client.js"
+  ],
+  "scripts": {
+    "build": "tsc && cat ../../../scripts/client-runtime/crypto-polyfill.js client.js > lib/client.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0",
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "stack": {
+    "kind": "plugin",
+    "id": "stack.infra.hosts"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

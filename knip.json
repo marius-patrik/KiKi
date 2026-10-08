@@ -10,7 +10,7 @@
       "entry": ["scripts/*.mjs", "scripts/**/*.test.mjs", "scripts/client-runtime/*.js"],
       "project": ["scripts/**/*.{mjs,js}"]
     },
-    "plugins/*": {
+    "plugins/*/*": {
       "entry": [
         "src/index.{ts,tsx,mjs,js}",
         "src/client.{ts,tsx}",
@@ -20,7 +20,7 @@
       ],
       "project": ["src/**/*.{ts,tsx}", "*.mjs", "bin/*.mjs"]
     },
-    "plugins/providers": {
+    "plugins/ai/providers": {
       "entry": [
         "src/index.{ts,tsx,mjs,js}",
         "src/client.{ts,tsx}",
@@ -31,20 +31,15 @@
       "project": ["src/**/*.{ts,tsx}", "*.mjs", "bin/*.mjs"],
       "ignoreDependencies": ["@dsh-stack/sidebar-preferences"]
     },
-    "plugins/skin-claude": {
+    "plugins/ux/skin-claude": {
       "entry": ["src/index.{ts,tsx,mjs,js}", "src/client.{ts,tsx}", "*.mjs"],
       "project": ["src/**/*.{ts,tsx}", "*.mjs"],
       "ignoreDependencies": ["@types/react"]
     },
-    "plugins/skin-codex": {
+    "plugins/ux/skin-codex": {
       "entry": ["src/index.{ts,tsx,mjs,js}", "src/client.{ts,tsx}", "*.mjs"],
       "project": ["src/**/*.{ts,tsx}", "*.mjs"],
       "ignoreDependencies": ["@types/react"]
-    },
-    "bundles/*": {
-      "entry": ["*.mjs"],
-      "project": ["*.mjs"],
-      "ignoreDependencies": ["@dsh-stack/*"]
     }
   },
   "ignoreDependencies": ["@deepseek-ai/dsh-client-ui-slots"]

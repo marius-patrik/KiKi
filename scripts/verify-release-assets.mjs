@@ -4,103 +4,62 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-// One implementation tree, one composition tree. This verifier previously
-// pointed `extensionsDir` at the same directory as `pluginsDir`, so it expected
-// exactly the duplication the generator produced -- the gate agreed with the bug
-// instead of catching it, and a release shipped all 81 plugins twice.
-import { bundlesDir, pluginsDir, root } from "./lib/repo-paths.mjs";
+const root = process.cwd();
+const pluginsDir = join(root, "plugins");
 const releaseDir = join(root, ".release");
+const groups = ["agents", "ai", "core", "integrations", "trading", "ux", "vcs"];
 
-/** Recursively discover plugin or pack directories, including symlinked component directories. */
-async function discoverComponents(baseDir, relativePrefix = "") {
-  const entries = await fs.readdir(baseDir, { withFileTypes: true });
-  const components = [];
-  for (const entry of entries) {
-    if (entry.name.startsWith(".")) continue;
-    const dir = join(baseDir, entry.name);
-    const relativePath = relativePrefix ? `${relativePrefix}/${entry.name}` : entry.name;
-    let stat;
-    try {
-      stat = await fs.stat(dir);
-    } catch {
-      continue;
-    }
-    if (!stat.isDirectory()) continue;
-    try {
-      await fs.access(join(dir, "package.json"));
-      components.push(relativePath);
-    } catch {
-      components.push(...(await discoverComponents(dir, relativePath)));
+/** Return the expected release-asset slugs for all publishable native plugins. */
+async function expectedPlugins() {
+  const result = [];
+  for (const group of groups) {
+    for (const entry of await fs.readdir(join(pluginsDir, group), { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      try {
+        await fs.access(join(pluginsDir, group, entry.name, "stack.json"));
+        result.push(`${group}-${entry.name}`);
+      } catch {
+        // Not a published release component.
+      }
     }
   }
-  return components.sort();
+  return result.sort();
 }
 
-/** Verify that one ZIP exists, is structurally valid, and contains a package manifest at its root. */
+/** Verify that one plugin archive is readable and contains a root package manifest. */
 async function verifyArchive(archive) {
   await execFileAsync("unzip", ["-t", archive]);
   const { stdout } = await execFileAsync("unzip", ["-Z1", archive]);
-  if (!stdout.split("\n").some((entry) => entry === "package.json")) {
+  if (!stdout.split("\n").includes("package.json")) {
     throw new Error(`Missing root package.json in ${archive}`);
   }
 }
 
-/**
- * Verify that the release contains one valid ZIP for every plugin and bundle.
- *
- * The per-bucket comparisons below are exact list comparisons, so any component
- * appearing under two kinds fails one of them -- there is no separate
- * cross-kind check because it would be unreachable behind these.
- *
- * Worth recording why this gate did not catch the duplication it now rules out:
- * `extensionsDir` pointed at the same directory as `pluginsDir`, so the verifier
- * expected exactly what the generator produced. A gate derived from the same
- * wrong assumption agrees with the bug. The fix was correcting both roots, not
- * adding a check.
- */
+/** Validate the complete generated plugin release-asset inventory. */
 async function main() {
   const inventory = JSON.parse(
     await fs.readFile(join(releaseDir, "component-assets.json"), "utf8"),
   );
-  const expectedPlugins = await discoverComponents(pluginsDir);
-  // There is no separate extension kind: `stack.kind` is plugin | bundle |
-  // library, and every implementation folder ships as a plugin.
-  const expectedExtensions = [];
-  const expectedPacks = await discoverComponents(bundlesDir);
-  const versionSuffix = /-\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\.zip$/;
-  const pluginZips = inventory.plugins
-    .map((name) => name.replace(/^plugin-/, "").replace(versionSuffix, ""))
+  if (inventory.format !== 2 || !Array.isArray(inventory.plugins)) {
+    throw new Error("Unsupported component-assets.json");
+  }
+  const suffix = /-\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\.zip$/;
+  const actual = inventory.plugins
+    .map((name) => name.replace(/^plugin-/, "").replace(suffix, ""))
     .sort();
-  const extensionZips = inventory.extensions
-    .map((name) => name.replace(/^extension-/, "").replace(versionSuffix, ""))
-    .sort();
-  const packZips = inventory.packs
-    .map((name) => name.replace(/^pack-/, "").replace(versionSuffix, ""))
-    .sort();
-  if (JSON.stringify(pluginZips) !== JSON.stringify(expectedPlugins)) {
+  const expected = await expectedPlugins();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(
-      `Plugin ZIP inventory mismatch: expected ${expectedPlugins.length}, generated ${pluginZips.length}`,
+      `Plugin ZIP inventory mismatch: expected ${expected.length}, generated ${actual.length}`,
     );
   }
-  if (JSON.stringify(extensionZips) !== JSON.stringify(expectedExtensions)) {
-    throw new Error(
-      `Extension ZIP inventory mismatch: expected ${expectedExtensions.length}, generated ${extensionZips.length}`,
-    );
-  }
-  if (JSON.stringify(packZips) !== JSON.stringify(expectedPacks)) {
-    throw new Error(
-      `Pack ZIP inventory mismatch: expected ${expectedPacks.length}, generated ${packZips.length}`,
-    );
-  }
-  for (const asset of [...inventory.plugins, ...inventory.extensions, ...inventory.packs]) {
+  for (const asset of inventory.plugins) {
     const archive = join(releaseDir, asset);
     const stat = await fs.stat(archive);
     if (!stat.isFile() || stat.size === 0) throw new Error(`Invalid release asset: ${asset}`);
     await verifyArchive(archive);
   }
-  console.log(
-    `Validated ${expectedPlugins.length} plugin ZIPs, ${expectedExtensions.length} extension ZIPs and ${expectedPacks.length} pack ZIPs.`,
-  );
+  console.log(`Validated ${expected.length} plugin ZIPs.`);
 }
 
 await main();

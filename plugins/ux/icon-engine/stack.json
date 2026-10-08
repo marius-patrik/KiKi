@@ -1,0 +1,10 @@
+{
+  "id": "stack.ui.icons",
+  "name": "@dsh-stack/icon-engine",
+  "version": "0.1.0",
+  "kind": "plugin",
+  "description": "Canonical file, folder and language icon resolution service.",
+  "files": ["lib", "package.json", "README.md"],
+  "dependencies": [],
+  "optionalDependencies": []
+}

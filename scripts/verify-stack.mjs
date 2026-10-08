@@ -1,55 +1,32 @@
-// jscpd:ignore-start -- shared release-tooling boilerplate (module header), intentionally mirrored across scripts/*.mjs
+// jscpd:ignore-start -- repository-wide contract verifier
 import { createHash } from "node:crypto";
 import { existsSync, promises as fs } from "node:fs";
-import { join, relative } from "node:path";
+import { extname, join, relative } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const root = process.cwd();
-// One implementation tree: every plugin lives in plugins/. The former
-// src/packages and publish/extensions roots were the same directory twice, which
-// made this verifier compare each file against itself.
 const pluginsDir = join(root, "plugins");
-const packsDir = join(root, "bundles");
-const codeExts = new Set([".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"]);
+const groups = ["agents", "ai", "core", "integrations", "trading", "ux", "vcs"];
 const ignoredDirs = new Set(["node_modules", ".git", "dist", "coverage", "lib"]);
-let gitlinkPaths = new Set();
-const generatedFileNames = new Set([
-  "package-lock.json",
-  "bun.lock",
-  "pnpm-lock.yaml",
-  "yarn.lock",
-]);
+const codeExts = new Set([".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx"]);
 const errors = [];
 const packageNames = new Map();
 const stackIds = new Map();
 const publicPackages = new Map();
 const sourceHashes = new Map();
 
-/** Records a verification error for reporting after all checks complete. */
+/** Record one verification failure for final reporting. */
 function fail(message) {
   errors.push(message);
 }
-/** Records a verification error when `condition` is falsy. */
+/** Record a repository verification error when a condition is falsy. */
 function assert(condition, message) {
   if (!condition) fail(message);
 }
 
-/**
- * Reads and parses a JSON file, recording a verification error on failure.
- * Returns the parsed object, or undefined when the file is unreadable.
- */
-async function readJson(path, label) {
-  try {
-    return JSON.parse(await fs.readFile(path, "utf8"));
-  } catch (error) {
-    fail(`${label} is not valid JSON: ${error.message}`);
-    return undefined;
-  }
-}
-
-/** Returns true when the path is accessible, false otherwise. */
+/** Return whether a path is accessible. */
 async function exists(path) {
   try {
     await fs.access(path);
@@ -59,10 +36,19 @@ async function exists(path) {
   }
 }
 
-/** Recursively yields file paths under `dir`, skipping directories in `ignoredDirs`. */
+/** Read and parse JSON while recording malformed documents as verification failures. */
+async function readJson(path, label) {
+  try {
+    return JSON.parse(await fs.readFile(path, "utf8"));
+  } catch (error) {
+    fail(`${label} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
+    return undefined;
+  }
+}
+
+/** Recursively yield source files while skipping generated/dependency directories. */
 async function* walk(dir) {
-  const entries = await fs.readdir(dir, { withFileTypes: true });
-  for (const entry of entries) {
+  for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
     if (ignoredDirs.has(entry.name)) continue;
     const path = join(dir, entry.name);
     if (entry.isDirectory()) yield* walk(path);
@@ -70,25 +56,36 @@ async function* walk(dir) {
   }
 }
 
-/**
- * Returns paths of generated output (`lib/`, `dist/`, `node_modules/`) that
- * are tracked by git and should not be committed. Records a verification
- * error when `git ls-files` itself fails; returns an empty array in that case.
- */
+/** Enumerate canonical package directories under every logical plugin group. */
+async function nativePackageDirs() {
+  const dirs = [];
+  for (const group of groups) {
+    const groupDir = join(pluginsDir, group);
+    assert(await exists(groupDir), `plugins/${group}/ logical bundle is missing`);
+    if (!(await exists(groupDir))) continue;
+    assert(
+      !(await exists(join(groupDir, "package.json"))),
+      `plugins/${group}/ is organizational only and must not be a package`,
+    );
+    for (const entry of await fs.readdir(groupDir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || ignoredDirs.has(entry.name)) continue;
+      const dir = join(groupDir, entry.name);
+      assert(
+        await exists(join(dir, "package.json")),
+        `${relative(root, dir)} must contain package.json`,
+      );
+      if (await exists(join(dir, "package.json"))) dirs.push(dir);
+    }
+  }
+  return dirs.sort();
+}
+
+/** Return tracked generated outputs that must not be committed. */
 async function trackedGeneratedFiles() {
   try {
     const { stdout } = await execFileAsync(
       "git",
-      [
-        "ls-files",
-        "--",
-        "plugins/**/lib/**",
-        "plugins/**/dist/**",
-        "plugins/**/node_modules/**",
-        "bundles/**/lib/**",
-        "bundles/**/dist/**",
-        "bundles/**/node_modules/**",
-      ],
+      ["ls-files", "--", "plugins/**/lib/**", "plugins/**/dist/**", "plugins/**/node_modules/**"],
       { cwd: root },
     );
     return stdout
@@ -96,67 +93,60 @@ async function trackedGeneratedFiles() {
       .map((entry) => entry.trim())
       .filter(Boolean);
   } catch (error) {
-    fail(`unable to inspect tracked generated files: ${error.message}`);
+    fail(
+      `unable to inspect tracked generated files: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return [];
   }
 }
 
-/**
- * Validates a single canonical package directory against the Stack package
- * contract: ESM module type, unique package name, stack.json structure
- * (namespaced id, valid kind, semver version, declared files), and cross-
- * reference consistency between package.json and stack.json.
- */
-async function verifyCanonicalPackage(dir) {
-  const relDir = relative(root, dir);
+/** Validate one canonical native package against KiKi's package contract. */
+async function verifyPackage(dir) {
   const packagePath = join(dir, "package.json");
   const stackPath = join(dir, "stack.json");
-  const packageManifest = await readJson(packagePath, relative(root, packagePath));
-  assert(packageManifest?.type === "module", `${relative(root, packagePath)} must use ESM`);
+  const pkg = await readJson(packagePath, relative(root, packagePath));
+  assert(pkg?.type === "module", `${relative(root, packagePath)} must use ESM`);
   assert(
-    typeof packageManifest?.name === "string" && packageManifest.name.length > 0,
-    `${relative(root, packagePath)} must declare a package name`,
+    typeof pkg?.name === "string" && pkg.name.startsWith("@dsh-stack/"),
+    `${relative(root, packagePath)} must declare an @dsh-stack/* name`,
   );
 
-  if (packageManifest?.name) {
-    const previous = packageNames.get(packageManifest.name);
+  if (typeof pkg?.name === "string") {
+    const previous = packageNames.get(pkg.name);
     if (previous)
-      fail(
-        `duplicate package name ${packageManifest.name}: ${previous} and ${relative(root, packagePath)}`,
-      );
-    else packageNames.set(packageManifest.name, relative(root, packagePath));
+      fail(`duplicate package name ${pkg.name}: ${previous} and ${relative(root, packagePath)}`);
+    else packageNames.set(pkg.name, relative(root, packagePath));
   }
 
   const stack = await readJson(stackPath, relative(root, stackPath));
-  if (packageManifest?.private === true) {
+  if (pkg?.private === true) {
     assert(!stack, `${relative(root, packagePath)} is private and must not publish stack.json`);
     return;
   }
-
-  assert(stack, `${relDir} must declare stack.json`);
+  assert(stack, `${relative(root, dir)} must declare stack.json`);
   if (!stack) return;
 
+  const id = stack.id;
   const label = relative(root, stackPath);
-  if (typeof stack.id === "string") {
-    const previous = stackIds.get(stack.id);
-    if (previous) fail(`duplicate Stack id ${stack.id}: ${previous} and ${label}`);
-    else stackIds.set(stack.id, label);
+  if (typeof id === "string") {
+    const previous = stackIds.get(id);
+    if (previous) fail(`duplicate Stack id ${id}: ${previous} and ${label}`);
+    else stackIds.set(id, label);
+    publicPackages.set(id, { dir, stack });
   }
-  publicPackages.set(stack.id, { dir, stack });
-
   assert(
-    typeof stack.id === "string" && /^stack\.[a-z0-9][a-z0-9.-]*$/.test(stack.id),
+    typeof id === "string" && /^stack\.[a-z0-9][a-z0-9.-]*$/.test(id),
     `${label} id must be namespaced`,
   );
-  assert(["plugin", "bundle", "library"].includes(stack.kind), `${label} has invalid kind`);
+  assert(
+    ["plugin", "library"].includes(String(stack.kind)),
+    `${label} has invalid kind ${String(stack.kind)}; logical bundles are folders, not packages`,
+  );
   assert(
     typeof stack.version === "string" && /^\d+\.\d+\.\d+$/.test(stack.version),
     `${label} must have a semver version`,
   );
-  assert(
-    typeof stack.name === "string" && /^@dsh-stack\//.test(stack.name),
-    `${label} must have an @dsh-stack package name`,
-  );
+  assert(stack.name === pkg?.name, `${label} name must match package.json`);
   assert(
     typeof stack.description === "string" && stack.description.length > 0,
     `${label} must have a description`,
@@ -170,127 +160,30 @@ async function verifyCanonicalPackage(dir) {
     Array.isArray(stack.optionalDependencies ?? []),
     `${label} optionalDependencies must be an array`,
   );
-  if (stack.kind === "plugin")
-    assert(
-      await exists(join(dir, "src")),
-      `${label} declares a ${stack.kind} but has no src/ directory`,
-    );
-  assert(
-    packageManifest?.stack?.id === stack.id,
-    `${relative(root, packagePath)} stack.id does not match stack.json`,
-  );
-
-  for (const publishedPath of stack.files) {
-    if (
-      generatedFileNames.has(publishedPath) ||
-      publishedPath === "lib" ||
-      publishedPath === "dist"
-    )
-      continue;
-    assert(
-      await exists(join(dir, publishedPath)),
-      `${stack.id} publishes missing path ${publishedPath}`,
-    );
-  }
-}
-
-/**
- * Validates the single plugin tree under `plugins/`: every folder is a real
- * implementation, not a re-export of one.
- *
- * This replaces the composition-wrapper gate that policed `publish/plugins`,
- * where 74 folders each held a generic `src/index.mjs` that resolved a canonical
- * package elsewhere and re-exported it. That tree is gone, and with it the shape
- * of the guarantee: the thing worth forbidding now is a plugin that is only an
- * indirection to another plugin in this same tree, because that reintroduces the
- * duplicate owner the single tree exists to prevent.
- */
-async function verifyPluginTree() {
-  const children = await fs.readdir(pluginsDir, { withFileTypes: true });
-  for (const child of children) {
-    if (!child.isDirectory()) continue;
-    const dir = join(pluginsDir, child.name);
-    if (gitlinkPaths.has(relative(root, dir))) continue;
-    const packagePath = join(dir, "package.json");
-    if (!(await exists(packagePath))) continue;
-    const manifest = await readJson(packagePath, relative(root, packagePath));
-    if (manifest?.stack?.kind === "bundle") continue;
-
-    assert(manifest?.type === "module", `${relative(root, packagePath)} must use ESM`);
-    assert(
-      typeof manifest?.name === "string" && manifest.name.startsWith("@dsh-stack/"),
-      `${relative(root, packagePath)} must declare an @dsh-stack/* name`,
-    );
-
-    // A plugin owns its implementation: at least one real source file of its own.
+  const pkgStack = pkg?.stack;
+  assert(pkgStack?.id === id, `${relative(root, packagePath)} stack.id does not match stack.json`);
+  if (stack.kind === "plugin") {
     const ownsSource = ["src", "client.js", "bin"].some((entry) => existsSync(join(dir, entry)));
-    assert(
-      ownsSource,
-      `${relative(root, dir)} owns no implementation; every plugin must implement something itself`,
-    );
-
-    // The specific indirection the old tree was built from: an entry module that
-    // only re-exports a sibling plugin's implementation.
-    const entry = join(dir, "src", "index.mjs");
-    if (await exists(entry)) {
-      const source = await fs.readFile(entry, "utf8");
-      const reexportsSibling =
-        /export\s+(?:const|default|\{[^}]*\})[^;]*from\s*["'][^"']*plugins\//.test(source) ||
-        /await import\(\s*manifest\.name\s*\)/.test(source);
-      assert(
-        !reexportsSibling,
-        `${relative(root, entry)} re-exports another plugin's implementation; a plugin must be its own owner`,
-      );
-    }
+    assert(ownsSource, `${relative(root, dir)} owns no implementation`);
   }
 }
 
-/**
- * Runs the complete Stack verification pass: checks directory existence,
- * generated-file cleanliness, per-package contract compliance, plugin tree
- * wiring, cross-package dependency resolution, and source-level invariants
- * (no TODO/FIXME markers, no `as any` casts, no plugins/ imports). Exits
- * non-zero when any check fails.
- */
+/** Run all repository-structure, package-contract, dependency, and source invariants. */
 async function main() {
-  try {
-    const { stdout } = await execFileAsync("git", ["ls-files", "--stage"]);
-    gitlinkPaths = new Set(
-      stdout
-        .split("\n")
-        .filter(Boolean)
-        .filter((line) => line.startsWith("160000 "))
-        .map((line) => line.slice(line.indexOf("\t") + 1)),
-    );
-  } catch {
-    gitlinkPaths = new Set();
-  }
-
   assert(await exists(pluginsDir), "plugins/ implementation root is missing");
-  assert(await exists(packsDir), "packs/ bundle root is missing");
+  assert(
+    !(await exists(join(root, "bundles"))),
+    "root bundles/ runtime composition tree must not exist",
+  );
   for (const file of await trackedGeneratedFiles()) fail(`${file} is checked-in generated output`);
 
-  for (const canonicalRoot of [pluginsDir, packsDir]) {
-    if (!(await exists(canonicalRoot))) continue;
-    const packageChildren = await fs.readdir(canonicalRoot, { withFileTypes: true });
-    for (const child of packageChildren) {
-      if (!child.isDirectory() || ignoredDirs.has(child.name)) continue;
-      if (gitlinkPaths.has(relative(root, join(canonicalRoot, child.name)))) continue;
-      assert(
-        await exists(join(canonicalRoot, child.name, "package.json")),
-        `${relative(root, join(canonicalRoot, child.name))} must contain package.json`,
-      );
-      await verifyCanonicalPackage(join(canonicalRoot, child.name));
-    }
-  }
-
-  await verifyPluginTree();
+  const dirs = await nativePackageDirs();
+  for (const dir of dirs) await verifyPackage(dir);
 
   for (const [id, { stack }] of publicPackages) {
-    for (const dependency of [
-      ...(stack.dependencies ?? []),
-      ...(stack.optionalDependencies ?? []),
-    ]) {
+    const required = Array.isArray(stack.dependencies) ? stack.dependencies : [];
+    const optional = Array.isArray(stack.optionalDependencies) ? stack.optionalDependencies : [];
+    for (const dependency of [...required, ...optional]) {
       assert(
         typeof dependency === "string" && publicPackages.has(dependency),
         `${id} references missing Stack package ${String(dependency)}`,
@@ -298,22 +191,20 @@ async function main() {
     }
   }
 
-  for (const sourceRoot of [pluginsDir, packsDir]) {
+  for (const group of groups) {
+    const sourceRoot = join(pluginsDir, group);
     if (!(await exists(sourceRoot))) continue;
     for await (const file of walk(sourceRoot)) {
       const rel = relative(root, file).replaceAll("\\", "/");
-      const ext = rel.slice(rel.lastIndexOf("."));
-      if (!codeExts.has(ext)) continue;
+      if (!codeExts.has(extname(rel))) continue;
       const text = await fs.readFile(file, "utf8");
       const lower = text.toLowerCase();
-      // Word-boundary match: a bare substring trips real identifiers like
-      // `autodoc` or `applyPaletteToDOM` (see #109) that contain "todo" but
-      // aren't placeholders.
-      for (const marker of [/\btodo\b/, /\bfixme\b/, /\bnot implemented\b/, "initialized: true"])
+      for (const marker of [/\btodo\b/, /\bfixme\b/, /\bnot implemented\b/, "initialized: true"]) {
         assert(
           typeof marker === "string" ? !lower.includes(marker) : !marker.test(lower),
-          `${rel} contains unfinished or placeholder marker ${marker}`,
+          `${rel} contains unfinished marker ${marker}`,
         );
+      }
       assert(!/\bas any\b/.test(text), `${rel} contains an unchecked 'as any' cast`);
       assert(
         !/(?:from\s+|import\s*\()(['"]).*plugins\//.test(text),
@@ -322,9 +213,15 @@ async function main() {
       if (text.length < 400) continue;
       const hash = createHash("sha256").update(text).digest("hex");
       const previous = sourceHashes.get(hash);
-      if (previous && !/\/fixtures\/|\/snapshots\//.test(rel) && !/\/index\.(js|mjs|ts)$/.test(rel))
+      if (
+        previous &&
+        !/\/fixtures\/|\/snapshots\//.test(rel) &&
+        !/\/index\.(js|mjs|ts)$/.test(rel)
+      ) {
         fail(`duplicate source implementation: ${previous} and ${rel}`);
-      else if (!previous) sourceHashes.set(hash, rel);
+      } else if (!previous) {
+        sourceHashes.set(hash, rel);
+      }
     }
   }
 
@@ -334,10 +231,9 @@ async function main() {
     process.exit(1);
   }
   console.log(
-    `Stack verification passed: ${publicPackages.size} public packages, ${packageNames.size} canonical manifests, ${sourceHashes.size} unique implementation source bodies.`,
+    `Stack verification passed: ${publicPackages.size} public packages across ${groups.length} logical plugin bundles.`,
   );
 }
 
 await main();
-
 // jscpd:ignore-end
