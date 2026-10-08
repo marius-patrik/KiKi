@@ -9,22 +9,13 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 
 export const root = process.cwd();
-export const pluginsDir = join(root, "plugins");
-export const PLUGIN_GROUP_NAMES = ["agents", "ai", "core", "integrations", "trading", "ux", "vcs"];
-export const pluginGroupDirs = PLUGIN_GROUP_NAMES.map((name) => join(pluginsDir, name));
+
+const pluginGroupNames = ["agents", "ai", "core", "integrations", "trading", "ux", "vcs"];
+const pluginGroupDirs = pluginGroupNames.map((name) => join(root, "plugins", name));
 
 /** Read and parse a UTF-8 JSON file. */
 export async function readJson(path) {
   return JSON.parse(await fs.readFile(path, "utf8"));
-}
-
-/** Read JSON or return null when the file is absent/unreadable. */
-export async function readJsonOrNull(path) {
-  try {
-    return JSON.parse(await fs.readFile(path, "utf8"));
-  } catch {
-    return null;
-  }
 }
 
 /** List native package directories under all logical plugin groups. */
