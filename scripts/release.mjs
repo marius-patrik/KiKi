@@ -1,4 +1,4 @@
-// jscpd:ignore-start -- release tooling
+// jscpd:ignore-start -- release manifest and archive generation intentionally share the same package metadata traversal
 import { promises as fs } from "node:fs";
 import { createHash } from "node:crypto";
 import { join, relative } from "node:path";
