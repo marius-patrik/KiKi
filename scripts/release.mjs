@@ -4,11 +4,9 @@ import { createHash } from "node:crypto";
 import { join, relative } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { listPluginPackageDirs, readJson, root } from "./lib/repo-paths.mjs";
 
 const execFileAsync = promisify(execFile);
-const root = process.cwd();
-const pluginsDir = join(root, "plugins");
-const groups = ["agents", "ai", "core", "integrations", "trading", "ux", "vcs"];
 const command = process.argv[2];
 const bumpArg = process.argv[3] ?? "patch";
 
@@ -22,9 +20,6 @@ if (command === "version" && !new Set(["major", "minor", "patch"]).has(bumpArg))
 }
 
 /** Read and parse a UTF-8 JSON file. */
-async function readJson(path) {
-  return JSON.parse(await fs.readFile(path, "utf8"));
-}
 /** Serialize a value as consistently formatted UTF-8 JSON. */
 async function writeJson(path, value) {
   await fs.writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
@@ -48,26 +43,21 @@ function bumpVersion(version, kind) {
 /** Discover publishable native packages beneath the logical plugin groups. */
 async function discoverPackages() {
   const packages = [];
-  for (const group of groups) {
-    let entries = [];
+  for (const dir of await listPluginPackageDirs()) {
     try {
-      entries = await fs.readdir(join(pluginsDir, group), { withFileTypes: true });
+      const [stack, pkg] = await Promise.all([
+        readJson(join(dir, "stack.json")),
+        readJson(join(dir, "package.json")),
+      ]);
+      if (typeof stack?.id !== "string") continue;
+      packages.push({
+        dir,
+        stack,
+        pkg,
+        relativePath: relative(join(root, "plugins"), dir),
+      });
     } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const dir = join(pluginsDir, group, entry.name);
-      try {
-        const [stack, pkg] = await Promise.all([
-          readJson(join(dir, "stack.json")),
-          readJson(join(dir, "package.json")),
-        ]);
-        if (typeof stack?.id !== "string") continue;
-        packages.push({ dir, stack, pkg, relativePath: `${group}/${entry.name}` });
-      } catch {
-        // Private/non-published packages without stack.json are not release components.
-      }
+      // Private/non-published packages without stack.json are not release components.
     }
   }
   packages.sort((a, b) => a.stack.id.localeCompare(b.stack.id));
