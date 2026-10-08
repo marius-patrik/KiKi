@@ -98,62 +98,13 @@ const WEB_PROFILE_PLUGINS = [
   "@dsh-stack/tweaks",
   "@dsh-stack/voice",
 ] as const;
-const HEADLESS_PROFILE_PLUGINS = [
-  "@dsh-stack/agent-loops",
-  "@dsh-stack/agent-tools",
-  "@dsh-stack/agents",
-  "@dsh-stack/credential-vault",
-  "@dsh-stack/dialect-antigravity",
-  "@dsh-stack/dialect-claude",
-  "@dsh-stack/dialect-code-assist",
-  "@dsh-stack/dialect-openai",
-  "@dsh-stack/dialects",
-  "@dsh-stack/formatters",
-  "@dsh-stack/icon-engine",
-  "@dsh-stack/lsp",
-  "@dsh-stack/marketplace",
-  "@dsh-stack/marketplace-source-dsh-stack",
-  "@dsh-stack/profile-ui",
-  "@dsh-stack/provider-anthropic-api",
-  "@dsh-stack/provider-antigravity-sub",
-  "@dsh-stack/provider-cerebras-api",
-  "@dsh-stack/provider-claude-sub",
-  "@dsh-stack/provider-deepseek-api",
-  "@dsh-stack/provider-gemini-api",
-  "@dsh-stack/provider-gemini-sub",
-  "@dsh-stack/provider-grok-api",
-  "@dsh-stack/provider-grok-sub",
-  "@dsh-stack/provider-groq-api",
-  "@dsh-stack/provider-kimi-code",
-  "@dsh-stack/provider-kimi-sub",
-  "@dsh-stack/provider-llamacpp",
-  "@dsh-stack/provider-mistral-api",
-  "@dsh-stack/provider-ollama",
-  "@dsh-stack/provider-openai-api",
-  "@dsh-stack/provider-openrouter-api",
-  "@dsh-stack/provider-rotation",
-  "@dsh-stack/provider-vllm",
-  "@dsh-stack/provider-zai-api",
-  "@dsh-stack/provider-zen",
-  "@dsh-stack/providers",
-  "@dsh-stack/repos",
-  "@dsh-stack/sidebar-preferences",
-  "@dsh-stack/sidebar-settings",
-  "@dsh-stack/sidebar-shell",
-  "@dsh-stack/skin-host",
-  "@dsh-stack/skin-runtime",
-  "@dsh-stack/skin-settings",
-  "@dsh-stack/themes",
-  "@dsh-stack/translator",
-  "@dsh-stack/tweak-drag-drop",
-  "@dsh-stack/tweak-fork-undo",
-  "@dsh-stack/tweak-keybinds",
-  "@dsh-stack/tweak-plan-toggle",
-  "@dsh-stack/tweak-share-links",
-  "@dsh-stack/tweak-slash-commands",
-  "@dsh-stack/tweak-stats",
-  "@dsh-stack/tweaks",
-] as const;
+const HEADLESS_EXCLUDED_PLUGINS = new Set<string>([
+  "@dsh-stack/agent-actions",
+  "@dsh-stack/directory-picker-fix",
+  "@dsh-stack/hosts",
+  "@dsh-stack/voice",
+]);
+
 const PROFILE_PATCH_FILENAME = "cordis.patch.yml";
 const REPLACED_SHELL_ROWS = ["ui-sidebar", "ui-settings-general"] as const;
 
@@ -317,7 +268,8 @@ function removeRetiredWorkspaceManifests(profileDir: string): void {
 
 /** Return the KiKi plugin rows mounted directly by a named DSH profile. */
 function profilePlugins(profile: string): readonly string[] {
-  return profile === "headless" ? HEADLESS_PROFILE_PLUGINS : WEB_PROFILE_PLUGINS;
+  if (profile !== "headless") return WEB_PROFILE_PLUGINS;
+  return WEB_PROFILE_PLUGINS.filter((name) => !HEADLESS_EXCLUDED_PLUGINS.has(name));
 }
 
 /** Reconcile KiKi's direct plugin rows and required shell disables in a profile patch. */
