@@ -203,11 +203,11 @@ console.log("mirror helpers ok");
 const clientPath = join(import.meta.dirname, "lib", "client.js");
 assert.ok(existsSync(clientPath), "lib/client.js missing — run `npm run build`");
 const cryptoPolyfill = readFileSync(
-  join(import.meta.dirname, "..", "..", "scripts", "client-runtime", "crypto-polyfill.js"),
+  join(import.meta.dirname, "..", "..", "..", "scripts", "client-runtime", "crypto-polyfill.js"),
   "utf8",
 );
 const glyphFactory = readFileSync(
-  join(import.meta.dirname, "..", "..", "scripts", "client-runtime", "glyph-factory.js"),
+  join(import.meta.dirname, "..", "..", "..", "scripts", "client-runtime", "glyph-factory.js"),
   "utf8",
 );
 const segmentedTabs = readFileSync(
