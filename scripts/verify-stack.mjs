@@ -17,6 +17,7 @@ const stackIds = new Map();
 const publicPackages = new Map();
 const sourceHashes = new Map();
 
+/** Record one verification failure for final reporting. */
 function fail(message) {
   errors.push(message);
 }
