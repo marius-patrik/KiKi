@@ -1,14 +1,6 @@
 [submodule "DSH"]
 	path = DSH
 	url = https://github.com/deepseek-ai/deepseek-harness
-[submodule "ADE"]
-	path = ADE
-	url = https://github.com/marius-patrik/RSCode.git
-	branch = main
-[submodule "Kernel"]
-	path = Kernel
-	url = https://github.com/marius-patrik/omnis.git
-	branch = main
 [submodule "plugins/Memory"]
 	path = plugins/Memory
 	url = https://github.com/marius-patrik/Memory.git
